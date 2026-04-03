@@ -1,0 +1,6 @@
+node_modules/
+server/curon.db
+server/storage/media/*
+!server/storage/media/.gitkeep
+.env
+Notes/

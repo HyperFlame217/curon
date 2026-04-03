@@ -1,0 +1,302 @@
+[
+  {
+    "id": "starter_sofa_01",
+    "name": "Cozy Pink Sofa",
+    "size": [
+      2,
+      1
+    ],
+    "type": "floor",
+    "tier": 0,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": false,
+    "attachmentPoints": [
+      {
+        "x": 8,
+        "y": -12
+      },
+      {
+        "x": -8,
+        "y": -12
+      }
+    ],
+    "interaction": "sit",
+    "assets": {
+      "iso": [
+        "assets/furniture/sofa_pink.png",
+        "assets/furniture/sofa_pink.png",
+        "assets/furniture/sofa_pink.png",
+        "assets/furniture/sofa_pink.png"
+      ],
+      "top": "assets/furniture/sofa_pink.png"
+    },
+    "category": "seating"
+  },
+  {
+    "id": "starter_table_01",
+    "name": "Oak Coffee Table",
+    "size": [
+      2,
+      1
+    ],
+    "type": "floor",
+    "tier": 0,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": true,
+    "attachmentPoints": [
+      {
+        "x": 0,
+        "y": -10
+      }
+    ],
+    "interaction": "none",
+    "assets": {
+      "iso": [
+        "assets/furniture/table_oak.png",
+        "assets/furniture/table_oak.png",
+        "assets/furniture/table_oak.png",
+        "assets/furniture/table_oak.png"
+      ],
+      "top": "assets/furniture/table_oak.png"
+    },
+    "category": "tables"
+  },
+  {
+    "id": "lamp_pixel_01",
+    "name": "Glowing Table Lamp",
+    "size": [
+      1,
+      1
+    ],
+    "type": "tabletop",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 100
+    },
+    "isSurface": false,
+    "interaction": "toggle_light",
+    "assets": {
+      "iso": [
+        "assets/furniture/lamp_mod.png",
+        "assets/furniture/lamp_mod.png",
+        "assets/furniture/lamp_mod.png",
+        "assets/furniture/lamp_mod.png"
+      ],
+      "top": "assets/furniture/lamp_mod.png"
+    },
+    "category": "decor"
+  },
+  {
+    "id": "dining_table_01",
+    "name": "Grand Dining Table",
+    "size": [
+      3,
+      2
+    ],
+    "type": "floor",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": true,
+    "interaction": "none",
+    "assets": {
+      "iso": [
+        "🟫⬆️",
+        "🟫➡️",
+        "🟫⬇️",
+        "🟫⬅️"
+      ],
+      "top": "🟫⬛"
+    },
+    "category": "tables"
+  },
+  {
+    "id": "sofa_mock_01",
+    "name": "Directional Sofa",
+    "size": [
+      3,
+      1
+    ],
+    "type": "floor",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": false,
+    "assets": {
+      "iso": [
+        "🛋️⬆️",
+        "🛋️➡️",
+        "🛋️⬇️",
+        "🛋️⬅️"
+      ],
+      "top": "🛋️⬛"
+    },
+    "category": "seating"
+  },
+  {
+    "id": "bonsai_tree_01",
+    "name": "Potted Bonsai",
+    "size": [
+      1,
+      1
+    ],
+    "type": "tabletop",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": false,
+    "interaction": "inspect",
+    "assets": {
+      "iso": [
+        "🌳",
+        "🌳",
+        "🌳",
+        "🌳"
+      ],
+      "top": "🌳"
+    },
+    "category": "decor"
+  },
+  {
+    "id": "tall_bookshelf_01",
+    "name": "Wall Bookshelf",
+    "size": [
+      3,
+      1
+    ],
+    "type": "floor",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": false,
+    "interaction": "none",
+    "assets": {
+      "iso": [
+        "📚",
+        "📚",
+        "📚",
+        "📚"
+      ],
+      "top": "📚"
+    },
+    "category": "decor"
+  },
+  {
+    "id": "area_rug_01",
+    "name": "Deep Rug",
+    "size": [
+      4,
+      4
+    ],
+    "type": "floor",
+    "tier": 1,
+    "unlock": {
+      "type": "messages",
+      "value": 0
+    },
+    "isSurface": false,
+    "interaction": "none",
+    "isWalkable": true,
+    "canPlaceOver": true,
+    "assets": {
+      "iso": [
+        "🧶",
+        "🧶",
+        "🧶",
+        "🧶"
+      ],
+      "top": "🧶"
+    },
+    "category": "floors"
+  },
+  {
+    "id": "tile_hardwood_01",
+    "name": "Hardwood Floor",
+    "type": "tile",
+    "category": "floors",
+    "tier": 0,
+    "unlock": { "type": "messages", "value": 0 },
+    "applyTo": "floor_sprite",
+    "assets": {
+      "iso": ["🪵"],
+      "top": "🪵",
+      "preview": "🪵",
+      "url": null
+    }
+  },
+  {
+    "id": "tile_stone_01",
+    "name": "Stone Floor",
+    "type": "tile",
+    "category": "floors",
+    "tier": 0,
+    "unlock": { "type": "messages", "value": 0 },
+    "applyTo": "floor_sprite",
+    "assets": {
+      "iso": ["🪨"],
+      "top": "🪨",
+      "preview": "🪨",
+      "url": null
+    }
+  },
+  {
+    "id": "tile_grass_01",
+    "name": "Grass Turf",
+    "type": "tile",
+    "category": "floors",
+    "tier": 0,
+    "unlock": { "type": "messages", "value": 0 },
+    "applyTo": "floor_sprite",
+    "assets": {
+      "iso": ["🌿"],
+      "top": "🌿",
+      "preview": "🌿",
+      "url": null
+    }
+  },
+  {
+    "id": "wall_brick_01",
+    "name": "Brick Wall",
+    "type": "wallpaper",
+    "category": "walls",
+    "tier": 0,
+    "unlock": { "type": "messages", "value": 0 },
+    "applyTo": "wall_sprite",
+    "assets": {
+      "iso": ["🧱"],
+      "top": "🧱",
+      "preview": "🧱",
+      "url": null
+    }
+  },
+  {
+    "id": "wall_wood_01",
+    "name": "Wooden Panels",
+    "type": "wallpaper",
+    "category": "walls",
+    "tier": 0,
+    "unlock": { "type": "messages", "value": 0 },
+    "applyTo": "wall_sprite",
+    "assets": {
+      "iso": ["🪵"],
+      "top": "🪵",
+      "preview": "🪵",
+      "url": null
+    }
+  }
+]

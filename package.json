@@ -1,0 +1,20 @@
+{
+  "name": "curon",
+  "version": "1.0.0",
+  "description": "Self-hosted private communication platform for two users",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch --watch-path=server --watch-path=client server/index.js",
+    "seed": "node server/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "ws": "^8.16.0",
+    "sql.js": "^1.12.0"
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "milestone_100_msgs",
+    "name": "The First Hundred",
+    "trigger": { "type": "milestone", "value": "100_messages" },
+    "random_weight": 1.0,
+    "steps": [
+      {
+        "char_a": "blush",
+        "char_b": "smile",
+        "text": "Can you believe we've sent 100 messages already?",
+        "audio": "milestone_ping"
+      },
+      {
+        "char_a": "heart",
+        "action": "kiss",
+        "text": "Here's to a thousand more!"
+      }
+    ],
+    "result": { "unlock_item": "trophy_heart_01" }
+  },
+  {
+    "id": "milestone_1_month",
+    "name": "One Month Milestone",
+    "trigger": { "type": "anniversary", "value": "1 month" },
+    "random_weight": 1.0,
+    "steps": [
+      {
+        "char_a": "dance",
+        "char_b": "dance",
+        "text": "Happy one month anniversary! The rooftop garden is now unlocked!",
+        "audio": "celebration"
+      }
+    ],
+    "result": { "unlock_room": "rooftop_garden_01" }
+  }
+]

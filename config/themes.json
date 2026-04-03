@@ -1,0 +1,42 @@
+[
+  {
+    "id": "curon_classic",
+    "name": "Classic Curon",
+    "palette": {
+      "sky": "#80b9b1",
+      "deep": "#30253e",
+      "surface": "#ffffff",
+      "forest": "#638872",
+      "highlight": "#94c784",
+      "secondary": "#c3c88c",
+      "offwhite": "#f4f9f8",
+      "accent": "#c3c88c"
+    },
+    "fonts": {
+      "display": "Press Start 2P",
+      "body": "VT323"
+    },
+    "chrome": "assets/themes/classic/chrome.png",
+    "icons": "assets/themes/classic/icons.png"
+  },
+  {
+    "id": "cherry_blossom",
+    "name": "Cherry Blossom",
+    "palette": {
+      "sky": "#fbc4ab",
+      "deep": "#a83a32",
+      "surface": "#ffffff",
+      "forest": "#8c4f4a",
+      "highlight": "#ff9a8b",
+      "secondary": "#ffd6cc",
+      "offwhite": "#fff5f3",
+      "accent": "#ff9a8b"
+    },
+    "fonts": {
+      "display": "Orbitron",
+      "body": "VT323"
+    },
+    "chrome": "assets/themes/cherry/chrome.png",
+    "icons": "assets/themes/cherry/icons.png"
+  }
+]

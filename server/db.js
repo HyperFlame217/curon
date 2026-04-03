@@ -1,0 +1,264 @@
+/**
+ * db.js — SQLite via sql.js (pure JS, no native compilation)
+ *
+ * Key design: sql.js operates entirely in memory. We load from disk on
+ * startup and write back to disk after every mutation. The wrapper
+ * exposes a synchronous-style API matching better-sqlite3.
+ */
+const initSqlJs = require('sql.js');
+const path      = require('path');
+const fs        = require('fs');
+
+const DB_PATH = path.join(__dirname, 'curon.db');
+
+const SCHEMA = `
+  CREATE TABLE IF NOT EXISTS users (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    username              TEXT    NOT NULL UNIQUE,
+    password_hash         TEXT    NOT NULL,
+    public_key            TEXT,
+    encrypted_private_key TEXT,
+    avatar_img            TEXT,
+    house_x               INTEGER DEFAULT 0,
+    house_y               INTEGER DEFAULT 0,
+    created_at            INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS messages (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id           INTEGER NOT NULL,
+    encrypted_content_a TEXT    NOT NULL,
+    encrypted_content_b TEXT    NOT NULL,
+    encrypted_key_a     TEXT    NOT NULL,
+    encrypted_key_b     TEXT    NOT NULL,
+    iv                  TEXT    NOT NULL,
+    media_id            INTEGER,
+    deleted_by_a        INTEGER NOT NULL DEFAULT 0,
+    deleted_by_b        INTEGER NOT NULL DEFAULT 0,
+    read_at             INTEGER,
+    created_at          INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS reactions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    emoji      TEXT    NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    UNIQUE(message_id, user_id, emoji)
+  );
+  CREATE TABLE IF NOT EXISTS media (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    uploader_id INTEGER NOT NULL,
+    filename    TEXT    NOT NULL,
+    mime_type   TEXT    NOT NULL,
+    size_bytes  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS custom_emojis (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL UNIQUE,
+    filename    TEXT    NOT NULL,
+    uploader_id INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS houses (
+    id          TEXT PRIMARY KEY,
+    room_id     TEXT NOT NULL,
+    item_id     TEXT NOT NULL,
+    x           INTEGER NOT NULL,
+    y           INTEGER NOT NULL,
+    dir         INTEGER NOT NULL DEFAULT 0,
+    parent_id   TEXT,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS milestones (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    date        INTEGER NOT NULL,
+    created_by  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS user_coins (
+    user_id     INTEGER PRIMARY KEY,
+    balance     INTEGER NOT NULL DEFAULT 0
+  );
+
+
+`;
+
+// ── Save in-memory DB to disk ────────────────────────────────
+function persist(rawDb) {
+  const data = rawDb.export();
+  fs.writeFileSync(DB_PATH, Buffer.from(data));
+}
+
+// ── Statement wrapper ────────────────────────────────────────
+class Statement {
+  constructor(rawDb, sql) {
+    this._db  = rawDb;
+    this._sql = sql;
+  }
+
+  get(...params) {
+    const stmt = this._db.prepare(this._sql);
+    stmt.bind(params);
+    const row = stmt.step() ? stmt.getAsObject() : null;
+    stmt.free();
+    return row;
+  }
+
+  all(...params) {
+    const stmt = this._db.prepare(this._sql);
+    stmt.bind(params);
+    const rows = [];
+    while (stmt.step()) rows.push(stmt.getAsObject());
+    stmt.free();
+    return rows;
+  }
+
+  run(...params) {
+    const stmt = this._db.prepare(this._sql);
+    stmt.bind(params);
+    stmt.step();
+    stmt.free();
+    const changes = this._db.getRowsModified();
+    // Get last insert rowid via a separate query
+    const ridStmt = this._db.prepare('SELECT last_insert_rowid() as r');
+    ridStmt.step();
+    const lastInsertRowid = ridStmt.getAsObject().r;
+    ridStmt.free();
+    persist(this._db);
+    return { lastInsertRowid, changes };
+  }
+}
+
+class Db {
+  constructor(rawDb) {
+    this._db = rawDb;
+  }
+  prepare(sql) {
+    return new Statement(this._db, sql);
+  }
+  exec(sql) {
+    this._db.run(sql);
+    persist(this._db);
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────
+let _dbPromise = null;
+
+function getDb() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = initSqlJs().then(SQL => {
+    // Load existing DB from disk, or create fresh
+    const fileData = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
+    const rawDb    = fileData ? new SQL.Database(fileData) : new SQL.Database();
+
+    // Apply schema (CREATE TABLE IF NOT EXISTS is idempotent)
+    rawDb.run(SCHEMA);
+
+    // Add key columns to existing DBs (safe: errors ignored)
+    try { rawDb.run('ALTER TABLE users ADD COLUMN public_key TEXT'); }            catch {}
+    try { rawDb.run('ALTER TABLE users ADD COLUMN avatar_img TEXT'); }            catch {}
+    try { rawDb.run('ALTER TABLE users ADD COLUMN house_x INTEGER DEFAULT 0'); } catch {}
+    try { rawDb.run('ALTER TABLE users ADD COLUMN house_y INTEGER DEFAULT 0'); } catch {}
+  try { rawDb.run('ALTER TABLE messages ADD COLUMN read_at INTEGER'); } catch {}
+  try { rawDb.run('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER'); } catch {}
+  // Add missing columns to events table if they don't exist
+  try { rawDb.run("ALTER TABLE events ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none'"); } catch {}
+  try { rawDb.run("ALTER TABLE events ADD COLUMN recurrence_end INTEGER"); } catch {}
+  try { rawDb.run("ALTER TABLE events ADD COLUMN notes TEXT"); } catch {}
+  try { rawDb.run("ALTER TABLE events ADD COLUMN color TEXT NOT NULL DEFAULT '#80b9b1'"); } catch {}
+  try { rawDb.run(`CREATE TABLE IF NOT EXISTS events (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    title             TEXT NOT NULL,
+    notes             TEXT,
+    color             TEXT NOT NULL DEFAULT '#80b9b1',
+    start_time        INTEGER NOT NULL,
+    end_time          INTEGER NOT NULL,
+    created_by        INTEGER NOT NULL REFERENCES users(id),
+    recurrence        TEXT NOT NULL DEFAULT 'none',
+    recurrence_end    INTEGER
+  )`); } catch {}
+  try { rawDb.run(`CREATE TABLE IF NOT EXISTS schedule_blocks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id),
+    label        TEXT NOT NULL,
+    color        TEXT NOT NULL DEFAULT '#94c784',
+    start_minute INTEGER NOT NULL,
+    end_minute   INTEGER NOT NULL,
+    day_type     TEXT NOT NULL DEFAULT 'weekday'
+  )`); } catch {}
+  try { rawDb.run(`CREATE TABLE IF NOT EXISTS notes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    author_id  INTEGER NOT NULL REFERENCES users(id),
+    content    TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  )`); } catch {}
+  try { rawDb.run(`CREATE TABLE IF NOT EXISTS spotify_tokens (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
+    access_token  TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    expires_at    INTEGER NOT NULL
+  )`); } catch {}
+  try { rawDb.run(`CREATE TABLE IF NOT EXISTS custom_emojis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    filename TEXT NOT NULL,
+    uploader_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  )`); } catch {}
+    try { rawDb.run('ALTER TABLE users ADD COLUMN encrypted_private_key TEXT'); } catch {}
+    // Self-healing migration for houses table (INTEGER -> TEXT id)
+    try {
+      const info = rawDb.prepare('PRAGMA table_info(houses)');
+      let idType = '';
+      while (info.step()) { const col = info.getAsObject(); if (col.name === 'id') idType = col.type; }
+      info.free();
+      if (idType.toUpperCase() === 'INTEGER') {
+        console.warn("[db] Repairing houses table: ID should be TEXT but is INTEGER.");
+        rawDb.run('DROP TABLE houses');
+      }
+    } catch {}
+
+    try { rawDb.run(`CREATE TABLE IF NOT EXISTS houses (
+    id          TEXT PRIMARY KEY,
+    room_id     TEXT NOT NULL,
+    item_id     TEXT NOT NULL,
+    x           INTEGER NOT NULL,
+    y           INTEGER NOT NULL,
+    dir         INTEGER NOT NULL DEFAULT 0,
+    parent_id   TEXT,
+    slot_index  INTEGER,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  )`); } catch {}
+  try { rawDb.run('ALTER TABLE houses ADD COLUMN slot_index INTEGER'); } catch {}
+    try { rawDb.run('ALTER TABLE houses ADD COLUMN dir INTEGER NOT NULL DEFAULT 0'); } catch {}
+    try { rawDb.run(`CREATE TABLE IF NOT EXISTS milestones (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    date        INTEGER NOT NULL,
+    created_by  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  )`); } catch {}
+    try { rawDb.run(`CREATE TABLE IF NOT EXISTS user_coins (
+    user_id     INTEGER PRIMARY KEY,
+    balance     INTEGER NOT NULL DEFAULT 0
+  )`); } catch {}
+    try { rawDb.run(`CREATE TABLE IF NOT EXISTS house_rooms (
+    id           TEXT PRIMARY KEY,
+    wall_sprite  TEXT,
+    floor_sprite TEXT,
+    updated_at   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  )`); } catch {}
+
+    // Persist once after schema setup
+    persist(rawDb);
+
+    console.log('[db] ready:', DB_PATH, fs.statSync(DB_PATH).size + ' bytes');
+    return new Db(rawDb);
+  });
+  return _dbPromise;
+}
+
+module.exports = getDb();

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "mochi_calico_01",
+    "name": "Mochi",
+    "sprite_strip": "assets/cats/calico_strip.png",
+    "behaviors": {
+      "roam": { "frames": [0, 1, 2, 1], "speed": 0.5 },
+      "sleep": { "frames": [4, 5], "speed": 0.1 },
+      "eat": { "frames": [6, 7, 8], "speed": 0.3 }
+    },
+    "rarity": "Starter"
+  },
+  {
+    "id": "Luna_shadow_01",
+    "name": "Luna",
+    "sprite_strip": "assets/cats/black_strip.png",
+    "behaviors": {
+      "roam": { "frames": [0, 1, 2, 1], "speed": 0.6 },
+      "sleep": { "frames": [3, 4], "speed": 0.05 },
+      "hunt": { "frames": [9, 10], "speed": 0.8 }
+    },
+    "rarity": "Secret"
+  }
+]

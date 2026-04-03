@@ -1,0 +1,34 @@
+/** Single source of truth for all WebSocket event type strings */
+module.exports = {
+  // ── client → server ──────────────────────────────────────
+  C_MESSAGE_SEND:          'message_send',
+  C_MESSAGE_REACT:         'message_react',
+  C_MESSAGE_REACT_REMOVE:  'message_react_remove',
+  C_TYPING_START:          'typing_start',
+  C_TYPING_STOP:           'typing_stop',
+  C_PRESENCE_HEARTBEAT:    'presence_heartbeat',
+  C_CALL_OFFER:            'call_offer',
+  C_CALL_ANSWER:           'call_answer',
+  C_CALL_ICE:              'call_ice_candidate',
+  C_CALL_END:              'call_end',
+  C_HOUSE_UPDATE:          'house_update',
+  C_CHAR_MOVE:             'char_move',
+
+  // ── server → client ──────────────────────────────────────
+  S_MESSAGE_NEW:            'message_new',
+  S_MESSAGE_STATUS:         'message_status',
+  S_MESSAGE_REACTION:       'message_reaction',
+  S_MESSAGE_REACTION_REMOVED:'message_reaction_removed',
+  S_TYPING:                 'typing',
+  S_PRESENCE_UPDATE:        'presence_update',
+  S_CALL_OFFER:             'call_offer',
+  S_CALL_ANSWER:            'call_answer',
+  S_CALL_ICE:               'call_ice_candidate',
+  S_CALL_ENDED:             'call_ended',
+  S_ERROR:                  'error',
+  S_EMOJI_UPDATED:          'emoji_updated',
+  S_NOTE_ADD:               'note_add',
+  S_NOTE_DELETE:            'note_delete',
+  S_HOUSE_UPDATE:           'house_update',
+  S_CHAR_MOVE:              'char_move',
+};
