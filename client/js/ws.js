@@ -57,5 +57,6 @@
         case 'house_update': return onHouseUpdate(msg);
         case 'char_move': return onCharMove(msg);
         case 'social_interaction': return onSocialInteraction(msg);
+        case 'room_update': return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
       }
     }

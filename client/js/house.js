@@ -241,38 +241,36 @@
 
     function applyTexture(item) {
       const room = HOUSE_STATE.rooms[0];
-      if (!room) return;
+      if (!room) {
+        console.error("[House] No active room found to apply texture to.");
+        return;
+      }
 
-      const target = item.applyTo; // 'floor_sprite' or 'wall_sprite'
+      const target = item.applyTo; 
       if (!target) return;
 
-      // Use either the asset URL (for PNGs) or the emoji/text directly
       const textureVal = item.assets?.url || item.assets?.iso?.[0] || null;
+      console.log(`[House] Applying ${target} = ${textureVal} to room ${room.id}`);
       room[target] = textureVal;
 
       renderHouse();
       showToast(`APPLIED: ${item.name.toUpperCase()}`);
-      syncRoomSettings(room);
+      
+      wsSend('room_update', {
+        id: room.id,
+        [target]: textureVal
+      });
     }
 
-    async function syncRoomSettings(room) {
-      if (!room || !room.id) room.id = 'default_room';
-      try {
-        await fetch('/house/room', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${STATE.token}`
-          },
-          body: JSON.stringify({
-            id: room.id,
-            wall_sprite: room.wall_sprite,
-            floor_sprite: room.floor_sprite
-          })
-        });
-      } catch (e) {
-        console.error("[House] Room sync failed", e);
-      }
+    function onRoomUpdate(data) {
+      const room = HOUSE_STATE.rooms.find(r => r.id === data.id);
+      if (!room) return;
+      
+      if (data.wall_sprite !== undefined) room.wall_sprite = data.wall_sprite;
+      if (data.floor_sprite !== undefined) room.floor_sprite = data.floor_sprite;
+      
+      renderHouse();
+      showToast("ROOM UPDATED");
     }
 
     function getSpriteHTML(val) {
@@ -290,27 +288,35 @@
         });
         const data = await res.json();
 
-        // 1. Load Rooms (Fallback to config if empty)
-        if (!data || !data.rooms || data.rooms.length === 0) {
-          const defaultRoom = CONFIG.ROOMS?.[0] || { id: 'default_room', name: 'Main Room', grid_size: [10, 10] };
-          HOUSE_STATE.rooms = [defaultRoom];
-        } else {
-          HOUSE_STATE.rooms = data.rooms;
-        }
+        // 1. Load Rooms (Merge DB overrides into CONFIG.ROOMS)
+        const configRooms = CONFIG.ROOMS || [];
+        const dbRooms = data.rooms || [];
+        console.log("[House] Loaded DB Rooms:", dbRooms);
+        
+        HOUSE_STATE.rooms = configRooms.map(cRoom => {
+          const dbRoom = dbRooms.find(r => r.id === cRoom.id);
+          if (dbRoom) {
+            console.log(`[House] Overriding room ${cRoom.id} with DB traits`);
+            return {
+              ...cRoom,
+              wall_sprite: dbRoom.wall_sprite !== null ? dbRoom.wall_sprite : cRoom.wall_sprite,
+              floor_sprite: dbRoom.floor_sprite !== null ? dbRoom.floor_sprite : cRoom.floor_sprite
+            };
+          }
+          return cRoom;
+        });
 
-        // 2. Load Furniture (This was previously trapped inside the else block!)
+        // 2. Load Furniture
         HOUSE_STATE.placement = (data?.placement || []).map(p => ({
           ...p,
-          config_id: p.item_id, // Normalize DB item_id to client config_id
+          config_id: p.item_id, 
           dir: p.dir || 0
         }));
 
         renderHouse();
       } catch (e) {
         console.error("[House] Load failed", e);
-        // Fallback to local config
-        const fallback = CONFIG.ROOMS[0] || { name: 'Main Room', grid_size: [20, 20] };
-        HOUSE_STATE.rooms = [fallback];
+        HOUSE_STATE.rooms = CONFIG.ROOMS || [{ id: 'default_room', name: 'Main Room', grid_size: [10, 10] }];
         renderHouse();
       }
     }

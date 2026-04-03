@@ -199,11 +199,11 @@ function setup(server) {
             if (action === 'place') {
               const existing = db.prepare('SELECT id FROM houses WHERE id = ?').get(item.id);
               if (existing) {
-                db.prepare('UPDATE houses SET x = ?, y = ?, dir = ?, room_id = ?, parent_id = ? WHERE id = ?')
-                  .run(Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.room_id || 'default_room', item.parent_id || null, item.id);
+                db.prepare('UPDATE houses SET x = ?, y = ?, dir = ?, room_id = ?, parent_id = ?, slot_index = ? WHERE id = ?')
+                  .run(Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.room_id || 'default_room', item.parent_id || null, item.slot_index !== undefined ? item.slot_index : null, item.id);
               } else {
-                db.prepare('INSERT INTO houses (id, room_id, item_id, x, y, dir, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                  .run(item.id, item.room_id || 'default_room', item.item_id || item.config_id, Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.parent_id || null);
+                db.prepare('INSERT INTO houses (id, room_id, item_id, x, y, dir, parent_id, slot_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                  .run(item.id, item.room_id || 'default_room', item.item_id || item.config_id, Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.parent_id || null, item.slot_index !== undefined ? item.slot_index : null);
               }
             } else if (action === 'remove') {
               db.prepare('DELETE FROM houses WHERE id = ?').run(item.id);
@@ -212,6 +212,24 @@ function setup(server) {
 
           const other = presence.getOtherWs(user.id);
           if (other) send(other, EV.S_HOUSE_UPDATE, msg);
+          break;
+        }
+        case 'room_update': {
+          const { id, wall_sprite, floor_sprite } = msg;
+          if (!id) break;
+          try {
+            const existing = db.prepare('SELECT id FROM house_rooms WHERE id = ?').get(id);
+            if (existing) {
+              if (wall_sprite !== undefined) db.prepare('UPDATE house_rooms SET wall_sprite = ? WHERE id = ?').run(wall_sprite, id);
+              if (floor_sprite !== undefined) db.prepare('UPDATE house_rooms SET floor_sprite = ? WHERE id = ?').run(floor_sprite, id);
+            } else {
+              db.prepare('INSERT INTO house_rooms (id, wall_sprite, floor_sprite) VALUES (?, ?, ?)')
+                .run(id, wall_sprite || null, floor_sprite || null);
+            }
+          } catch (e) { console.error('[WS/Room] Save failed:', e); }
+          
+          const other = presence.getOtherWs(user.id);
+          if (other) send(other, 'room_update', msg);
           break;
         }
         case EV.C_CHAR_MOVE: {
