@@ -108,6 +108,10 @@
     },
     "isSurface": true,
     "interaction": "none",
+    "attachmentPoints": [
+      { "x": 16, "y": -40 },
+      { "x": -16, "y": -40 }
+    ],
     "assets": {
       "iso": [
         "🟫⬆️",
@@ -133,6 +137,12 @@
       "value": 0
     },
     "isSurface": false,
+    "interaction": "sit",
+    "attachmentPoints": [
+      { "x": 16, "y": -12 },
+      { "x": 0, "y": -12 },
+      { "x": -16, "y": -12 }
+    ],
     "assets": {
       "iso": [
         "🛋️⬆️",
@@ -183,8 +193,12 @@
       "type": "messages",
       "value": 0
     },
-    "isSurface": false,
+    "isSurface": true,
     "interaction": "none",
+    "attachmentPoints": [
+      { "x": 16, "y": -32 },
+      { "x": -16, "y": -32 }
+    ],
     "assets": {
       "iso": [
         "📚",
@@ -209,10 +223,11 @@
       "type": "messages",
       "value": 0
     },
-    "isSurface": false,
+    "isSurface": true,
     "interaction": "none",
-    "isWalkable": true,
-    "canPlaceOver": true,
+    "attachmentPoints": [
+      { "x": 0, "y": -5 }
+    ],
     "assets": {
       "iso": [
         "🧶",

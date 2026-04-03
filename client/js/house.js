@@ -550,11 +550,11 @@
             if (item.slot_index !== null && item.slot_index !== undefined && parentCfg.attachmentPoints?.[item.slot_index]) {
               const pt = parentCfg.attachmentPoints[item.slot_index];
               offsetX = pt.x || 0;
-              offsetY = pt.y || 0;
+              offsetY = isDraft ? 0 : (pt.y || 0); // Ignore height in blueprint view
             } 
             // Priority 2: Generic surface height
             else if (parentCfg.isSurface) {
-              offsetY = -12; // Static default for surfaces with no points
+              offsetY = isDraft ? 0 : -12; // Ignore height in blueprint view
             }
           }
         }
@@ -1295,9 +1295,9 @@
             if (child.slot_index !== null && child.slot_index !== undefined && parentCfg.attachmentPoints?.[child.slot_index]) {
               const pt = parentCfg.attachmentPoints[child.slot_index];
               offsetX = pt.x || 0;
-              offsetY = pt.y || 0;
+              offsetY = isDraft ? 0 : (pt.y || 0);
             } else if (parentCfg.isSurface) {
-              offsetY = -12;
+              offsetY = isDraft ? 0 : -12;
             }
           }
 
