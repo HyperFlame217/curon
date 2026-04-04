@@ -89,17 +89,17 @@ Open `http://localhost:3000` in your browser.
 ## Project Structure
 
 ```
-curon/
 ├── server/
 │   ├── index.js          # Entry point & route registration
 │   ├── db.js             # sql.js wrapper + schema migrations
 │   ├── auth.js           # JWT middleware
-│   ├── crypto.js         # Server-side cipher validation
-│   ├── seed.js           # One-time user setup
-│   ├── routes/           # REST API (Notes, Stats, Calendar, Spotify, Emojis, Avatars)
-│   └── ws/               # WebSocket handlers (Chat, Presence, Signaling)
+│   ├── routes/           # REST API (Notes, Stats, Calendar, Spotify, House)
+│   └── ws/               # WebSocket handlers (Chat, House Sync, Presence)
 ├── client/
-│   └── index.html        # Monolithic client (HTML/CSS/JS)
+│   ├── js/               # Modularized logic (house.js, ws.js, etc.)
+│   └── index.html        # Main entry point
+├── config/               # JSON-based asset catalogs (furniture, rooms, cats)
+├── assets/               # Pixel-art textures, sprites, and tiles
 ├── storage/              # Persistent media and avatar storage
 ├── .env
 └── package.json
@@ -119,9 +119,31 @@ curon/
 ## Core Features
 
 - [x] **E2E Chat**: Real-time messaging with reactions, replies, and search.
-- [x] **Media Gallery**: Encrypted photo/video sharing and GIF support.
+- [x] **Isometric House**: A 2.5D shared home with furniture placement and room customization.
+- [x] **Persistence**: Full SQLite storage for room textures and furniture layouts.
+- [x] **Real-time Sync**: WebSocket-driven movement and design updates for partners.
+- [x] **Surface Stacking**: Intelligent "tabletop" logic for placing items on desks/tables.
 - [x] **Shared Calendar**: Manage events and recurring milestones.
 - [x] **Sync Schedule**: Visual timeline for daily routines and timezones.
 - [x] **Spotify Sync**: See what each other is listening to in real-time.
 - [x] **Voice & Video**: High-quality WebRTC calls for both desktop and mobile.
 - [x] **Notes Board**: Pin shared notes to a virtual board.
+- [x] **Media Gallery**: Encrypted photo/video sharing and GIF support.
+
+---
+
+## 🚧 Undergoing Operations
+
+- **Modular Art Redesign**: Upgrading all assets to a **2-pixel base** (furniture) and **4-pixel base** (room tiles) for a premium, hand-crafted feel.
+- **Custom Outfits**: Implementing a multi-layer PNG rendering engine for characters.
+- **Inventory Expansion**: Populating the house catalog with 50+ unique items.
+
+---
+
+## 🗺️ Roadmap & Planned Features
+
+- **Mansion Expansion**: Support for multiple interconnected rooms with working doors and transition triggers.
+- **Cat AI**: Roaming felines that interact with furniture (loafing on sofas, sleeping on beds).
+- **Dynamic Lighting**: Real-time Night Mode with window shadows and glowing lamp effects.
+- **Shop System**: A "Universal Shop" for unlocking new furniture tiers based on message streaks.
+- **Memory Wall**: A special room for displaying framed photos from the Media Gallery.
