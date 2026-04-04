@@ -89,20 +89,55 @@ Open `http://localhost:3000` in your browser.
 ## Project Structure
 
 ```
-├── server/
-│   ├── index.js          # Entry point & route registration
-│   ├── db.js             # sql.js wrapper + schema migrations
-│   ├── auth.js           # JWT middleware
-│   ├── routes/           # REST API (Notes, Stats, Calendar, Spotify, House)
-│   └── ws/               # WebSocket handlers (Chat, House Sync, Presence)
 ├── client/
-│   ├── js/               # Modularized logic (house.js, ws.js, etc.)
-│   └── index.html        # Main entry point
-├── config/               # JSON-based asset catalogs (furniture, rooms, cats)
-├── assets/               # Pixel-art textures, sprites, and tiles
-├── storage/              # Persistent media and avatar storage
-├── .env
-└── package.json
+│   ├── js/
+│   │   ├── calendar.js     # Shared calendar logic
+│   │   ├── calls.js        # WebRTC & signaling UI
+│   │   ├── chat.js         # Messaging & E2EE logic
+│   │   ├── emojis.js       # Reaction & Emoji Picker
+│   │   ├── gallery.js      # Media viewer & encryption
+│   │   ├── house.js        # Isometric engine & furniture
+│   │   ├── integrations.js # Spotify & external sync
+│   │   ├── notes.js        # Virtual board & sticky notes
+│   │   ├── search.js       # Message & global search
+│   │   ├── ui.js           # Shared layout & modals
+│   │   ├── utils.js        # Crypto & helper functions
+│   │   └── ws.js           # Client-side WebSocket manager
+│   └── index.html          # Main HTML5 entry point
+├── server/
+│   ├── routes/
+│   │   ├── auth.js         # JWT & login endpoints
+│   │   ├── calendar.js     # Shared event storage
+│   │   ├── clearchat.js    # Data deletion utility
+│   │   ├── emojis.js       # Custom reaction endpoints
+│   │   ├── gifs.js         # Giphy integration API
+│   │   ├── houses.js       # Persistence for House state
+│   │   ├── keys.js         # E2EE key exchange endpoints
+│   │   ├── media.js        # Encrypted storage & uploads
+│   │   ├── messages.js     # Chat history & storage
+│   │   ├── notes.js        # Sticky note persistence
+│   │   ├── spotify.js      # OAuth & playback sync
+│   │   └── stats.js        # Relationship milestones
+│   ├── ws/
+│   │   ├── events.js       # Shared event type constants
+│   │   ├── handler.js      # WebSocket message dispatcher
+│   │   └── presence.js     # Real-time activity tracking
+│   ├── auth.js             # Token middleware
+│   ├── crypto.js           # Server-side validation
+│   ├── db.js               # sql.js wrapper & schema
+│   ├── index.js            # Node/Express app root
+│   ├── seed.js             # One-time USERS setup
+│   └── curon.db            # Persistent binary database
+├── config/
+│   ├── cats.json           # Definitions for AI pets
+│   ├── furniture.json      # Complete furniture catalog
+│   ├── rooms.json          # Master room templates
+│   ├── stories.json        # Shared memory history
+│   └── themes.json         # Custom UI color profiles
+├── Notes/                  # Dev guides & checklists
+├── storage/                # Media, avatars, & GIF files
+├── .env                    # Environment secrets
+└── package.json            # Node dependencies & scripts
 ```
 
 ---
