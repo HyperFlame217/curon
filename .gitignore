@@ -4,3 +4,4 @@ server/storage/media/*
 !server/storage/media/.gitkeep
 .env
 Notes/
+scripts/
