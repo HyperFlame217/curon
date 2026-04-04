@@ -90,6 +90,7 @@
         }
       } finally {
         _historyLoading = false;
+        if (window.wsSend && !before) wsSend('message_read');
       }
     }
 
@@ -127,6 +128,7 @@
         const next = _incQueue.shift();
         await processNewMsg(next);
       }
+      if (window.wsSend && msg.sender_id !== STATE.user?.id) wsSend('message_read');
     }
 
     async function processNewMsg(msg) {
@@ -147,14 +149,19 @@
 
     function onMessageStatus(msg) {
       const labels = { sent: '>> SENT ✓', delivered: '>> DELIVERED ✓✓', read: '>> SEEN ✓✓' };
+      const priority = { sent: 0, delivered: 1, read: 2 };
       if (!labels[msg.status]) return;
       let attempts = 0;
       const findAndUpdate = () => {
-        const row = document.querySelector(`.row[data-msg-id="${msg.id}"]`);
-        if (row) {
-          const rcpt = row.querySelector('.rcpt');
+        const bubble = document.querySelector(`.bw[data-msg-id="${msg.id}"]`);
+        if (bubble) {
+          const rcpt = bubble.querySelector('.rcpt');
           if (rcpt) {
-            rcpt.textContent = labels[msg.status];
+            const txt = rcpt.textContent;
+            const currentStatus = txt.includes('SEEN') ? 'read' : (txt.includes('DELIVERED') ? 'delivered' : 'sent');
+            if (priority[msg.status] > priority[currentStatus]) {
+              rcpt.textContent = labels[msg.status];
+            }
             return;
           }
         }

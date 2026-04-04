@@ -23,9 +23,31 @@
       ws.addEventListener('error', () => ws.close());
     }
 
-    function wsSend(type, payload = {}) {
-      if (STATE.ws && STATE.ws.readyState === WebSocket.OPEN)
+    let _wsBatch = [];
+    let _wsBatchTimer = null;
+
+    function wsSend(type, payload = {}, options = {}) {
+      if (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN) return;
+
+      if (options.batch) {
+        // Deduplicate high-frequency updates (keep latest per type/charId)
+        if (type === 'char_move') {
+          _wsBatch = _wsBatch.filter(m => !(m.type === 'char_move' && m.charId === payload.charId));
+        }
+        _wsBatch.push({ type, ...payload });
+
+        if (!_wsBatchTimer) {
+          _wsBatchTimer = setTimeout(() => {
+            if (_wsBatch.length > 0) {
+              STATE.ws.send(JSON.stringify({ type: 'bundle', messages: _wsBatch }));
+              _wsBatch = [];
+            }
+            _wsBatchTimer = null;
+          }, 50); // 50ms window is perfect for real-time responsiveness
+        }
+      } else {
         STATE.ws.send(JSON.stringify({ type, ...payload }));
+      }
     }
 
     setInterval(() => wsSend('presence_heartbeat'), 30000);

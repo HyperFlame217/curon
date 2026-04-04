@@ -48,6 +48,8 @@
       muted: false,
       camOff: false,
       sharing: false,
+      _iceBuffer: [],
+      _iceTimer: null,
     };
 
     // ── WS event handlers ─────────────────────────────────────────
@@ -67,7 +69,14 @@
 
     function onCallIce(msg) {
       if (!CALL.pc) return;
-      CALL.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(console.error);
+      if (msg.candidates && Array.isArray(msg.candidates)) {
+        console.log(`[ICE] Adding batch of ${msg.candidates.length} candidates`);
+        msg.candidates.forEach(c => {
+          if (c) CALL.pc.addIceCandidate(new RTCIceCandidate(c)).catch(console.error);
+        });
+      } else if (msg.candidate) {
+        CALL.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(console.error);
+      }
     }
 
     function onCallEnded() {
@@ -151,7 +160,19 @@
       CALL.pc = new RTCPeerConnection(STUN);
 
       CALL.pc.onicecandidate = (e) => {
-        if (e.candidate) wsSend('call_ice_candidate', { candidate: e.candidate });
+        if (!e.candidate) return;
+        
+        // Bundle ICE candidates to reduce signaling overhead
+        CALL._iceBuffer.push(e.candidate);
+        if (!CALL._iceTimer) {
+          CALL._iceTimer = setTimeout(() => {
+            if (CALL._iceBuffer.length > 0) {
+              wsSend('call_ice_candidate', { candidates: CALL._iceBuffer });
+              CALL._iceBuffer = [];
+            }
+            CALL._iceTimer = null;
+          }, 150);
+        }
       };
 
       CALL.pc.ontrack = (e) => {
@@ -270,6 +291,10 @@
       CALL.camOff = false;
       CALL.sharing = false;
       CALL.pendingOffer = null;
+      
+      if (CALL._iceTimer) clearTimeout(CALL._iceTimer);
+      CALL._iceTimer = null;
+      CALL._iceBuffer = [];
 
       // Clean up remote audio element
       if (_remoteAudio) {

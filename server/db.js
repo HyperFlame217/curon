@@ -86,9 +86,37 @@ const SCHEMA = `
 `;
 
 // ── Save in-memory DB to disk ────────────────────────────────
-function persist(rawDb) {
-  const data = rawDb.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
+// ── Persistence Throttling ───────────────────────────────────
+let _persistTimeout = null;
+let _isDirty = false;
+
+function persist(rawDb, force = false) {
+  _isDirty = true;
+  if (force) {
+    if (_persistTimeout) clearTimeout(_persistTimeout);
+    _writeToDisk(rawDb);
+    return;
+  }
+  if (!_persistTimeout) {
+    _persistTimeout = setTimeout(() => {
+      _writeToDisk(rawDb);
+      _persistTimeout = null;
+    }, 500);
+  }
+}
+
+function _writeToDisk(rawDb) {
+  if (!_isDirty) return;
+  const start = Date.now();
+  try {
+    const data = rawDb.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+    _isDirty = false;
+    const dur = Date.now() - start;
+    if (dur > 30) console.log(`[db] Persisted to disk (${dur}ms)`);
+  } catch (e) {
+    console.error('[db] Disk write failed:', e.message);
+  }
 }
 
 // ── Statement wrapper ────────────────────────────────────────
@@ -121,7 +149,6 @@ class Statement {
     stmt.step();
     stmt.free();
     const changes = this._db.getRowsModified();
-    // Get last insert rowid via a separate query
     const ridStmt = this._db.prepare('SELECT last_insert_rowid() as r');
     ridStmt.step();
     const lastInsertRowid = ridStmt.getAsObject().r;
@@ -149,15 +176,18 @@ let _dbPromise = null;
 
 function getDb() {
   if (_dbPromise) return _dbPromise;
-  _dbPromise = initSqlJs().then(SQL => {
-    // Load existing DB from disk, or create fresh
+  _dbPromise = initSqlJs().then(async SQL => {
     const fileData = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
     const rawDb    = fileData ? new SQL.Database(fileData) : new SQL.Database();
 
-    // Apply schema (CREATE TABLE IF NOT EXISTS is idempotent)
     rawDb.run(SCHEMA);
 
-    // Add key columns to existing DBs (safe: errors ignored)
+    // Apply performance indexes
+    try {
+      const p = path.join(__dirname, 'migrations', '001_performance_indexes.sql');
+      if (fs.existsSync(p)) rawDb.run(fs.readFileSync(p, 'utf8'));
+    } catch(e) { console.warn("[db] Migration failed:", e.message); }
+
     try { rawDb.run('ALTER TABLE users ADD COLUMN public_key TEXT'); }            catch {}
     try { rawDb.run('ALTER TABLE users ADD COLUMN avatar_img TEXT'); }            catch {}
     try { rawDb.run('ALTER TABLE users ADD COLUMN house_x INTEGER DEFAULT 0'); } catch {}

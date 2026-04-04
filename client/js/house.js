@@ -85,6 +85,7 @@
     const HOUSE_STATE = {
       blueprintMode: false,
       inventoryOpen: false,
+      _needsRender: true, // Signal to rAF loop
       rooms: [],      // From rooms.json + DB overrides
       placement: [],  // [{ id, config_id, x, y, z }]
       lastSocialTime: 0, 
@@ -144,10 +145,21 @@
     }
 
     async function initHouseSystem() {
-      // Character Assignment
+      // 1. Character/Outfit Assignment (Fallback Chain: Storage -> Sprite -> Emoji)
+      const getAvatarOutfit = (isMe) => {
+        const avatar = isMe ? (window.getMyAvatar ? getMyAvatar() : null) : (window.getOtherAvatar ? getOtherAvatar() : null);
+        if (avatar) return [avatar]; // Priority: Avatar from DB/Storage
+        
+        const isUserA = (STATE.user && STATE.user.id == STATE.userAId);
+        if (isMe) return [isUserA ? '🚶' : '👧']; 
+        return [isUserA ? '👧' : '🚶'];
+      };
+
+      HOUSE_STATE.player.outfit = getAvatarOutfit(true);
+      HOUSE_STATE.partner.outfit = getAvatarOutfit(false);
+
+      // 2. Position Sync
       if (STATE.user && STATE.user.id != STATE.userAId) {
-        HOUSE_STATE.player.outfit = ['👧'];
-        HOUSE_STATE.partner.outfit = ['🚶'];
         HOUSE_STATE.player.x = 5; HOUSE_STATE.player.y = 5;
         HOUSE_STATE.partner.x = 0; HOUSE_STATE.partner.y = 0;
       }
@@ -343,7 +355,12 @@
     let _lastRoomId = null;
     let _lastMode = null;
 
+    /** Throttled wrapper for rAF loop */
     function renderHouse() {
+      HOUSE_STATE._needsRender = true;
+    }
+
+    function syncRenderHouse() {
       const container = document.getElementById('house-grid');
       if (!container) return;
 
@@ -476,8 +493,10 @@
           container.appendChild(el);
         }
 
-        el.classList.toggle('dragging', HOUSE_STATE._drag.itemId === item.id);
-        el.classList.toggle('selected', HOUSE_STATE._drag.selectedId === item.id);
+        const isDragging = HOUSE_STATE._drag.itemId === item.id;
+        const isSelected = HOUSE_STATE._drag.selectedId === item.id;
+        if (el.dataset.dragging !== String(isDragging)) { el.classList.toggle('dragging', isDragging); el.dataset.dragging = isDragging; }
+        if (el.dataset.selected !== String(isSelected)) { el.classList.toggle('selected', isSelected); el.dataset.selected = isSelected; }
 
         let spriteVal = '❓';
         let useCssRotation = false;
@@ -491,16 +510,17 @@
           }
         }
 
-        const html = `
-          ${getSpriteHTML(spriteVal)}
-          <div class="house-item-actions">
-            <div class="action-handle rotate-btn" data-id="${item.id}">🔄</div>
-            <div class="action-handle danger delete-btn" data-id="${item.id}">🗑</div>
-          </div>
-        `;
-        if (el.dataset.lastHtml !== html) {
-          el.innerHTML = html;
-          el.dataset.lastHtml = html;
+        // 🧮 Sprite Diffing
+        const spriteKey = `${spriteVal}|${isDraft}`;
+        if (el.dataset.lastSprite !== spriteKey) {
+          el.innerHTML = `
+            ${getSpriteHTML(spriteVal)}
+            <div class="house-item-actions">
+              <div class="action-handle rotate-btn" data-id="${item.id}">🔄</div>
+              <div class="action-handle danger delete-btn" data-id="${item.id}">🗑</div>
+            </div>
+          `;
+          el.dataset.lastSprite = spriteKey;
           el.querySelector('.rotate-btn').onclick = (e) => { e.stopPropagation(); handleRotateItem(item.id); };
           el.querySelector('.delete-btn').onclick = async (e) => {
             e.stopPropagation();
@@ -543,10 +563,15 @@
           }
         }
 
-        el.style.left = (drawX + offsetX) + 'px';
-        el.style.top = (drawY + offsetY) + 'px';
-        el.style.zIndex = zBase + (item.parent_id ? 105 : 100);
-        el.style.transform = transform;
+        // 🧮 Smooth Property Diffing
+        const finalX = drawX + offsetX;
+        const finalY = drawY + offsetY;
+        const finalZ = zBase + (item.parent_id ? 105 : 100);
+
+        if (el.dataset.lx != finalX) { el.style.left = finalX + 'px'; el.dataset.lx = finalX; }
+        if (el.dataset.ly != finalY) { el.style.top = finalY + 'px'; el.dataset.ly = finalY; }
+        if (el.dataset.lz != finalZ) { el.style.zIndex = finalZ; el.dataset.lz = finalZ; }
+        if (el.dataset.lt != transform) { el.style.transform = transform; el.dataset.lt = transform; }
       });
 
       container.querySelectorAll('.house-item').forEach(el => {
@@ -558,16 +583,12 @@
 
     function renderCharacters() {
       const container = document.getElementById('house-grid');
-      if (!container) return;
-
-      // Hide characters in drafting mode
-      if (HOUSE_STATE.blueprintMode) {
+      if (!container || HOUSE_STATE.blueprintMode) {
         document.querySelectorAll('.house-player').forEach(p => p.style.display = 'none');
         return;
       }
 
       const activeRoom = HOUSE_STATE.rooms[0] || { grid_size: [10, 10] };
-      const cols = activeRoom.width  || activeRoom.grid_size?.[0] || 10;
       const rows = activeRoom.height || activeRoom.grid_size?.[1] || 10;
       const isoOriginX = rows * (ISO.TW / 2);
       const isoOriginY = ISO.WALL_H;
@@ -581,44 +602,44 @@
           container.appendChild(pEl);
         }
 
-        // Multi-layer outfit rendering
-        pEl.innerHTML = (char.outfit || []).map((layer, idx) => {
-          if (typeof layer === 'string' && (layer.startsWith('data:') || layer.startsWith('http'))) {
-            return `<div class="char-layer" style="z-index:${idx}"><img src="${layer}" style="width:32px;height:64px;object-fit:contain;image-rendering:pixelated;"></div>`;
-          }
-          return `<div class="char-layer" style="z-index:${idx};font-size:28px;">${layer}</div>`;
-        }).join('');
+        // 🧮 Outfit Diffing
+        const outfitKey = (char.outfit || []).join('|');
+        if (pEl.dataset.outfit !== outfitKey) {
+          pEl.innerHTML = (char.outfit || []).map((layer, idx) => {
+            if (typeof layer === 'string' && (layer.startsWith('data:') || layer.startsWith('http'))) {
+              return `<div class="char-layer" style="z-index:${idx}"><img src="${layer}" style="width:32px;height:64px;object-fit:contain;image-rendering:pixelated;"></div>`;
+            }
+            return `<div class="char-layer" style="z-index:${idx};font-size:28px;">${layer}</div>`;
+          }).join('');
+          pEl.dataset.outfit = outfitKey;
+        }
 
-        pEl.style.display = 'flex';
-
-        // ── Visual Offset & Snapping (Characters) ───────────────
-        let offsetX = 0;
-        let offsetY = 0;
-
+        // 🧮 Position Diffing
+        let offsetX = 0, offsetY = 0;
         if (char.parent_id) {
           const parent = HOUSE_STATE.placement.find(p => p.id === char.parent_id);
           const parentCfg = (CONFIG.FURNITURE || []).find(f => f.id === parent?.config_id);
-          
           if (parentCfg) {
             if (char.slot_index !== null && char.slot_index !== undefined && parentCfg.attachmentPoints?.[char.slot_index]) {
               const pt = parentCfg.attachmentPoints[char.slot_index];
-              offsetX = pt.x || 0;
-              offsetY = pt.y || 0;
+              offsetX = pt.x || 0; offsetY = pt.y || 0;
             } else {
-              offsetY = -12; // Default sitting height
+              offsetY = -12;
             }
           }
         }
 
-        // ISO position — anchor feet to the tile origin point
         const { px, py } = ISO.toScreen(char.x, char.y);
-        pEl.style.left   = (isoOriginX + px - 16 + offsetX) + 'px';
-        pEl.style.top    = (isoOriginY + py - 32 + offsetY) + 'px';
-        pEl.style.zIndex = Math.round((char.x + char.y) * 10 + (char.parent_id ? 115 : 110));
-        pEl.style.display = 'flex';
+        const finalX = isoOriginX + px - 16 + offsetX;
+        const finalY = isoOriginY + py - 32 + offsetY;
+        const finalZ = Math.round((char.x + char.y) * 10 + (char.parent_id ? 115 : 110));
 
-        // Social context menu (partner only)
-        if (id === 'them') {
+        if (pEl.dataset.lx != finalX) { pEl.style.left = finalX + 'px'; pEl.dataset.lx = finalX; }
+        if (pEl.dataset.ly != finalY) { pEl.style.top = finalY + 'px'; pEl.dataset.ly = finalY; }
+        if (pEl.dataset.lz != finalZ) { pEl.style.zIndex = finalZ; pEl.dataset.lz = finalZ; }
+        if (pEl.style.display !== 'flex') pEl.style.display = 'flex';
+
+        if (id === 'them' && !pEl.dataset.init) {
           pEl.style.cursor = 'pointer';
           let lpTimer = null;
           const triggerSoc = (x, y) => showSocialMenu(x, y);
@@ -628,6 +649,7 @@
             lpTimer = setTimeout(() => { triggerSoc(touch.clientX, touch.clientY); lpTimer = null; }, 600);
           }, { passive: true });
           pEl.addEventListener('touchend', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }, { passive: true });
+          pEl.dataset.init = "true";
         }
       };
 
@@ -793,7 +815,7 @@
         char.parent_id = null;
         char.slot_index = null;
         if (charId === 'player') {
-          wsSend('presence_update', { userId: STATE.user.id, parent_id: null, slot_index: null });
+          wsSend('presence_update', { userId: STATE.user.id, parent_id: null, slot_index: null }, { batch: true });
         }
       }
       
@@ -833,7 +855,7 @@
              charId: 'partner',
              parent_id: char.parent_id || null,
              slot_index: char.slot_index !== undefined ? char.slot_index : null
-           });
+           }, { batch: true });
         }
 
         renderCharacters(); 
@@ -1420,3 +1442,16 @@
       }
       return true;
     }
+
+    // ── 3. ANIMATION LOOP (rAF) ───────────────────────────
+    function animateHouse() {
+      if (HOUSE_STATE._needsRender) {
+        syncRenderHouse();
+        HOUSE_STATE._needsRender = false;
+      }
+      requestAnimationFrame(animateHouse);
+    }
+    
+    // Start loop
+    animateHouse();
+

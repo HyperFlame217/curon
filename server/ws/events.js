@@ -2,6 +2,7 @@
 module.exports = {
   // ── client → server ──────────────────────────────────────
   C_MESSAGE_SEND:          'message_send',
+  C_MESSAGE_READ:          'message_read',
   C_MESSAGE_REACT:         'message_react',
   C_MESSAGE_REACT_REMOVE:  'message_react_remove',
   C_TYPING_START:          'typing_start',

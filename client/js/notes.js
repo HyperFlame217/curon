@@ -268,6 +268,7 @@
       const iw = document.querySelector('.input-win');
       if (cw) cw.style.display = 'flex';
       if (iw) iw.style.display = 'flex';
+      if (window.wsSend) wsSend('message_read');
     }
 
     function openHouse() {

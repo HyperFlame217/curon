@@ -52,10 +52,14 @@ function setup(server) {
     const senderIsA = user.id === userAId;
 
     // ── Message handler ─────────────────────────────────────
-    ws.on('message', (raw) => {
-      let msg;
-      try { msg = JSON.parse(raw); }
-      catch { return send(ws, EV.S_ERROR, { message: 'Invalid JSON' }); }
+    const handleOne = (msg) => {
+      if (!msg || !msg.type) return;
+      
+      // Support bundled messages to reduce processing overhead
+      if (msg.type === 'bundle' && Array.isArray(msg.messages)) {
+        msg.messages.forEach(handleOne);
+        return;
+      }
 
       presence.recordActivity(user.id, broadcastPresence);
 
@@ -155,16 +159,21 @@ function setup(server) {
           break;
         }
 
-        case EV.C_PRESENCE_HEARTBEAT:
-          // Also mark any unread messages from the other user as read
-          db.prepare(`UPDATE messages SET read_at = strftime('%s','now') WHERE read_at IS NULL AND sender_id != ?`).run(user.id);
-          const unread = db.prepare(`SELECT id FROM messages WHERE sender_id != ? AND read_at IS NOT NULL`).all(user.id);
-          unread.forEach(m => {
-            send(ws, EV.S_MESSAGE_STATUS, { id: m.id, status: 'read' });
+        case EV.C_MESSAGE_READ:
+        case EV.C_PRESENCE_HEARTBEAT: {
+          // Identify messages that are about to be marked as read
+          const toRead = db.prepare(`SELECT id FROM messages WHERE read_at IS NULL AND sender_id != ?`).all(user.id);
+          if (toRead.length > 0) {
+            db.prepare(`UPDATE messages SET read_at = strftime('%s','now') WHERE read_at IS NULL AND sender_id != ?`).run(user.id);
             const other = presence.getOtherWs(user.id);
-            if (other) send(other, EV.S_MESSAGE_STATUS, { id: m.id, status: 'read' });
-          });
-          break; // recordActivity already called above
+            toRead.forEach(m => {
+              const payload = { id: m.id, status: 'read' };
+              send(ws, EV.S_MESSAGE_STATUS, payload);
+              if (other) send(other, EV.S_MESSAGE_STATUS, payload);
+            });
+          }
+          break;
+        }
 
         case EV.C_CALL_OFFER:
         case EV.C_CALL_ANSWER:
@@ -197,14 +206,18 @@ function setup(server) {
           if (!action || !item || !item.id) break;
           try {
             if (action === 'place') {
-              const existing = db.prepare('SELECT id FROM houses WHERE id = ?').get(item.id);
-              if (existing) {
-                db.prepare('UPDATE houses SET x = ?, y = ?, dir = ?, room_id = ?, parent_id = ?, slot_index = ? WHERE id = ?')
-                  .run(Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.room_id || 'default_room', item.parent_id || null, item.slot_index !== undefined ? item.slot_index : null, item.id);
-              } else {
-                db.prepare('INSERT INTO houses (id, room_id, item_id, x, y, dir, parent_id, slot_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-                  .run(item.id, item.room_id || 'default_room', item.item_id || item.config_id, Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0), item.parent_id || null, item.slot_index !== undefined ? item.slot_index : null);
-              }
+              db.prepare(`
+                INSERT INTO houses (id, room_id, item_id, x, y, dir, parent_id, slot_index) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  x = excluded.x, y = excluded.y, dir = excluded.dir,
+                  room_id = excluded.room_id, parent_id = excluded.parent_id,
+                  slot_index = excluded.slot_index
+              `).run(
+                item.id, item.room_id || 'default_room', item.item_id || item.config_id,
+                Math.floor(Number(item.x) || 0), Math.floor(Number(item.y) || 0), Math.floor(Number(item.dir) || 0),
+                item.parent_id || null, item.slot_index !== undefined ? item.slot_index : null
+              );
             } else if (action === 'remove') {
               db.prepare('DELETE FROM houses WHERE id = ?').run(item.id);
             }
@@ -251,6 +264,14 @@ function setup(server) {
 
         default:
           send(ws, EV.S_ERROR, { message: `Unknown event: ${msg.type}` });
+      }
+    };
+
+    ws.on('message', (raw) => {
+      try { handleOne(JSON.parse(raw)); }
+      catch (e) { 
+        console.error('[WS] Message parse/handle failed:', e.message);
+        send(ws, EV.S_ERROR, { message: 'Invalid message format' }); 
       }
     });
 
