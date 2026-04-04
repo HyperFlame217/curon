@@ -28,33 +28,47 @@
         console.log("[Chat] History loaded:", msgs.length, "messages");
         const container = document.getElementById('msgs');
 
+        if (!msgs.length) {
+          if (before) _allLoaded = true;
+          return;
+        }
+
+        // Parallelize decryption and element creation
+        // buildMsgEl is async, so we create an array of promises
+        const msgPromises = msgs.map(msg => buildMsgEl(msg, !before));
+        const msgElements = await Promise.all(msgPromises);
+
+        const frag = document.createDocumentFragment();
+        let lastDate = null;
+        
+        // If paginating, we need to know the date of the "currently oldest" message 
+        // to avoid duplicate date separators
+        if (before) {
+          const firstVisible = container.querySelector('.dsep');
+          if (firstVisible) lastDate = firstVisible.textContent;
+        }
+
+        msgElements.forEach((el, i) => {
+          const msg = msgs[i];
+          const d = new Date(msg.created_at * 1000);
+          const dateStr = formatDate(d);
+          
+          if (dateStr !== lastDate) {
+            const sep = makeSep(dateStr);
+            frag.appendChild(sep);
+            lastDate = dateStr;
+          }
+          frag.appendChild(el);
+        });
+
         if (!before) {
           // Initial load — clear and render
           container.innerHTML = '';
-          let lastDate = null;
-          for (const msg of msgs) {
-            const d = new Date(msg.created_at * 1000);
-            const dateStr = formatDate(d);
-            if (dateStr !== lastDate) { container.appendChild(makeSep(dateStr)); lastDate = dateStr; }
-            container.appendChild(await buildMsgEl(msg, true));
-          }
+          container.appendChild(frag);
           if (msgs.length) _oldestMsgId = msgs[0].id;
           if (msgs.length < 50) _allLoaded = true;
           scrollBottom();
         } else {
-          // Paginating — prepend older messages
-          if (!msgs.length) { _allLoaded = true; return; }
-
-          // Build all elements first before touching the DOM
-          const frag = document.createDocumentFragment();
-          let lastDate = null;
-          for (const msg of msgs) {
-            const d = new Date(msg.created_at * 1000);
-            const dateStr = formatDate(d);
-            if (dateStr !== lastDate) { frag.appendChild(makeSep(dateStr)); lastDate = dateStr; }
-            frag.appendChild(await buildMsgEl(msg));
-          }
-
           // Lock scroll — prevent any scroll events during DOM mutation
           const prevOverflow = container.style.overflowY;
           container.style.overflowY = 'hidden';
@@ -67,7 +81,6 @@
           // Restore position synchronously before unlocking scroll
           container.scrollTop = scrollTopBefore + (container.scrollHeight - scrollHeightBefore);
 
-          // Use requestAnimationFrame to unlock after browser has painted
           requestAnimationFrame(() => {
             container.style.overflowY = prevOverflow || '';
           });
@@ -101,42 +114,53 @@
     // ════════════════════════════════════════════════════════════
     //  INCOMING EVENTS
     // ════════════════════════════════════════════════════════════
+    let _incQueue = [];
     async function onMessageNew(msg) {
-      if (msg.media_id) _galleryLoaded = false; // invalidate gallery cache
-      // If history is still loading, wait for it to finish first
-      while (_historyLoading) await new Promise(r => setTimeout(r, 50));
+      if (msg.media_id) _galleryLoaded = false;
+      if (_historyLoading) {
+        _incQueue.push(msg);
+        return;
+      }
+      await processNewMsg(msg);
+      // If messages arrived while processing or while history finished
+      while (_incQueue.length > 0) {
+        const next = _incQueue.shift();
+        await processNewMsg(next);
+      }
+    }
 
+    async function processNewMsg(msg) {
       const container = document.getElementById('msgs');
-      const tyrow = container.querySelector('.tyrow');
+      if (container.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+      const el = await buildMsgEl(msg);
       const d = new Date(msg.created_at * 1000);
       const dateStr = formatDate(d);
-      const lastSep = [...container.querySelectorAll('.dsep')].pop();
+      const separators = container.querySelectorAll('.dsep');
+      const lastSep = separators.length ? separators[separators.length - 1] : null;
       if (!lastSep || lastSep.textContent !== dateStr) {
-        const sep = makeSep(dateStr);
-        tyrow ? container.insertBefore(sep, tyrow) : container.appendChild(sep);
+        container.appendChild(makeSep(dateStr));
       }
-      const el = await buildMsgEl(msg);
-      // Re-query tyrow after await in case DOM changed
-      const tyrow2 = container.querySelector('.tyrow');
-      tyrow2 ? container.insertBefore(el, tyrow2) : container.appendChild(el);
+      const tyrow = container.querySelector('.tyrow');
+      tyrow ? container.insertBefore(el, tyrow) : container.appendChild(el);
       scrollBottom();
     }
 
     function onMessageStatus(msg) {
       const labels = { sent: '>> SENT ✓', delivered: '>> DELIVERED ✓✓', read: '>> SEEN ✓✓' };
       if (!labels[msg.status]) return;
-      // Retry up to 10 times — status event can arrive before DOM element is ready
       let attempts = 0;
-      const tryUpdate = () => {
-        const bw = document.querySelector(`[data-msg-id="${msg.id}"]`);
-        if (bw) {
-          const rcpt = bw.querySelector('.rcpt');
-          if (rcpt) rcpt.textContent = labels[msg.status];
-          return;
+      const findAndUpdate = () => {
+        const row = document.querySelector(`.row[data-msg-id="${msg.id}"]`);
+        if (row) {
+          const rcpt = row.querySelector('.rcpt');
+          if (rcpt) {
+            rcpt.textContent = labels[msg.status];
+            return;
+          }
         }
-        if (++attempts < 10) setTimeout(tryUpdate, 80);
+        if (++attempts < 15) setTimeout(findAndUpdate, 200);
       };
-      tryUpdate();
+      findAndUpdate();
     }
 
     function onReaction({ message_id, user_id, emoji }) {

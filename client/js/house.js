@@ -340,6 +340,9 @@
       await syncHouseItem(newItem);
     }
 
+    let _lastRoomId = null;
+    let _lastMode = null;
+
     function renderHouse() {
       const container = document.getElementById('house-grid');
       if (!container) return;
@@ -348,268 +351,206 @@
       const activeRoom = HOUSE_STATE.rooms[0] || { grid_size: [10, 10] };
       const cols = activeRoom.width  || activeRoom.grid_size?.[0] || 10;
       const rows = activeRoom.height || activeRoom.grid_size?.[1] || 10;
+      const roomId = activeRoom.id;
 
-      // ── Container sizing ─────────────────────────────────────
-      if (isDraft) {
-        container.style.width  = (cols * 32) + 'px';
-        container.style.height = (rows * 32) + 'px';
-        container.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
-        container.style.gridTemplateRows    = `repeat(${rows}, 32px)`;
-        container.style.display = 'grid';
-      } else {
-        const { w, h } = ISO.roomBounds(cols, rows);
-        container.style.width  = w + 'px';
-        container.style.height = h + 'px';
-        container.style.display = 'block';
-      }
+      // ── 1. BACKGROUND REBUILD (Tiles & Walls) ──────────────────
+      if (_lastRoomId !== roomId || _lastMode !== isDraft) {
+        console.log(`[House] Rebuilding grid background for Room:${roomId} Mode:${isDraft ? 'Draft' : 'ISO'}`);
+        container.innerHTML = '<div id="house-ghost"></div>';
+        
+        if (isDraft) {
+          container.style.width  = (cols * 32) + 'px';
+          container.style.height = (rows * 32) + 'px';
+          container.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
+          container.style.gridTemplateRows    = `repeat(${rows}, 32px)`;
+          container.style.display = 'grid';
+        } else {
+          const { w, h } = ISO.roomBounds(cols, rows);
+          container.style.width  = w + 'px';
+          container.style.height = h + 'px';
+          container.style.display = 'block';
+        }
 
-      // ISO origin — the top-centre of the room diamond, offset down by wall height
-      const isoOriginX = rows * (ISO.TW / 2);  // horizontal offset to centre
-      const isoOriginY = ISO.WALL_H;            // leave room for walls above
+        const isoOriginX = rows * (ISO.TW / 2);
+        const isoOriginY = ISO.WALL_H;
 
-      container.innerHTML = '<div id="house-ghost"></div>';
-
-      // ── 1. FLOOR TILES ───────────────────────────────────────
-      const floorTex = activeRoom.floor_sprite || activeRoom.floorTexture || null;
-      for (let ty = 0; ty < rows; ty++) {
-        for (let tx = 0; tx < cols; tx++) {
-          const tile = document.createElement('div');
-
-          if (isDraft) {
-            tile.className = 'house-tile draft-tile';
-            tile.dataset.x = tx;
-            tile.dataset.y = ty;
-          } else {
-            tile.className = 'house-tile';
-            const { px, py } = ISO.toScreen(tx, ty);
-            tile.style.left = (isoOriginX + px - ISO.TW / 2) + 'px';
-            tile.style.top  = (isoOriginY + py) + 'px';
-            tile.dataset.x = tx;
-            tile.dataset.y = ty;
-            if (floorTex) {
-              const isUrl = floorTex.includes('.') || floorTex.includes('/');
-              if (isUrl) {
-                tile.style.backgroundImage  = `url('${floorTex}')`;
-                tile.style.backgroundSize   = 'cover';
-                tile.style.backgroundRepeat = 'no-repeat';
-              } else {
-                // Emoji-based tile — render as text overlay
-                tile.style.fontSize = '20px';
-                tile.style.display = 'flex';
-                tile.style.alignItems = 'center';
-                tile.style.justifyContent = 'center';
-                tile.textContent = floorTex;
+        // Floor Tiles
+        const floorTex = activeRoom.floor_sprite || activeRoom.floorTexture || null;
+        for (let ty = 0; ty < rows; ty++) {
+          for (let tx = 0; tx < cols; tx++) {
+            const tile = document.createElement('div');
+            if (isDraft) {
+              tile.className = 'house-tile draft-tile';
+            } else {
+              tile.className = 'house-tile';
+              const { px, py } = ISO.toScreen(tx, ty);
+              tile.style.left = (isoOriginX + px - ISO.TW / 2) + 'px';
+              tile.style.top  = (isoOriginY + py) + 'px';
+              if (floorTex) {
+                const isUrl = floorTex.includes('.') || floorTex.includes('/');
+                if (isUrl) {
+                  tile.style.backgroundImage  = `url('${floorTex}')`;
+                  tile.style.backgroundSize   = 'cover';
+                } else {
+                  tile.style.fontSize = '20px';
+                  tile.style.display = 'flex';
+                  tile.style.alignItems = 'center';
+                  tile.style.justifyContent = 'center';
+                  tile.textContent = floorTex;
+                }
+                tile.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
               }
-              tile.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
             }
+            tile.dataset.x = tx; tile.dataset.y = ty;
+            tile.style.pointerEvents = 'none';
+            container.appendChild(tile);
           }
-          container.appendChild(tile);
         }
+
+        // Walls
+        if (!isDraft) {
+          const wallTex = activeRoom.wall_sprite || activeRoom.wallTexture || null;
+          const wallH = ISO.WALL_H;
+          const emojiToWallBg = (emoji, cellW, cellH) => {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cellW}" height="${cellH}"><text x="50%" y="70%" font-size="${Math.min(cellW, cellH) * 0.7}" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`;
+            return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+          };
+
+          const createWall = (className, left, top, skew) => {
+            const w = document.createElement('div');
+            w.className = className;
+            w.style.left = left + 'px';
+            w.style.top = top + 'px';
+            w.style.width = (className.includes('n') ? cols : rows) * (ISO.TW / 2) + 'px';
+            w.style.height = wallH + 'px';
+            w.style.transform = `skewY(${skew}deg)`;
+            w.style.transformOrigin = className.includes('n') ? 'top left' : 'top right';
+            if (wallTex) {
+              const isUrl = wallTex.includes('.') || wallTex.includes('/');
+              if (isUrl) {
+                w.style.backgroundImage = `url('${wallTex}')`;
+                w.style.backgroundSize = `${ISO.TW/2}px 100%`;
+              } else {
+                w.style.backgroundImage = emojiToWallBg(wallTex, ISO.TW / 2, wallH / 2);
+                w.style.backgroundSize = `${ISO.TW/2}px ${wallH/2}px`;
+              }
+            }
+            container.appendChild(w);
+          };
+          createWall('house-wall-n', isoOriginX, isoOriginY - wallH, 26.57);
+          createWall('house-wall-w', isoOriginX - rows * (ISO.TW / 2), isoOriginY - wallH, -26.57);
+        }
+        _lastRoomId = roomId; _lastMode = isDraft;
       }
 
-      // ── 2. WALLS (ISO only) ──────────────────────────────────
-      if (!isDraft) {
-        const wallTex = activeRoom.wall_sprite || activeRoom.wallTexture || null;
-        const wallH = ISO.WALL_H;
+      // ── 2. PLACEMENT SYNC (Items) ─────────────────────────────
+      const isoOriginX = rows * (ISO.TW / 2);
+      const isoOriginY = ISO.WALL_H;
+      const currentItemIds = new Set();
 
-        // Helper: convert emoji to a tiled SVG background-image
-        function emojiToWallBg(emoji, cellW, cellH) {
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cellW}" height="${cellH}">
-            <text x="50%" y="70%" font-size="${Math.min(cellW, cellH) * 0.7}" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
-          </svg>`;
-          return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-        }
-
-        // North face: full span from (0,0) → (cols,0)
-        const segN = document.createElement('div');
-        segN.className = 'house-wall-n';
-        segN.style.left   = isoOriginX + 'px';
-        segN.style.top    = (isoOriginY - wallH) + 'px';
-        segN.style.width  = (cols * (ISO.TW / 2)) + 'px';
-        segN.style.height = wallH + 'px';
-        segN.style.transform = 'skewY(26.57deg)';
-        segN.style.transformOrigin = 'top left';
-        if (wallTex) {
-          const isWallUrl = wallTex.includes('.') || wallTex.includes('/');
-          if (isWallUrl) {
-            segN.style.backgroundImage = `url('${wallTex}')`;
-            segN.style.backgroundSize = `${ISO.TW/2}px 100%`;
-          } else {
-            segN.style.backgroundImage = emojiToWallBg(wallTex, ISO.TW / 2, wallH / 2);
-            segN.style.backgroundRepeat = 'repeat';
-            segN.style.backgroundSize = `${ISO.TW/2}px ${wallH/2}px`;
-          }
-        }
-        container.appendChild(segN);
-
-        // West face: full span from (0,0) → (0,rows)
-        const segW = document.createElement('div');
-        segW.className = 'house-wall-w';
-        segW.style.left   = (isoOriginX - rows * (ISO.TW / 2)) + 'px';
-        segW.style.top    = (isoOriginY - wallH) + 'px';
-        segW.style.width  = (rows * (ISO.TW / 2)) + 'px';
-        segW.style.height = wallH + 'px';
-        segW.style.transform = 'skewY(-26.57deg)';
-        segW.style.transformOrigin = 'top right';
-        if (wallTex) {
-          const isWallUrl = wallTex.includes('.') || wallTex.includes('/');
-          if (isWallUrl) {
-            segW.style.backgroundImage = `url('${wallTex}')`;
-            segW.style.backgroundSize = `${ISO.TW/2}px 100%`;
-          } else {
-            segW.style.backgroundImage = emojiToWallBg(wallTex, ISO.TW / 2, wallH / 2);
-            segW.style.backgroundRepeat = 'repeat';
-            segW.style.backgroundSize = `${ISO.TW/2}px ${wallH/2}px`;
-          }
-        }
-        container.appendChild(segW);
-      }
-
-      // ── 3. FURNITURE ─────────────────────────────────────────
-      // Depth sort: x+y for ISO (items deeper in screen drawn first)
-      const sorted = [...HOUSE_STATE.placement].sort((a, b) => {
-        if (a.id === b.parent_id) return -1;
-        if (b.id === a.parent_id) return 1;
-        return (a.x + a.y) - (b.x + b.y);
-      });
-
-      sorted.forEach(item => {
+      HOUSE_STATE.placement.forEach(item => {
+        currentItemIds.add(item.id);
         const config = (CONFIG.FURNITURE || []).find(f => f.id === item.config_id);
         if (!config) return;
 
-        const el = document.createElement('div');
-        el.className = 'house-item';
-        if (HOUSE_STATE._drag.itemId === item.id) el.classList.add('dragging');
-        el.id = item.id;
+        let el = document.getElementById(item.id);
+        if (!el) {
+          el = document.createElement('div');
+          el.id = item.id;
+          el.className = 'house-item';
+          
+          el.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.house-item').forEach(hi => hi.classList.remove('selected'));
+            HOUSE_STATE._drag.selectedId = item.id;
+            el.classList.add('selected');
+            handleDragStart(e, item.id);
+          });
+          el.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.house-item').forEach(hi => hi.classList.remove('selected'));
+            HOUSE_STATE._drag.selectedId = item.id;
+            el.classList.add('selected');
+            handleDragStart(e.touches[0], item.id);
+          });
+          container.appendChild(el);
+        }
 
-        // ── Sprite selection ──────────────────────────────────
+        el.classList.toggle('dragging', HOUSE_STATE._drag.itemId === item.id);
+        el.classList.toggle('selected', HOUSE_STATE._drag.selectedId === item.id);
+
         let spriteVal = '❓';
         let useCssRotation = false;
-
         if (config.assets) {
           if (isDraft && config.assets.top) {
-            // Drafting mode: show top-down blueprint sprite
             spriteVal = config.assets.top;
-            useCssRotation = true; // Native CSS rotation is permitted for flat blueprints
+            useCssRotation = true;
           } else if (config.assets.iso) {
-            // ISO mode: show directional sprite for current rotation
-            const isoAssets = config.assets.iso;
-            spriteVal = Array.isArray(isoAssets)
-              ? (isoAssets[item.dir || 0] || isoAssets[0])
-              : isoAssets;
-            useCssRotation = false; // ISO sprites must be pre-drawn, never CSS rotated
+            const iso = config.assets.iso;
+            spriteVal = Array.isArray(iso) ? (iso[item.dir || 0] || iso[0]) : iso;
           }
         }
 
-        el.innerHTML = `
+        const html = `
           ${getSpriteHTML(spriteVal)}
           <div class="house-item-actions">
-            <div class="action-handle rotate-btn">🔄</div>
-            <div class="action-handle danger delete-btn">🗑</div>
+            <div class="action-handle rotate-btn" data-id="${item.id}">🔄</div>
+            <div class="action-handle danger delete-btn" data-id="${item.id}">🗑</div>
           </div>
         `;
+        if (el.dataset.lastHtml !== html) {
+          el.innerHTML = html;
+          el.dataset.lastHtml = html;
+          el.querySelector('.rotate-btn').onclick = (e) => { e.stopPropagation(); handleRotateItem(item.id); };
+          el.querySelector('.delete-btn').onclick = async (e) => {
+            e.stopPropagation();
+            if (confirm(`REMOVE ${config.name.toUpperCase()}?`)) {
+              const idsToRemove = getDescendantIds(item.id);
+              idsToRemove.add(item.id);
+              await Promise.all([...idsToRemove].map(id => removeHouseItem(id)));
+              HOUSE_STATE.placement = HOUSE_STATE.placement.filter(p => !idsToRemove.has(p.id));
+              renderHouse(); renderInventory();
+            }
+          };
+        }
 
-        if (HOUSE_STATE._drag.selectedId === item.id) el.classList.add('selected');
-
-        // ── Size (swap w/h on 90° or 270° rotation) ───────────
         let size = config.size || [1, 1];
         if (item.dir % 2 !== 0) size = [size[1], size[0]];
 
-        // ── Positioning ───────────────────────────────────────
-        let drawX, drawY, zBase;
-
+        let drawX, drawY, zBase, transform = '';
         if (isDraft) {
           const { px, py } = ISO.toScreenDraft(item.x, item.y);
-          drawX = px;
-          drawY = py;
-          zBase = item.y * 10;
-          // In draft mode use exact grid-aligned sizes
-          el.style.width  = (size[0] * 32) + 'px';
+          drawX = px; drawY = py; zBase = item.y * 10;
+          el.style.width = (size[0] * 32) + 'px';
           el.style.height = (size[1] * 32) + 'px';
+          if (useCssRotation && item.dir !== 0) transform = `rotateZ(${item.dir * 90}deg)`;
         } else {
-          // ISO mode: anchor to the front-bottom of the footprint diamond
-          // The "front" corner of a [w,d] footprint in ISO space is at tile (x+w, y+d)
-          const frontX = item.x + size[0];
-          const frontY = item.y + size[1];
+          const frontX = item.x + size[0], frontY = item.y + size[1];
           const { px, py } = ISO.toScreen(frontX, frontY);
-          // Place the element so its bottom-center lands exactly on the front corner
-          drawX = isoOriginX + px;
-          drawY = isoOriginY + py;
-          zBase = (item.x + item.y) * 10;
-          // Let the sprite shrink-wrap naturally around its content
-          el.style.width  = 'max-content';
-          el.style.height = 'max-content';
-          // Bottom-center anchor: shift left 50% and upward 100% from the anchor point
-          el.style.transform = 'translate(-50%, -100%)';
+          drawX = isoOriginX + px; drawY = isoOriginY + py; zBase = (item.x + item.y) * 10;
+          el.style.width = 'max-content'; el.style.height = 'max-content';
+          transform = 'translate(-50%, -100%)';
         }
 
-        // ── Visual Offset & Snapping (Block 20.3) ───────────────
-        let offsetX = 0;
-        let offsetY = 0;
-
+        let offsetX = 0, offsetY = 0;
         if (item.parent_id) {
-          const parent = HOUSE_STATE.placement.find(p => p.id === item.parent_id);
-          const parentCfg = (CONFIG.FURNITURE || []).find(f => f.id === parent?.config_id);
-          
-          if (parentCfg) {
-            // Priority 1: Specific slot defined in the parent
-            if (item.slot_index !== null && item.slot_index !== undefined && parentCfg.attachmentPoints?.[item.slot_index]) {
-              const pt = parentCfg.attachmentPoints[item.slot_index];
-              offsetX = pt.x || 0;
-              offsetY = isDraft ? 0 : (pt.y || 0); // Ignore height in blueprint view
-            } 
-            // Priority 2: Generic surface height
-            else if (parentCfg.isSurface) {
-              offsetY = isDraft ? 0 : -12; // Ignore height in blueprint view
-            }
+          const parentCfg = (CONFIG.FURNITURE || []).find(f => f.id === HOUSE_STATE.placement.find(p => p.id === item.parent_id)?.config_id);
+          if (item.slot_index !== null && parentCfg?.attachmentPoints?.[item.slot_index]) {
+            const pt = parentCfg.attachmentPoints[item.slot_index];
+            offsetX = pt.x || 0; offsetY = isDraft ? 0 : (pt.y || 0);
+          } else if (parentCfg?.isSurface) {
+            offsetY = isDraft ? 0 : -12;
           }
         }
 
-        el.style.left    = (drawX + offsetX) + 'px';
-        el.style.top     = (drawY + offsetY) + 'px';
-        el.style.fontSize = '32px';
-        el.style.zIndex  = zBase + (item.parent_id ? 105 : 100);
+        el.style.left = (drawX + offsetX) + 'px';
+        el.style.top = (drawY + offsetY) + 'px';
+        el.style.zIndex = zBase + (item.parent_id ? 105 : 100);
+        el.style.transform = transform;
+      });
 
-        // Interaction
-        el.addEventListener('mousedown', (e) => {
-          e.stopPropagation();
-          document.querySelectorAll('.house-item').forEach(hi => hi.classList.remove('selected'));
-          HOUSE_STATE._drag.selectedId = item.id;
-          el.classList.add('selected');
-          handleDragStart(e, item.id);
-        });
-
-        el.addEventListener('touchstart', (e) => {
-          e.stopPropagation();
-          document.querySelectorAll('.house-item').forEach(hi => hi.classList.remove('selected'));
-          HOUSE_STATE._drag.selectedId = item.id;
-          el.classList.add('selected');
-          handleDragStart(e.touches[0], item.id);
-        });
-
-        el.querySelector('.rotate-btn').addEventListener('mousedown', (e) => {
-          e.stopPropagation(); e.preventDefault();
-          handleRotateItem(item.id);
-        });
-
-        el.querySelector('.delete-btn').addEventListener('mousedown', async (e) => {
-          e.stopPropagation(); e.preventDefault();
-          if (confirm(`REMOVE ${config.name.toUpperCase()} AND ALL ITS CHILDREN?`)) {
-            const idsToRemove = getDescendantIds(item.id);
-            idsToRemove.add(item.id);
-            await Promise.all([...idsToRemove].map(id => removeHouseItem(id)));
-            HOUSE_STATE.placement = HOUSE_STATE.placement.filter(p => !idsToRemove.has(p.id));
-            renderHouse();
-            renderInventory();
-          }
-        });
-
-        // CSS rotation only for emoji/single-sprite items in drafting mode
-        if (useCssRotation && isDraft && item.dir !== 0) {
-          el.style.transform = `rotateZ(${item.dir * 90}deg)`;
-        }
-
-        container.appendChild(el);
+      container.querySelectorAll('.house-item').forEach(el => {
+        if (!currentItemIds.has(el.id)) el.remove();
       });
 
       renderCharacters();
@@ -671,12 +612,10 @@
 
         // ISO position — anchor feet to the tile origin point
         const { px, py } = ISO.toScreen(char.x, char.y);
-        // Character sprite (32x64) centred on the tile's top point
-        pEl.style.left   = (isoOriginX + px - 16 + offsetX) + 'px';  // -16 to centre 32px sprite
-        pEl.style.top    = (isoOriginY + py - 32 + offsetY) + 'px';  // -32 so feet sit on tile
-
-        // Z-sort by x+y (same rule as furniture) + sitting depth boost
-        pEl.style.zIndex = (char.x + char.y) * 10 + (char.parent_id ? 115 : 110);
+        pEl.style.left   = (isoOriginX + px - 16 + offsetX) + 'px';
+        pEl.style.top    = (isoOriginY + py - 32 + offsetY) + 'px';
+        pEl.style.zIndex = Math.round((char.x + char.y) * 10 + (char.parent_id ? 115 : 110));
+        pEl.style.display = 'flex';
 
         // Social context menu (partner only)
         if (id === 'them') {

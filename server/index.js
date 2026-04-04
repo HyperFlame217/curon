@@ -14,19 +14,12 @@ async function main() {
   app.use(express.static(path.join(__dirname, '../client')));
   app.use('/config', express.static(path.join(__dirname, '../config')));
 
-  // ── REST Routes ───────────────────────────────────────────
-  app.use('/auth',     require('./routes/auth'));
-  app.use('/auth/keys', require('./routes/keys'));
-  app.use('/emojis',    require('./routes/emojis'));
-  app.use('/gifs',      require('./routes/gifs'));
-  app.use('/spotify',   require('./routes/spotify'));
-  app.use('/chat',      require('./routes/clearchat'));
-  app.use('/notes',     require('./routes/notes'));
-  app.use('/calendar',  require('./routes/calendar'));
-  app.use('/stats',     require('./routes/stats'));
-  app.use('/messages', require('./routes/messages'));
-  app.use('/media',    require('./routes/media'));
-  app.use('/house',    require('./routes/houses'));
+  // ── REST Routes (Consolidated Domains) ────────────────────
+  app.use('/', require('./routes/auth'));   // /auth/login, /auth/keys, /auth/avatar
+  app.use('/', require('./routes/chat'));   // /messages, /chat/clear, /notes
+  app.use('/', require('./routes/assets')); // /media, /emojis, /gifs
+  app.use('/', require('./routes/house'));  // /house, /stats
+  app.use('/', require('./routes/events')); // /spotify, /calendar
 
   // ── Fallback: SPA shell ───────────────────────────────────
   app.get('*', (_req, res) => {
