@@ -20,6 +20,7 @@ window.STATE = {
   otherName: null,
   reconnTimer: null,
   typingTimer: null,
+  wasDisconnected: false, // For reconnection sync
   // Crypto
   privateKey: null,   // RSA-OAEP CryptoKey (in memory only)
   publicKey: null,    // own RSA-OAEP public CryptoKey

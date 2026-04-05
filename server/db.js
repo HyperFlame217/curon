@@ -232,14 +232,24 @@ function getDb() {
 
     rawDb.run(SCHEMA);
 
-    // Apply performance indexes
+    // Dynamic Migration Runner (P1-J)
     try {
-      const p = path.join(__dirname, 'migrations', '001_performance_indexes.sql');
-      if (fs.existsSync(p)) rawDb.run(fs.readFileSync(p, 'utf8'));
+      const migrationDir = path.join(__dirname, 'migrations');
+      if (fs.existsSync(migrationDir)) {
+        const files = fs.readdirSync(migrationDir).sort();
+        for (const file of files) {
+          if (file.endsWith('.sql')) {
+            const p = path.join(migrationDir, file);
+            const sql = fs.readFileSync(p, 'utf8');
+            rawDb.run(sql);
+            console.log(`[db] Migration applied: ${file}`);
+          }
+        }
+      }
     } catch(e) { console.warn("[db] Migration failed:", e.message); }
 
-    // Persist once after schema setup
-    persist(rawDb);
+    // Persist once after schema setup (Force sync during boot)
+    persist(rawDb, true);
 
     console.log('[db] Ready: ' + DB_PATH);
     return new Db(rawDb);

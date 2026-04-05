@@ -397,6 +397,7 @@ async function refreshHouseData() {
     renderHouse();
   }
 }
+window.refreshHouseData = refreshHouseData;
 
 async function spawnItem(itemId) {
   const config = (CONFIG.FURNITURE || []).find(f => f.id === itemId);

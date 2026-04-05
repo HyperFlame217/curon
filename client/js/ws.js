@@ -8,6 +8,16 @@
 
       ws.addEventListener('open', () => {
         if (STATE.reconnTimer) { clearTimeout(STATE.reconnTimer); STATE.reconnTimer = null; }
+        
+        // P1-I: Silent Reconnect Reconciliation
+        if (STATE.wasDisconnected) {
+          console.log("[WS] Reconnected. Syncing house state...");
+          if (typeof window.refreshHouseData === 'function') {
+            refreshHouseData(); 
+          }
+          STATE.wasDisconnected = false;
+        }
+
         // If we were in a call when connection dropped, end it gracefully
         if (CALL.pc && CALL.pc.connectionState === 'failed') {
           endCall(false);
@@ -18,6 +28,7 @@
       ws.addEventListener('close', () => {
         // If in a call, notify user connection dropped
         if (CALL.pc) showToast('CONNECTION LOST...');
+        STATE.wasDisconnected = true;
         STATE.reconnTimer = setTimeout(connectWS, 3000);
       });
       ws.addEventListener('error', () => ws.close());
