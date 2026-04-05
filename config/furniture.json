@@ -223,7 +223,9 @@
       "type": "messages",
       "value": 0
     },
-    "isSurface": true,
+    "isWalkable": true,
+    "canPlaceOver": true,
+    "isSurface": false,
     "interaction": "none",
     "attachmentPoints": [
       { "x": 0, "y": -5 }

@@ -61,19 +61,11 @@ window.bootApp = async function(password) {
 
   STATE.otherId = keys.other_id;
   STATE.otherName = keys.other_username;
-  STATE.userAId = keys.user_a_id;
+  STATE.userAId = keys.userAId;
 
   // Sync Avatars from DB
   if (keys.my_avatar_img) localStorage.setItem('curon_my_avatar_img', keys.my_avatar_img);
   if (keys.other_avatar_img) localStorage.setItem('curon_other_avatar_img', keys.other_avatar_img);
-  
-  // Sync Character Positions from DB
-  if (window.HOUSE_STATE && HOUSE_STATE.player) {
-     HOUSE_STATE.player.x = keys.my_house_x || 0;
-     HOUSE_STATE.player.y = keys.my_house_y || 0;
-     HOUSE_STATE.partner.x = keys.other_house_x || 5;
-     HOUSE_STATE.partner.y = keys.other_house_y || 5;
-  }
 
   setTimeout(() => window.applyAvatars && applyAvatars(), 100);
 

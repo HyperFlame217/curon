@@ -10,6 +10,16 @@ function broadcast(type, payload) {
 }
 
 // ── SHARED HOUSE (Furniture & Rooms) ───────────────────────
+router.get('/houses/sync', requireAuth, async (req, res) => {
+  const db      = await dbPromise;
+
+  const furniture = db.prepare('SELECT * FROM houses').all();
+  const rooms     = db.prepare('SELECT * FROM house_rooms').all();
+  const cats      = db.prepare('SELECT * FROM cats').all();
+
+  res.json({ furniture, rooms, cats });
+});
+
 router.get('/house', requireAuth, async (req, res) => {
   const db    = await dbPromise;
   const items = db.prepare('SELECT * FROM houses').all();
@@ -20,6 +30,7 @@ router.get('/house', requireAuth, async (req, res) => {
 router.post('/house/update', requireAuth, async (req, res) => {
   const { action, item } = req.body || {};
   const db = await dbPromise;
+
   if (action === 'place') {
     const existing = db.prepare('SELECT id FROM houses WHERE id = ?').get(item.id);
     if (existing) {
@@ -39,6 +50,7 @@ router.post('/house/room', requireAuth, async (req, res) => {
   const { id, wall_sprite, floor_sprite } = req.body || {};
   if (!id) return res.status(400).json({ error: 'Missing ID' });
   const db = await dbPromise;
+
   db.prepare('INSERT INTO house_rooms (id, wall_sprite, floor_sprite) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET wall_sprite=excluded.wall_sprite, floor_sprite=excluded.floor_sprite').run(id, wall_sprite||null, floor_sprite||null);
   res.json({ success: true });
 });

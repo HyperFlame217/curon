@@ -275,7 +275,7 @@
         updateTzCurrentLabel();
         showToast('TIMEZONE SAVED');
         // Broadcast to other user so their timeline shows correct "their TZ"
-        wsSend('tz_update', { tz: val });
+        wsSend(WS_EV.C_TZ_UPDATE, { tz: val });
         if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
       });
 

@@ -96,7 +96,7 @@ window.initAvatars = function() {
       }).catch(console.error);
 
       applyAvatars();
-      if (window.wsSend) wsSend('avatar_update', { img: dataUrl });
+      if (window.wsSend) wsSend(WS_EV.C_AVATAR_UPDATE, { img: dataUrl });
       if (window.showToast) showToast('AVATAR UPDATED');
     };
     reader.readAsDataURL(file);

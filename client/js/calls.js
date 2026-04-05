@@ -111,7 +111,7 @@
       const offer = { ...offerRaw, sdp: preferOpus(offerRaw.sdp) };
       await CALL.pc.setLocalDescription(offer);
 
-      wsSend('call_offer', { offer, isVideo });
+      wsSend(WS_EV.C_CALL_OFFER, { offer, isVideo });
       showCallOverlay(false); // show overlay in "calling" state
     }
 
@@ -144,7 +144,7 @@
       const answer = { ...answerRaw, sdp: preferOpus(answerRaw.sdp) };
       await CALL.pc.setLocalDescription(answer);
 
-      wsSend('call_answer', { answer });
+      wsSend(WS_EV.C_CALL_ANSWER, { answer });
       showCallOverlay(true);
     }
 
@@ -152,7 +152,7 @@
     function declineCall() {
       document.getElementById('call-incoming').classList.remove('show');
       CALL.pendingOffer = null;
-      wsSend('call_end');
+      wsSend(WS_EV.C_CALL_END);
     }
 
     // ── RTCPeerConnection setup ───────────────────────────────────
@@ -167,7 +167,7 @@
         if (!CALL._iceTimer) {
           CALL._iceTimer = setTimeout(() => {
             if (CALL._iceBuffer.length > 0) {
-              wsSend('call_ice_candidate', { candidates: CALL._iceBuffer });
+              wsSend(WS_EV.C_CALL_ICE, { candidates: CALL._iceBuffer });
               CALL._iceBuffer = [];
             }
             CALL._iceTimer = null;
@@ -277,7 +277,7 @@
 
     // ── End call ──────────────────────────────────────────────────
     function endCall(notifyOther = true) {
-      if (notifyOther) wsSend('call_end');
+      if (notifyOther) wsSend(WS_EV.C_CALL_END);
 
       // Stop all tracks
       CALL.localStream?.getTracks().forEach(t => t.stop());

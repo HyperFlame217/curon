@@ -31,15 +31,15 @@
 
       if (options.batch) {
         // Deduplicate high-frequency updates (keep latest per type/charId)
-        if (type === 'char_move') {
-          _wsBatch = _wsBatch.filter(m => !(m.type === 'char_move' && m.charId === payload.charId));
+        if (type === WS_EV.C_CHAR_MOVE) {
+          _wsBatch = _wsBatch.filter(m => !(m.type === WS_EV.C_CHAR_MOVE && m.charId === payload.charId));
         }
         _wsBatch.push({ type, ...payload });
 
         if (!_wsBatchTimer) {
           _wsBatchTimer = setTimeout(() => {
             if (_wsBatch.length > 0) {
-              STATE.ws.send(JSON.stringify({ type: 'bundle', messages: _wsBatch }));
+              STATE.ws.send(JSON.stringify({ type: WS_EV.BUNDLE, messages: _wsBatch }));
               _wsBatch = [];
             }
             _wsBatchTimer = null;
@@ -50,35 +50,37 @@
       }
     }
 
-    setInterval(() => wsSend('presence_heartbeat'), 30000);
+    setInterval(() => wsSend(WS_EV.C_PRESENCE_HEARTBEAT), 30000);
 
     function handleWsEvent(msg) {
       switch (msg.type) {
-        case 'message_new': return onMessageNew(msg);
-        case 'message_status': return onMessageStatus(msg);
-        case 'message_reaction': return onReaction(msg);
-        case 'message_reaction_removed': return onReactionRemoved(msg);
-        case 'typing': return onTyping(msg);
-        case 'presence_update': return onPresence(msg);
-        case 'emoji_updated': return onEmojiUpdated();
-        case 'spotify_update': return onSpotifyUpdate(msg);
-        case 'note_add': return onNoteAdd(msg);
-        case 'note_delete': return onNoteDelete(msg);
-        case 'calendar_event_add': return onCalendarEventAdd(msg);
-        case 'calendar_event_update': return onCalendarEventUpdate(msg);
-        case 'calendar_event_delete': return onCalendarEventDelete(msg);
-        case 'schedule_block_add': return onScheduleBlockAdd(msg);
-        case 'schedule_block_update': return onScheduleBlockUpdate(msg);
-        case 'schedule_block_delete': return onScheduleBlockDelete(msg);
-        case 'call_offer': return onCallOffer(msg);
-        case 'call_answer': return onCallAnswer(msg);
-        case 'call_ice_candidate': return onCallIce(msg);
-        case 'call_ended': return onCallEnded();
-        case 'avatar_update': return onAvatarUpdate(msg);
-        case 'tz_update': return onTzUpdate(msg);
-        case 'house_update': return onHouseUpdate(msg);
-        case 'char_move': return onCharMove(msg);
-        case 'social_interaction': return onSocialInteraction(msg);
-        case 'room_update': return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
+        case WS_EV.S_MESSAGE_NEW:               return onMessageNew(msg);
+        case WS_EV.S_MESSAGE_STATUS:            return onMessageStatus(msg);
+        case WS_EV.S_MESSAGE_REACTION:          return onReaction(msg);
+        case WS_EV.S_MESSAGE_REACTION_REMOVED:  return onReactionRemoved(msg);
+        case WS_EV.S_TYPING:                    return onTyping(msg);
+        case WS_EV.S_PRESENCE_UPDATE:           return onPresence(msg);
+        case WS_EV.S_EMOJI_UPDATED:             return onEmojiUpdated();
+        case WS_EV.S_SPOTIFY_UPDATE:            return onSpotifyUpdate(msg);
+        case WS_EV.S_NOTE_ADD:                  return onNoteAdd(msg);
+        case WS_EV.S_NOTE_DELETE:               return onNoteDelete(msg);
+        case WS_EV.S_CALENDAR_EVENT_ADD:        return onCalendarEventAdd(msg);
+        case WS_EV.S_CALENDAR_EVENT_UPDATE:     return onCalendarEventUpdate(msg);
+        case WS_EV.S_CALENDAR_EVENT_DELETE:     return onCalendarEventDelete(msg);
+        case WS_EV.S_SCHEDULE_BLOCK_ADD:        return onScheduleBlockAdd(msg);
+        case WS_EV.S_SCHEDULE_BLOCK_UPDATE:     return onScheduleBlockUpdate(msg);
+        case WS_EV.S_SCHEDULE_BLOCK_DELETE:     return onScheduleBlockDelete(msg);
+        case WS_EV.S_CALL_OFFER:               return onCallOffer(msg);
+        case WS_EV.S_CALL_ANSWER:              return onCallAnswer(msg);
+        case WS_EV.S_CALL_ICE:                 return onCallIce(msg);
+        case WS_EV.S_CALL_ENDED:               return onCallEnded();
+        case WS_EV.S_AVATAR_UPDATE:             return onAvatarUpdate(msg);
+        case WS_EV.S_TZ_UPDATE:                return onTzUpdate(msg);
+        case WS_EV.S_HOUSE_UPDATE:             return onHouseUpdate(msg);
+        case WS_EV.S_ROOM_UPDATE:              return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
+        case WS_EV.S_FURNITURE_LOCK:           return typeof onFurnitureLock === 'function' && onFurnitureLock(msg);
+        case WS_EV.S_FURNITURE_UNLOCK:         return typeof onFurnitureUnlock === 'function' && onFurnitureUnlock(msg);
+        case WS_EV.S_CHAR_MOVE:               return onCharMove(msg);
+        case WS_EV.S_SOCIAL_INTERACTION:        return onSocialInteraction(msg);
       }
     }

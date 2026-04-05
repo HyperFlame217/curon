@@ -90,7 +90,7 @@
         }
       } finally {
         _historyLoading = false;
-        if (window.wsSend && !before) wsSend('message_read');
+        if (window.wsSend && !before) wsSend(WS_EV.C_MESSAGE_READ);
       }
     }
 
@@ -128,7 +128,7 @@
         const next = _incQueue.shift();
         await processNewMsg(next);
       }
-      if (window.wsSend && msg.sender_id !== STATE.user?.id) wsSend('message_read');
+      if (window.wsSend && msg.sender_id !== STATE.user?.id) wsSend(WS_EV.C_MESSAGE_READ);
     }
 
     async function processNewMsg(msg) {
@@ -256,18 +256,24 @@
       item.config_id = item.config_id || item.item_id;
       
       if (action === 'place') {
-        const idx = HOUSE_STATE.placement.findIndex(p => p.id === item.id);
+        const idx = HOUSE_STATE.furniture.findIndex(p => p.id === item.id);
         if (idx !== -1) {
-          HOUSE_STATE.placement[idx] = { ...HOUSE_STATE.placement[idx], ...item };
+          HOUSE_STATE.furniture[idx] = { ...HOUSE_STATE.furniture[idx], ...item };
         } else {
-          HOUSE_STATE.placement.push(item);
+          HOUSE_STATE.furniture.push(item);
         }
       } else if (action === 'remove') {
-        HOUSE_STATE.placement = HOUSE_STATE.placement.filter(p => p.id !== item.id);
+        HOUSE_STATE.furniture = HOUSE_STATE.furniture.filter(p => p.id !== item.id);
       }
       
       renderHouse();
       renderInventory();
+
+      // Ensure no one is trapped after furniture change (Phase 1-C)
+      if (typeof relocateToSafeSpawn === 'function') {
+        relocateToSafeSpawn('player', HOUSE_STATE.player.x, HOUSE_STATE.player.y);
+        relocateToSafeSpawn('partner', HOUSE_STATE.partner.x, HOUSE_STATE.partner.y);
+      }
     }
 
     function onSocialInteraction({ kind, userId }) {
@@ -287,7 +293,7 @@
       if (status === 'online') {
         // 1. Broadcast our current position so they see us correctly
         const p = HOUSE_STATE.player;
-        if (p) wsSend('char_move', { userId: STATE.user.id, x: p.x, y: p.y, charId: 'partner' });
+        if (p) wsSend(WS_EV.C_CHAR_MOVE, { userId: STATE.user.id, x: p.x, y: p.y, charId: 'partner' });
 
         // 2. Re-fetch full house furniture from DB and re-render
         // (catches all furniture changes made while partner was offline)
@@ -359,10 +365,10 @@
 
         if (rxn.classList.contains('mine')) {
           // Remove my reaction
-          wsSend('message_react_remove', { message_id, emoji });
+          wsSend(WS_EV.C_MESSAGE_REACT_REMOVE, { message_id, emoji });
         } else {
           // Add same reaction as other user
-          wsSend('message_react', { message_id, emoji });
+          wsSend(WS_EV.C_MESSAGE_REACT, { message_id, emoji });
         }
       });
 
@@ -381,14 +387,14 @@
         const pubKeyA = amUserA ? STATE.publicKey : STATE.otherPubKey;
         const pubKeyB = amUserA ? STATE.otherPubKey : STATE.publicKey;
         const cipher = await encryptMessage(text, pubKeyA, pubKeyB);
-        wsSend('message_send', {
+        wsSend(WS_EV.C_MESSAGE_SEND, {
           cipher,
           reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null,
         });
         field.value = '';
         field.style.height = 'auto';
         cancelReply();
-        wsSend('typing_stop');
+        wsSend(WS_EV.C_TYPING_STOP);
         clearTimeout(STATE.typingTimer);
       });
 
@@ -397,9 +403,9 @@
       field.addEventListener('input', () => {
         field.style.height = 'auto';
         field.style.height = Math.min(field.scrollHeight, 100) + 'px';
-        wsSend('typing_start');
+        wsSend(WS_EV.C_TYPING_START);
         clearTimeout(STATE.typingTimer);
-        STATE.typingTimer = setTimeout(() => wsSend('typing_stop'), 2000);
+        STATE.typingTimer = setTimeout(() => wsSend(WS_EV.C_TYPING_STOP), 2000);
       });
     }
 

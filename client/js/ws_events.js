@@ -1,16 +1,17 @@
 /**
- * CURON.EXE — WebSocket Event Manifest (Server)
- * Single source of truth for ALL WebSocket event type strings.
- * Frozen to prevent accidental mutation at runtime.
+ * CURON.EXE — WebSocket Event Manifest (Client)
+ * Browser-compatible mirror of server/ws/events.js.
+ * Exposes WS_EV as a frozen global — load this before ALL other scripts.
  *
  * Naming convention:
  *   C_ = client → server
  *   S_ = server → client
  */
-module.exports = Object.freeze({
+/* global WS_EV */
+const WS_EV = Object.freeze({
 
   // ── Special ──────────────────────────────────────────────────
-  BUNDLE:                    'bundle',                   // batched message envelope
+  BUNDLE:                    'bundle',
 
   // ── Messaging ────────────────────────────────────────────────
   C_MESSAGE_SEND:            'message_send',
@@ -28,7 +29,7 @@ module.exports = Object.freeze({
 
   // ── Presence ─────────────────────────────────────────────────
   C_PRESENCE_HEARTBEAT:      'presence_heartbeat',
-  C_PRESENCE_UPDATE:         'presence_update',          // sit/stand state (chair attachment)
+  C_PRESENCE_UPDATE:         'presence_update',
 
   S_PRESENCE_UPDATE:         'presence_update',
 
@@ -81,16 +82,16 @@ module.exports = Object.freeze({
   C_SOCIAL_INTERACTION:      'social_interaction',
   S_SOCIAL_INTERACTION:      'social_interaction',
 
-  // ── House — Room Navigation (P1-E / P3-B) ─────────────────────
+  // ── House — Room Navigation ────────────────────────────────────
   S_ROOM_CHANGE:             'room_change',
 
-  // ── House — Interaction Lock (P1-D) ───────────────────────────
+  // ── House — Interaction Lock ───────────────────────────────────
   C_FURNITURE_LOCK:          'furniture_lock',
   C_FURNITURE_UNLOCK:        'furniture_unlock',
   S_FURNITURE_LOCK:          'furniture_lock',
   S_FURNITURE_UNLOCK:        'furniture_unlock',
 
-  // ── Minigames (P2-F, P2-G) ────────────────────────────────────
+  // ── Minigames ─────────────────────────────────────────────────
   C_GAME_CHALLENGE:          'game_challenge',
   C_GAME_ACCEPT:             'game_accept',
   C_GAME_DECLINE:            'game_decline',
@@ -99,16 +100,16 @@ module.exports = Object.freeze({
   S_GAME_END:                'game_end',
   S_GAME_CANCEL:             'game_cancel',
 
-  // ── Cats (P4-D, P4-H) ─────────────────────────────────────────
+  // ── Cats ──────────────────────────────────────────────────────
   S_CAT_HAPPINESS_UPDATE:    'cat_happiness_update',
   S_CAT_RENAME_PROPOSAL:     'cat_rename_proposal',
   C_CAT_RENAME_ACCEPT:       'cat_rename_accept',
   C_CAT_RENAME_DECLINE:      'cat_rename_decline',
 
-  // ── Outfits (P5-C) ────────────────────────────────────────────
+  // ── Outfits ───────────────────────────────────────────────────
   S_OUTFIT_GIFT:             'outfit_gift',
 
-  // ── Progression (P6-A) ────────────────────────────────────────
+  // ── Progression ───────────────────────────────────────────────
   S_MILESTONE_UNLOCKED:      'milestone_unlocked',
 
   // ── Errors ────────────────────────────────────────────────────

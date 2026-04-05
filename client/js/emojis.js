@@ -85,7 +85,7 @@
 
       // Encrypt the GIF URL with a [gif] prefix tag so receiver renders it as image
       const cipher = await encryptMessage('[gif]' + gif.url, pubKeyA, pubKeyB);
-      wsSend('message_send', { cipher, reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null });
+      wsSend(WS_EV.C_MESSAGE_SEND, { cipher, reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null });
       cancelReply();
     }
 
@@ -156,7 +156,7 @@
       cipher.encrypted_content_a = media.mime_type;
       cipher.encrypted_content_b = media.mime_type;
 
-      wsSend('message_send', { cipher, media_id: media.id, reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null });
+      wsSend(WS_EV.C_MESSAGE_SEND, { cipher, media_id: media.id, reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null });
       cancelReply();
       showToast('');
     }
@@ -844,7 +844,7 @@
         btn.textContent = emoji;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          wsSend('message_react', { message_id: msgId, emoji });
+          wsSend(WS_EV.C_MESSAGE_REACT, { message_id: msgId, emoji });
           closeReactionPicker();
         });
         picker.appendChild(btn);
@@ -858,7 +858,7 @@
         btn.innerHTML = `<img src="${emojiImgUrl(emoji.filename)}" style="width:20px;height:20px;object-fit:contain;" alt=":${emoji.name}:">`;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          wsSend('message_react', { message_id: msgId, emoji: `:${emoji.name}:` });
+          wsSend(WS_EV.C_MESSAGE_REACT, { message_id: msgId, emoji: `:${emoji.name}:` });
           closeReactionPicker();
         });
         picker.appendChild(btn);

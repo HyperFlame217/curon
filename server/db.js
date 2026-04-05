@@ -19,8 +19,8 @@ const SCHEMA = `
     public_key            TEXT,
     encrypted_private_key TEXT,
     avatar_img            TEXT,
-    house_x               INTEGER DEFAULT 0,
-    house_y               INTEGER DEFAULT 0,
+    house_x               INTEGER DEFAULT -1,
+    house_y               INTEGER DEFAULT -1,
     created_at            INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
   CREATE TABLE IF NOT EXISTS messages (
@@ -32,6 +32,7 @@ const SCHEMA = `
     encrypted_key_b     TEXT    NOT NULL,
     iv                  TEXT    NOT NULL,
     media_id            INTEGER,
+    reply_to_id         INTEGER,
     deleted_by_a        INTEGER NOT NULL DEFAULT 0,
     deleted_by_b        INTEGER NOT NULL DEFAULT 0,
     read_at             INTEGER,
@@ -68,6 +69,23 @@ const SCHEMA = `
     y           INTEGER NOT NULL,
     dir         INTEGER NOT NULL DEFAULT 0,
     parent_id   TEXT,
+    slot_index  INTEGER,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS house_rooms (
+    id           TEXT PRIMARY KEY,
+    wall_sprite  TEXT,
+    floor_sprite TEXT,
+    updated_at   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS cats (
+    id          TEXT PRIMARY KEY,
+    name        TEXT,
+    type        TEXT,
+    happiness   INTEGER DEFAULT 100,
+    x           INTEGER DEFAULT 0,
+    y           INTEGER DEFAULT 0,
+    state       TEXT DEFAULT 'idle',
     created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
   CREATE TABLE IF NOT EXISTS milestones (
@@ -80,6 +98,38 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS user_coins (
     user_id     INTEGER PRIMARY KEY,
     balance     INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS events (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    title             TEXT NOT NULL,
+    notes             TEXT,
+    color             TEXT NOT NULL DEFAULT '#80b9b1',
+    start_time        INTEGER NOT NULL,
+    end_time          INTEGER NOT NULL,
+    created_by        INTEGER NOT NULL REFERENCES users(id),
+    recurrence        TEXT NOT NULL DEFAULT 'none',
+    recurrence_end    INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS schedule_blocks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id),
+    label        TEXT NOT NULL,
+    color        TEXT NOT NULL DEFAULT '#94c784',
+    start_minute INTEGER NOT NULL,
+    end_minute   INTEGER NOT NULL,
+    day_type     TEXT NOT NULL DEFAULT 'weekday'
+  );
+  CREATE TABLE IF NOT EXISTS notes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    author_id  INTEGER NOT NULL REFERENCES users(id),
+    content    TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+  CREATE TABLE IF NOT EXISTS spotify_tokens (
+    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
+    access_token  TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    expires_at    INTEGER NOT NULL
   );
 
 
@@ -188,104 +238,10 @@ function getDb() {
       if (fs.existsSync(p)) rawDb.run(fs.readFileSync(p, 'utf8'));
     } catch(e) { console.warn("[db] Migration failed:", e.message); }
 
-    try { rawDb.run('ALTER TABLE users ADD COLUMN public_key TEXT'); }            catch {}
-    try { rawDb.run('ALTER TABLE users ADD COLUMN avatar_img TEXT'); }            catch {}
-    try { rawDb.run('ALTER TABLE users ADD COLUMN house_x INTEGER DEFAULT 0'); } catch {}
-    try { rawDb.run('ALTER TABLE users ADD COLUMN house_y INTEGER DEFAULT 0'); } catch {}
-  try { rawDb.run('ALTER TABLE messages ADD COLUMN read_at INTEGER'); } catch {}
-  try { rawDb.run('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER'); } catch {}
-  // Add missing columns to events table if they don't exist
-  try { rawDb.run("ALTER TABLE events ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none'"); } catch {}
-  try { rawDb.run("ALTER TABLE events ADD COLUMN recurrence_end INTEGER"); } catch {}
-  try { rawDb.run("ALTER TABLE events ADD COLUMN notes TEXT"); } catch {}
-  try { rawDb.run("ALTER TABLE events ADD COLUMN color TEXT NOT NULL DEFAULT '#80b9b1'"); } catch {}
-  try { rawDb.run(`CREATE TABLE IF NOT EXISTS events (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    title             TEXT NOT NULL,
-    notes             TEXT,
-    color             TEXT NOT NULL DEFAULT '#80b9b1',
-    start_time        INTEGER NOT NULL,
-    end_time          INTEGER NOT NULL,
-    created_by        INTEGER NOT NULL REFERENCES users(id),
-    recurrence        TEXT NOT NULL DEFAULT 'none',
-    recurrence_end    INTEGER
-  )`); } catch {}
-  try { rawDb.run(`CREATE TABLE IF NOT EXISTS schedule_blocks (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id      INTEGER NOT NULL REFERENCES users(id),
-    label        TEXT NOT NULL,
-    color        TEXT NOT NULL DEFAULT '#94c784',
-    start_minute INTEGER NOT NULL,
-    end_minute   INTEGER NOT NULL,
-    day_type     TEXT NOT NULL DEFAULT 'weekday'
-  )`); } catch {}
-  try { rawDb.run(`CREATE TABLE IF NOT EXISTS notes (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    author_id  INTEGER NOT NULL REFERENCES users(id),
-    content    TEXT NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-  )`); } catch {}
-  try { rawDb.run(`CREATE TABLE IF NOT EXISTS spotify_tokens (
-    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
-    access_token  TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    expires_at    INTEGER NOT NULL
-  )`); } catch {}
-  try { rawDb.run(`CREATE TABLE IF NOT EXISTS custom_emojis (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    filename TEXT NOT NULL,
-    uploader_id INTEGER NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-  )`); } catch {}
-    try { rawDb.run('ALTER TABLE users ADD COLUMN encrypted_private_key TEXT'); } catch {}
-    // Self-healing migration for houses table (INTEGER -> TEXT id)
-    try {
-      const info = rawDb.prepare('PRAGMA table_info(houses)');
-      let idType = '';
-      while (info.step()) { const col = info.getAsObject(); if (col.name === 'id') idType = col.type; }
-      info.free();
-      if (idType.toUpperCase() === 'INTEGER') {
-        console.warn("[db] Repairing houses table: ID should be TEXT but is INTEGER.");
-        rawDb.run('DROP TABLE houses');
-      }
-    } catch {}
-
-    try { rawDb.run(`CREATE TABLE IF NOT EXISTS houses (
-    id          TEXT PRIMARY KEY,
-    room_id     TEXT NOT NULL,
-    item_id     TEXT NOT NULL,
-    x           INTEGER NOT NULL,
-    y           INTEGER NOT NULL,
-    dir         INTEGER NOT NULL DEFAULT 0,
-    parent_id   TEXT,
-    slot_index  INTEGER,
-    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-  )`); } catch {}
-  try { rawDb.run('ALTER TABLE houses ADD COLUMN slot_index INTEGER'); } catch {}
-    try { rawDb.run('ALTER TABLE houses ADD COLUMN dir INTEGER NOT NULL DEFAULT 0'); } catch {}
-    try { rawDb.run(`CREATE TABLE IF NOT EXISTS milestones (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,
-    date        INTEGER NOT NULL,
-    created_by  INTEGER NOT NULL,
-    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-  )`); } catch {}
-    try { rawDb.run(`CREATE TABLE IF NOT EXISTS user_coins (
-    user_id     INTEGER PRIMARY KEY,
-    balance     INTEGER NOT NULL DEFAULT 0
-  )`); } catch {}
-    try { rawDb.run(`CREATE TABLE IF NOT EXISTS house_rooms (
-    id           TEXT PRIMARY KEY,
-    wall_sprite  TEXT,
-    floor_sprite TEXT,
-    updated_at   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
-  )`); } catch {}
-
     // Persist once after schema setup
     persist(rawDb);
 
-    console.log('[db] ready:', DB_PATH, fs.statSync(DB_PATH).size + ' bytes');
+    console.log('[db] Ready: ' + DB_PATH);
     return new Db(rawDb);
   });
   return _dbPromise;

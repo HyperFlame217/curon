@@ -34,11 +34,11 @@ router.get('/auth/keys', requireAuth, async (req, res) => {
     other_username: other?.username || null,
     my_avatar_img: me?.avatar_img || null,
     other_avatar_img: other?.avatar_img || null,
-    my_house_x: me?.house_x || 0,
-    my_house_y: me?.house_y || 0,
-    other_house_x: other?.house_x || 0,
-    other_house_y: other?.house_y || 0,
-    user_a_id: userAId,
+    my_house_x: me?.house_x !== undefined ? me.house_x : -1,
+    my_house_y: me?.house_y !== undefined ? me.house_y : -1,
+    other_house_x: other?.house_x !== undefined ? other.house_x : -1,
+    other_house_y: other?.house_y !== undefined ? other.house_y : -1,
+    userAId: userAId,
   });
 });
 
@@ -62,6 +62,7 @@ router.post('/auth/char-pos', requireAuth, async (req, res) => {
   const db = await dbPromise;
   const { x, y } = req.body || {};
   if (x === undefined || y === undefined) return res.status(400).json({ error: 'Missing coordinates' });
+  console.log(`[Auth] Updating position for user ${req.user.id}: ${x}, ${y}`);
   db.prepare('UPDATE users SET house_x = ?, house_y = ? WHERE id = ?').run(Math.floor(x), Math.floor(y), req.user.id);
   res.json({ ok: true });
 });

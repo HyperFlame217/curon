@@ -3,6 +3,7 @@ const { verify }          = require('../auth');
 const dbPromise = require('../db');
 const { isValidCipherBundle } = require('../crypto');
 const presence            = require('./presence');
+const locks               = require('./locks');
 const EV                  = require('./events');
 
 function send(ws, type, payload = {}) {
@@ -190,20 +191,29 @@ function setup(server) {
           break;
         }
 
-        case 'avatar_update': {
+        case EV.C_AVATAR_UPDATE: {
           const other = presence.getOtherWs(user.id);
-          if (other) send(other, 'avatar_update', { userId: user.id, img: msg.img });
+          if (other) send(other, EV.S_AVATAR_UPDATE, { userId: user.id, img: msg.img });
           break;
         }
 
-        case 'tz_update': {
+        case EV.C_TZ_UPDATE: {
           const other = presence.getOtherWs(user.id);
-          if (other) send(other, 'tz_update', { userId: user.id, tz: msg.tz });
+          if (other) send(other, EV.S_TZ_UPDATE, { userId: user.id, tz: msg.tz });
           break;
         }
         case EV.C_HOUSE_UPDATE: {
           const { action, item } = msg;
           if (!action || !item || !item.id) break;
+
+          // Block 1-D: Enforce Interaction Locks
+          const ownerId = locks.getLockOwner(item.id);
+          if (ownerId && ownerId !== user.id) {
+            console.log(`[Locks] Blocking C_HOUSE_UPDATE for ${item.id} from ${user.username} (locked by other)`);
+            send(ws, EV.S_ERROR, { message: "Item is currently being moved by your partner." });
+            break;
+          }
+
           try {
             if (action === 'place') {
               db.prepare(`
@@ -227,7 +237,7 @@ function setup(server) {
           if (other) send(other, EV.S_HOUSE_UPDATE, msg);
           break;
         }
-        case 'room_update': {
+        case EV.C_ROOM_UPDATE: {
           const { id, wall_sprite, floor_sprite } = msg;
           if (!id) break;
           try {
@@ -240,9 +250,9 @@ function setup(server) {
                 .run(id, wall_sprite || null, floor_sprite || null);
             }
           } catch (e) { console.error('[WS/Room] Save failed:', e); }
-          
+
           const other = presence.getOtherWs(user.id);
-          if (other) send(other, 'room_update', msg);
+          if (other) send(other, EV.S_ROOM_UPDATE, msg);
           break;
         }
         case EV.C_CHAR_MOVE: {
@@ -256,9 +266,31 @@ function setup(server) {
           break;
         }
 
-        case 'social_interaction': {
+        case EV.C_FURNITURE_LOCK: {
+          const { itemId } = msg;
+          if (!itemId) break;
+          const success = locks.acquireLock(itemId, user.id);
+          if (success) {
+            const other = presence.getOtherWs(user.id);
+            if (other) send(other, EV.S_FURNITURE_LOCK, { itemId, userId: user.id });
+          }
+          break;
+        }
+
+        case EV.C_FURNITURE_UNLOCK: {
+          const { itemId } = msg;
+          if (!itemId) break;
+          const success = locks.releaseLock(itemId, user.id);
+          if (success) {
+            const other = presence.getOtherWs(user.id);
+            if (other) send(other, EV.S_FURNITURE_UNLOCK, { itemId, userId: user.id });
+          }
+          break;
+        }
+
+        case EV.C_SOCIAL_INTERACTION: {
           const other = presence.getOtherWs(user.id);
-          if (other) send(other, 'social_interaction', { userId: user.id, ...msg });
+          if (other) send(other, EV.S_SOCIAL_INTERACTION, { userId: user.id, ...msg });
           break;
         }
 
@@ -276,6 +308,18 @@ function setup(server) {
     });
 
     ws.on('close', () => {
+      // 1. Release locks held by user and inform partner
+      const releasedIds = locks.releaseAllLocksForUser(user.id);
+      if (releasedIds.length > 0) {
+        const other = presence.getOtherWs(user.id);
+        if (other) {
+          releasedIds.forEach(itemId => {
+            send(other, EV.S_FURNITURE_UNLOCK, { itemId, userId: user.id });
+          });
+        }
+      }
+
+      // 2. Teardown presence
       presence.disconnect(user.id, broadcastPresence);
       console.log(`[WS] - ${user.username}`);
     });

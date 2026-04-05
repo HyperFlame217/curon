@@ -4351,6 +4351,38 @@
       100% { transform: translateY(-40px) scale(0.8); opacity: 0; }
     }
 
+    .house-toast {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-deep);
+      color: var(--color-secondary);
+      padding: 6px 12px;
+      font-family: var(--font-display);
+      font-size: 8px;
+      border: 2px solid var(--color-secondary);
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+      z-index: 10002;
+      pointer-events: none;
+      animation: toast-fade 2.5s forwards;
+    }
+    @keyframes toast-fade {
+      0% { opacity: 0; transform: translate(-50%, 10px); }
+      10% { opacity: 1; transform: translate(-50%, 0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -10px); }
+    }
+
+    .locked-by-partner {
+      cursor: not-allowed !important;
+    }
+    .locked-by-partner .action-handle {
+      pointer-events: none !important;
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+
     /* Inventory Window — Desktop Right-Side Drawer */
     .inventory-win {
       position: fixed;
@@ -5247,6 +5279,7 @@
 
   <!-- live script below -->
   <!-- ══ CORE INFRASTRUCTURE ══ -->
+  <script src="js/ws_events.js"></script>
   <script src="js/state.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/crypto.js"></script>
