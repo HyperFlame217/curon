@@ -30,13 +30,33 @@ const WalletManager = {
   },
 
   /**
+   * Directly updates balance and UI state from WebSocket payloads.
+   */
+  updateState(data, animate = false) {
+    if (!data) return;
+    STATE.wallet.balance = data.balance;
+    STATE.wallet.daily_msg_count = data.daily_msg_count;
+    STATE.wallet.user_timezone = data.user_timezone || STATE.wallet.user_timezone;
+    STATE.wallet.isLoaded = true;
+    
+    this.updateUI(animate);
+  },
+
+  /**
    * Refreshes the DOM elements displaying the coin balance.
    */
-  updateUI() {
+  updateUI(animate = false) {
     const el = document.getElementById('coin-balance');
+    const icon = document.querySelector('.coin-icon');
     if (el) {
-      // Simple update (can add animation here later)
       el.textContent = STATE.wallet.balance;
+    }
+    
+    // Optional feedback for games (not chat)
+    if (animate && icon) {
+      icon.classList.remove('coin-pulse');
+      void icon.offsetWidth; // trigger reflow
+      icon.classList.add('coin-pulse');
     }
   },
 
@@ -57,8 +77,11 @@ const WalletManager = {
       
       if (resp.ok) {
         const data = await resp.json();
-        STATE.wallet.balance = data.balance;
-        this.updateUI();
+        this.updateState({
+           balance: data.balance,
+           daily_msg_count: STATE.wallet.daily_msg_count,
+           user_timezone: STATE.wallet.user_timezone
+        }, true); // Animate for manual earn (games)
         
         // Visual feedback
         if (typeof showToast === 'function') {

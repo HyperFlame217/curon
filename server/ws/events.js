@@ -111,6 +111,9 @@ module.exports = Object.freeze({
   // ── Progression (P6-A) ────────────────────────────────────────
   S_MILESTONE_UNLOCKED:      'milestone_unlocked',
 
+  // ── Economy (P2-A, P2-B) ──────────────────────────────────────
+  S_WALLET_UPDATE:           'wallet_update',
+
   // ── Errors ────────────────────────────────────────────────────
   S_ERROR:                   'error',
 });

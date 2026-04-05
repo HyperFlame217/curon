@@ -56,4 +56,29 @@ router.post('/wallet/earn', requireAuth, async (req, res) => {
   }
 });
 
+// ── POST /wallet/timezone ──────────────────────────────────
+// Updates the user's timezone for daily reset logic.
+router.post('/wallet/timezone', requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  const userId = req.user.id;
+  const { timezone } = req.body || {};
+
+  if (!timezone) return res.status(400).json({ error: 'Missing timezone' });
+
+  try {
+    // Validate timezone string basic check
+    try { 
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone }); 
+    } catch (e) { 
+      return res.status(400).json({ error: 'Invalid timezone' }); 
+    }
+
+    db.prepare('UPDATE user_coins SET user_timezone = ? WHERE user_id = ?').run(timezone, userId);
+    res.json({ ok: true, timezone });
+  } catch (err) {
+    console.error('[Wallet] Error updating timezone:', err);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 module.exports = router;

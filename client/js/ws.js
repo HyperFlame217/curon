@@ -93,5 +93,6 @@
         case WS_EV.S_FURNITURE_UNLOCK:         return typeof onFurnitureUnlock === 'function' && onFurnitureUnlock(msg);
         case WS_EV.S_CHAR_MOVE:               return onCharMove(msg);
         case WS_EV.S_SOCIAL_INTERACTION:        return onSocialInteraction(msg);
+        case WS_EV.S_WALLET_UPDATE:             return typeof WalletManager !== 'undefined' && WalletManager.updateState(msg, false);
       }
     }

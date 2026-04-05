@@ -232,21 +232,49 @@ function getDb() {
 
     rawDb.run(SCHEMA);
 
-    // Dynamic Migration Runner (P1-J)
-    try {
-      const migrationDir = path.join(__dirname, 'migrations');
-      if (fs.existsSync(migrationDir)) {
-        const files = fs.readdirSync(migrationDir).sort();
-        for (const file of files) {
-          if (file.endsWith('.sql')) {
-            const p = path.join(migrationDir, file);
-            const sql = fs.readFileSync(p, 'utf8');
-            rawDb.run(sql);
-            console.log(`[db] Migration applied: ${file}`);
+    // Dynamic Migration Runner (P1-J) — tracks applied migrations to run each only once
+    rawDb.run(`CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)`);
+
+    const migrationDir = path.join(__dirname, 'migrations');
+    if (fs.existsSync(migrationDir)) {
+      const files = fs.readdirSync(migrationDir).sort();
+      for (const file of files) {
+        if (!file.endsWith('.sql')) continue;
+
+        // Skip if already tracked
+        const chk = rawDb.prepare('SELECT 1 FROM schema_migrations WHERE filename = ?');
+        chk.bind([file]);
+        const tracked = chk.step();
+        chk.free();
+        if (tracked) continue;
+
+        const p   = path.join(migrationDir, file);
+        const sql = fs.readFileSync(p, 'utf8');
+
+        try {
+          rawDb.run(sql);
+          console.log(`[db] Migration applied: ${file}`);
+        } catch (e) {
+          // "Duplicate column" / "already exists" = schema already correct, mark applied
+          const isIdempotentError = e.message.includes('duplicate column') || e.message.includes('already exists');
+          if (isIdempotentError) {
+            console.log(`[db] Migration ${file} already reflected in schema — marking applied.`);
+          } else {
+            console.error(`[db] Migration ${file} failed:`, e.message);
+            continue; // Don't record genuinely failed migrations
           }
         }
+
+        // Record as applied (whether it ran fresh or was already present)
+        try {
+          const rec = rawDb.prepare('INSERT OR IGNORE INTO schema_migrations (filename, applied_at) VALUES (?, ?)');
+          rec.bind([file, Math.floor(Date.now() / 1000)]);
+          rec.step();
+          rec.free();
+        } catch (_) {}
       }
-    } catch(e) { console.warn("[db] Migration failed:", e.message); }
+    }
+
 
     // Persist once after schema setup (Force sync during boot)
     persist(rawDb, true);

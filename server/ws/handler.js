@@ -5,6 +5,7 @@ const { isValidCipherBundle } = require('../crypto');
 const presence            = require('./presence');
 const locks               = require('./locks');
 const EV                  = require('./events');
+const Economy             = require('../economy');
 
 function send(ws, type, payload = {}) {
   if (ws && ws.readyState === ws.OPEN) {
@@ -99,6 +100,13 @@ function setup(server) {
             iv: cipher.iv, media_id: media_id || null, reactions: [],
             reply_to_id: validReplyId,
           });
+
+          // ── Economy: Chat Reward (P2-B) ─────────────────────────
+          Economy.processChatMessage(user.id).then(newWallet => {
+            if (newWallet) {
+              send(ws, EV.S_WALLET_UPDATE, newWallet);
+            }
+          }).catch(err => console.error('[Economy] WS Reward error:', err));
 
           // Forward to recipient with THEIR slot
           const other = presence.getOtherWs(user.id);

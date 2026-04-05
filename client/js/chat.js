@@ -35,7 +35,9 @@
 
         // Parallelize decryption and element creation
         // buildMsgEl is async, so we create an array of promises
-        const msgPromises = msgs.map(msg => buildMsgEl(msg, !before));
+        // 'bottom' = initial load (snap to bottom), 'none' = paginated history (never scroll)
+        const scrollCtx = before ? 'none' : 'bottom';
+        const msgPromises = msgs.map(msg => buildMsgEl(msg, scrollCtx));
         const msgElements = await Promise.all(msgPromises);
 
         const frag = document.createDocumentFragment();
@@ -134,7 +136,7 @@
     async function processNewMsg(msg) {
       const container = document.getElementById('msgs');
       if (container.querySelector(`[data-msg-id="${msg.id}"]`)) return;
-      const el = await buildMsgEl(msg);
+      const el = await buildMsgEl(msg, 'near'); // new incoming message — scroll only if near bottom
       const d = new Date(msg.created_at * 1000);
       const dateStr = formatDate(d);
       const separators = container.querySelectorAll('.dsep');
@@ -412,7 +414,8 @@
     // ════════════════════════════════════════════════════════════
     //  RENDER
     // ════════════════════════════════════════════════════════════
-    async function buildMsgEl(msg, isInitialLoad = false) {
+    // scrollCtx: 'bottom' = snap to bottom on load, 'near' = scroll if near bottom, 'none' = never scroll
+    async function buildMsgEl(msg, scrollCtx = 'near') {
       const isMe = msg.sender_id === STATE.user.id;
       let text = '';
 
@@ -521,13 +524,13 @@
           img.alt = 'GIF';
           img.style.maxWidth = '240px';
           img.addEventListener('click', () => showLightbox(gifUrl));
-          img.addEventListener('load', isInitialLoad ? scrollBottom : scrollIfNearBottom);
+          img.addEventListener('load', scrollCtx === 'bottom' ? scrollBottom : scrollCtx === 'near' ? scrollIfNearBottom : () => {});
           mediaEl = img;
         } else {
           mediaEl = buildMediaEl(msg.media_id, mimeType);
           // Scroll after images load — only if user is near the bottom
           const imgs = mediaEl.tagName === 'IMG' ? [mediaEl] : mediaEl.querySelectorAll('img');
-          imgs.forEach(img => img.addEventListener('load', isInitialLoad ? scrollBottom : scrollIfNearBottom));
+          imgs.forEach(img => img.addEventListener('load', scrollCtx === 'bottom' ? scrollBottom : scrollCtx === 'near' ? scrollIfNearBottom : () => {}));
         }
         bubble.appendChild(mediaEl);
         const ts = document.createElement('span');
