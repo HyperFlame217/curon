@@ -139,6 +139,7 @@ window.bootApp = async function(password) {
   if (window.initAvatars) initAvatars();
   if (window.initStats) initStats();
   if (window.initHouseSystem) await initHouseSystem();
+  if (window.WalletManager) window.WalletManager.load(); // Economy (P2-A)
 
   if (window._showChat) _showChat();
   if (window.initScrollPagination) initScrollPagination();

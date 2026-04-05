@@ -270,6 +270,42 @@
       box-shadow: 2px 2px 0 var(--color-deep);
     }
 
+    /* Wallet Status (P2-A) */
+    .wallet-status {
+      background-color: var(--color-deep);
+      border: 2px solid var(--color-secondary);
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2px;
+      box-shadow: 2px 2px 0 var(--color-forest);
+    }
+
+    .coin-icon {
+      font-size: 14px;
+      animation: coin-bounce 2s ease-in-out infinite;
+    }
+
+    .coin-amount {
+      font-family: var(--font-display);
+      font-size: 8px;
+      color: var(--color-secondary);
+      flex: 1;
+    }
+
+    .coin-label {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-highlight);
+      letter-spacing: 1px;
+    }
+
+    @keyframes coin-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+
     .nav-body {
       padding: 5px;
       display: flex;
@@ -4545,6 +4581,13 @@
         </div>
       </div>
 
+      <!-- Wallet Status (P2-A) -->
+      <div class="wallet-status">
+        <div class="coin-icon">💰</div>
+        <div id="coin-balance" class="coin-amount">0</div>
+        <div class="coin-label">COINS</div>
+      </div>
+
       <div class="win pair-win">
         <div class="win-bar">
           <div class="win-title" id="pair-win-title">YOU &amp; HER</div>
@@ -5296,6 +5339,7 @@
   <script src="js/calls.js"></script>
   <script src="js/integrations.js"></script>
   <script src="js/house.js"></script>
+  <script src="js/wallet.js"></script>
 
   <!-- ══ BOOT & IDENTITY LAYER ══ -->
   <script src="js/auth_ui.js"></script>

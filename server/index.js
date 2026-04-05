@@ -20,6 +20,7 @@ async function main() {
   app.use('/', require('./routes/assets')); // /media, /emojis, /gifs
   app.use('/', require('./routes/house'));  // /house, /stats
   app.use('/', require('./routes/events')); // /spotify, /calendar
+  app.use('/', require('./routes/wallet')); // /wallet, /wallet/earn (P2-A)
 
   // ── Fallback: SPA shell ───────────────────────────────────
   app.get('*', (_req, res) => {

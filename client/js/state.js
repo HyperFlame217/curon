@@ -26,5 +26,12 @@ window.STATE = {
   publicKey: null,    // own RSA-OAEP public CryptoKey
   otherPubKey: null,  // other user's RSA-OAEP public CryptoKey
   password: null,     // held briefly during key setup, then cleared
-  userAId: null       // first seeded user — determines slot A vs B
+  userAId: null,      // first seeded user — determines slot A vs B
+  // Economy (P2-A)
+  wallet: {
+    balance: 0,
+    daily_msg_count: 0,
+    user_timezone: 'UTC',
+    isLoaded: false
+  }
 };
