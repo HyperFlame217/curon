@@ -1,8 +1,8 @@
 # CURON.EXE
 
-A private, end-to-end encrypted communication platform for exactly two users. Designed for intimacy, privacy, and desktop-style aesthetics.
+A private, end-to-end encrypted communication platform for exactly two users. Designed for intimacy, privacy, and desktop-style aesthetics. Featuring a deep isometric "House" layer for shared digital cohabitation.
 
-## Stack
+## 🛠️ Stack
 
 - **Runtime**: Node.js
 - **Server**: Express + `ws` (WebSockets)
@@ -11,10 +11,11 @@ A private, end-to-end encrypted communication platform for exactly two users. De
 - **Encryption**: E2E via Web Crypto API (RSA-OAEP, AES-GCM)
 - **Calls**: WebRTC (Signaling via WebSocket, supports STUN/TURN)
 - **UI**: Monolithic `index.html` (Vanilla CSS, custom pixel-art components)
+- **Engine**: Custom 2.5D Isometric DOM-based rendering engine
 
 ---
 
-## Setup
+## 🚀 Setup
 
 ### 1. Install dependencies
 
@@ -71,114 +72,123 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
-## Deploying to Railway
-
-1. Push this repo to GitHub
-2. Create a new Railway project → **Deploy from GitHub repo**
-3. Set environment variables in Railway dashboard:
-   - `JWT_SECRET` — your generated secret
-   - `PORT` — Railway sets this automatically, but you can override
-4. Add a **volume** mount at `/app/server/storage` for media persistence
-5. Run the seed script once via Railway's shell:
-   ```bash
-   node server/seed.js
-   ```
-
----
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 ├── client/
 │   ├── js/
-│   │   ├── calendar.js     # Shared calendar logic
-│   │   ├── calls.js        # WebRTC & signaling UI
+│   │   ├── house.js        # Isometric engine & furniture logic
 │   │   ├── chat.js         # Messaging & E2EE logic
-│   │   ├── emojis.js       # Reaction & Emoji Picker
-│   │   ├── gallery.js      # Media viewer & encryption
-│   │   ├── house.js        # Isometric engine & furniture
-│   │   ├── integrations.js # Spotify & external sync
-│   │   ├── notes.js        # Virtual board & sticky notes
-│   │   ├── search.js       # Message & global search
+│   │   ├── calls.js        # WebRTC & signaling UI
 │   │   ├── ui.js           # Shared layout & modals
-│   │   ├── utils.js        # Crypto & helper functions
-│   │   └── ws.js           # Client-side WebSocket manager
+│   │   ├── ws.js           # Client-side WebSocket manager
+│   │   └── utils.js        # Crypto & helper functions
 │   └── index.html          # Main HTML5 entry point
 ├── server/
 │   ├── routes/
 │   │   ├── auth.js         # JWT & login endpoints
-│   │   ├── calendar.js     # Shared event storage
-│   │   ├── clearchat.js    # Data deletion utility
-│   │   ├── emojis.js       # Custom reaction endpoints
-│   │   ├── gifs.js         # Giphy integration API
-│   │   ├── houses.js       # Persistence for House state
+│   │   ├── houses.js       # persistence for House state
+│   │   ├── wallet.js       # Individual coin & reward logic
 │   │   ├── keys.js         # E2EE key exchange endpoints
-│   │   ├── media.js        # Encrypted storage & uploads
-│   │   ├── messages.js     # Chat history & storage
-│   │   ├── notes.js        # Sticky note persistence
-│   │   ├── spotify.js      # OAuth & playback sync
-│   │   └── stats.js        # Relationship milestones
+│   │   └── media.js        # Encrypted storage & uploads
 │   ├── ws/
-│   │   ├── events.js       # Shared event type constants
 │   │   ├── handler.js      # WebSocket message dispatcher
 │   │   └── presence.js     # Real-time activity tracking
-│   ├── auth.js             # Token middleware
-│   ├── crypto.js           # Server-side validation
 │   ├── db.js               # sql.js wrapper & schema
 │   ├── index.js            # Node/Express app root
-│   ├── seed.js             # One-time USERS setup
-│   └── curon.db            # Persistent binary database
+│   └── seed.js             # One-time USERS setup
 ├── config/
 │   ├── cats.json           # Definitions for AI pets
 │   ├── furniture.json      # Complete furniture catalog
+│   ├── outfits.json        # Character clothing definitions
 │   ├── rooms.json          # Master room templates
-│   ├── stories.json        # Shared memory history
+│   ├── games.json          # Minigame milestones & rewards
 │   └── themes.json         # Custom UI color profiles
-├── Notes/                  # Dev guides & checklists
-├── storage/                # Media, avatars, & GIF files
-├── .env                    # Environment secrets
-└── package.json            # Node dependencies & scripts
+├── Notes/                  # Dev guides, research, & task lists
+└── storage/                # Media, avatars, & GIF files (Encrypted)
 ```
 
 ---
 
-## Security & Privacy-First
+## 🔒 Security & Privacy-First
 
 - **Zero-Knowledge Storage**: Message content and private keys are never stored in plaintext on the server.
 - **Hardware-Accelerated Crypto**: Uses the browser's Web Crypto API for secure RSA and AES operations.
-- **Server-Side Avatars**: Replaces `localStorage` base64 storage with secure file uploads to prevent quota issues.
+- **Server-Side Avatars**: Uses secure file uploads to prevent `localStorage` quota issues.
 - **WebRTC Privacy**: Direct P2P calls with signaling over the encrypted WebSocket.
 
 ---
 
-## Core Features
+## ✨ Core Features
 
+### 🟢 Implemented
 - [x] **E2E Chat**: Real-time messaging with reactions, replies, and search.
-- [x] **Isometric House**: A 2.5D shared home with furniture placement and room customization.
-- [x] **Persistence**: Full SQLite storage for room textures and furniture layouts.
-- [x] **Real-time Sync**: WebSocket-driven movement and design updates for partners.
-- [x] **Surface Stacking**: Intelligent "tabletop" logic for placing items on desks/tables.
-- [x] **Shared Calendar**: Manage events and recurring milestones.
-- [x] **Sync Schedule**: Visual timeline for daily routines and timezones.
-- [x] **Spotify Sync**: See what each other is listening to in real-time.
-- [x] **Voice & Video**: High-quality WebRTC calls for both desktop and mobile.
-- [x] **Notes Board**: Pin shared notes to a virtual board.
-- [x] **Media Gallery**: Encrypted photo/video sharing and GIF support.
+- [x] **2.5D Isometric House**: A shared home with persistent furniture placement.
+- [x] **Hierarchy Engine**: Surface stacking (items on tables) with recursive movement/deletion.
+- [x] **Grid Physics**: A* pathfinding, collision masking, and BFS-based Safe Spawn algorithm.
+- [x] **Interaction Locks**: Networked mutexes to prevent modifying furniture while in-use.
+- [x] **Dual Characters**: Real-time sync of user + partner movement and idle roaming.
+- [x] **Shared Calendar & Schedule**: Relationship milestone tracking and routine sync.
+- [x] **Spotify Sync**: Live playback visibility for partners.
+- [x] **Voice & Video**: WebRTC calls for desktop and mobile.
+- [x] **Notes Board**: Shared virtual sticky notes.
+- [x] **Media Gallery**: Encrypted photo/video sharing.
+
+### 🟡 Planned / In-Progress
+- [ ] **Individual Economy**: Wallets with message-based caps and daily game tickets.
+- [ ] **Universal Shop**: Unlockable furniture and outfit catalogues.
+- [ ] **Cat Co-Parenting**: Shared AI pets with happiness decay and naming system.
+- [ ] **Multi-Room Mansion**: Tile-trigger door transitions and room state management.
+- [ ] **Memory Wall**: Shared relationship scrapbook with doodle-canvas support.
+- [ ] **Wardrobe System**: Layered character outfit rendering and gifting.
 
 ---
 
-## 🚧 Undergoing Operations
+## 📊 Current Status
 
-- **Modular Art Redesign**: Upgrading all assets to a **2-pixel base** (furniture) and **4-pixel base** (room tiles) for a premium, hand-crafted feel.
-- **Custom Outfits**: Implementing a multi-layer PNG rendering engine for characters.
-- **Inventory Expansion**: Populating the house catalog with 50+ unique items.
+### ✅ Completed Phases
+- **Phase 1: Foundations & Config**: CSS tokens, config loaders, and asset manifests.
+- **Phase 1.1: Engine Stability**: BFS Safe Spawn, Networked Interaction Locks, AFK Soft-collision, and WS Reconnection state.
+- **Phase 1.2: House Engine**: Grid snapping, depth sorting, surface stacking, and rotation logic.
+
+### 🚧 In Progress
+- **Phase 2: Economy & Engine APIs**: Wallet architecture implementation and message-based coin rewards.
+
+### 📋 Upcoming
+- **Phase 3: Room Navigation**: Multi-room transition logic and doorway buffer zones.
+- **Phase 4: progression & Shop**: Milestone tracker and Universal Shop UI.
 
 ---
 
-## 🗺️ Roadmap & Planned Features
+## 🐞 Known Issues
 
-- **Mansion Expansion**: Support for multiple interconnected rooms with working doors and transition triggers.
-- **Cat AI**: Roaming felines that interact with furniture (loafing on sofas, sleeping on beds).
-- **Dynamic Lighting**: Real-time Night Mode with window shadows and glowing lamp effects.
-- **Shop System**: A "Universal Shop" for unlocking new furniture tiers based on message streaks.
-- **Memory Wall**: A special room for displaying framed photos from the Media Gallery.
+- **Modular Art Redesign**: Ongoing upgrade of furniture to 2px base and room tiles to 4px base (visual inconsistency during transition).
+- **Railway Volatility**: Free tier lacks persistent storage; media requires external R2/S3 volume mounting.
+- **SQLite Latency**: Large database sizes may see minor lag in `sql.js` file-write operations.
+
+---
+
+## 🗺️ Roadmap
+
+1.  **Economy Layer**: Finalize coin rewards, tickets, and the `WalletManager`.
+2.  **Navigation Expansion**: Implement multi-room support and door transitions.
+3.  **Metagame Foundations**: Build the Milestone Tracker and Universal Shop.
+4.  **Avatar Customization**: Deploy the Wardrobe system and outfit gifting.
+5.  **Cat AI**: Launch the shared pet system with autonomous roaming.
+6.  **Memory Wall**: Finalize the doodle canvas and chronological scrapbook.
+
+---
+
+## 🔑 Critical Invariants
+
+These rules must **never** be violated in any implementation:
+
+1.  **JSON is Authority**: No hardcoded content or filename-based logic.
+2.  **Individual Wallets**: Coin balances are strictly separate, never merged.
+3.  **Multiplayer Anti-Spam**: Live multiplayer games **never** award coins.
+4.  **Safe Spawn Validation**: Finder algorithm runs on every connect and furniture drop.
+5.  **Step-Trigger Doors**: Transitions are triggered by tile entry, not clicks.
+6.  **Hand-Drawn Perspective**: No CSS/GPU rotation on sprites; all 4 directions are explicit assets.
+7.  **AFK Meat-Wall Prevention**: Soft-collision fallback ensures players are never trapped.
+8.  **Timezone Synchronicity**: All daily resets follow User 2's timezone.
+9.  **Platform Parity**: 100% feature equality between PC (Mouse/KB) and Mobile (Touch).
