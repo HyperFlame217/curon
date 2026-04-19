@@ -5,3 +5,4 @@ server/storage/media/*
 .env
 Notes/
 tmp/
+.agent/
