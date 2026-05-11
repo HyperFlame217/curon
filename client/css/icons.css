@@ -10,55 +10,55 @@
   vertical-align: middle;
 }
 
-/* ── Row 0 ── */
-.ico-chat    { width: 16px; height: 16px; background-position:   0px   0px; }
-.ico-gallery { width: 16px; height: 16px; background-position: -20px   0px; }
-.ico-pinned  { width: 16px; height: 16px; background-position: -40px   0px; }
-.ico-dates   { width: 16px; height: 16px; background-position: -60px   0px; }
-.ico-call    { width: 16px; height: 16px; background-position: -80px   0px; }
-.ico-video   { width: 16px; height: 16px; background-position: -100px   0px; }
-.ico-search  { width: 16px; height: 16px; background-position: -120px   0px; }
-.ico-delete  { width: 16px; height: 16px; background-position: -140px   0px; }
-.ico-close   { width: 16px; height: 16px; background-position: -160px   0px; }
+/* Icons are 16x16 drawn centered in 20x20 cells - offset by 2px */
+.ico-chat    { width: 16px; height: 16px; background-position:  -2px  -2px; }
+.ico-gallery { width: 16px; height: 16px; background-position: -22px  -2px; }
+.ico-pinned  { width: 16px; height: 16px; background-position: -42px  -2px; }
+.ico-dates   { width: 16px; height: 16px; background-position: -62px  -2px; }
+.ico-call    { width: 16px; height: 16px; background-position: -82px  -2px; }
+.ico-video   { width: 16px; height: 16px; background-position: -102px  -2px; }
+.ico-search  { width: 16px; height: 16px; background-position: -122px  -2px; }
+.ico-delete  { width: 16px; height: 16px; background-position: -142px  -2px; }
+.ico-close   { width: 16px; height: 16px; background-position: -162px  -2px; }
 
-/* ── Row 1 ── */
-.ico-settings { width: 16px; height: 16px; background-position:   0px -20px; }
-.ico-menu     { width: 16px; height: 16px; background-position: -20px -20px; }
-.ico-spotify  { width: 16px; height: 16px; background-position: -40px -20px; }
-.ico-connect  { width: 16px; height: 16px; background-position: -60px -20px; }
-.ico-attach   { width: 16px; height: 16px; background-position: -80px -20px; }
-.ico-gif      { width: 16px; height: 16px; background-position: -100px -20px; }
-.ico-mic      { width: 16px; height: 16px; background-position: -120px -20px; }
-.ico-emoji    { width: 16px; height: 16px; background-position: -140px -20px; }
-.ico-send     { width: 16px; height: 16px; background-position: -160px -20px; }
+/* Row 1 */
+.ico-settings { width: 16px; height: 16px; background-position:  -2px -22px; }
+.ico-menu     { width: 16px; height: 16px; background-position: -22px -22px; }
+.ico-spotify  { width: 16px; height: 16px; background-position: -42px -22px; }
+.ico-connect  { width: 16px; height: 16px; background-position: -62px -22px; }
+.ico-attach   { width: 16px; height: 16px; background-position: -82px -22px; }
+.ico-gif      { width: 16px; height: 16px; background-position: -102px -22px; }
+.ico-mic      { width: 16px; height: 16px; background-position: -122px -22px; }
+.ico-emoji    { width: 16px; height: 16px; background-position: -142px -22px; }
+.ico-send     { width: 16px; height: 16px; background-position: -162px -22px; }
 
-/* ── Row 2 ── */
-.ico-reply    { width: 16px; height: 16px; background-position:   0px -40px; }
-.ico-copy     { width: 16px; height: 16px; background-position: -20px -40px; }
-.ico-react    { width: 16px; height: 16px; background-position: -40px -40px; }
-.ico-edit     { width: 16px; height: 16px; background-position: -60px -40px; }
-.ico-calendar { width: 16px; height: 16px; background-position: -80px -40px; }
-.ico-routine  { width: 16px; height: 16px; background-position: -100px -40px; }
-.ico-mute-on  { width: 16px; height: 16px; background-position: -120px -40px; }
-.ico-mute-off { width: 16px; height: 16px; background-position: -140px -40px; }
-.ico-cam-on   { width: 16px; height: 16px; background-position: -160px -40px; }
+/* Row 2 */
+.ico-reply    { width: 16px; height: 16px; background-position:  -2px -42px; }
+.ico-copy     { width: 16px; height: 16px; background-position: -22px -42px; }
+.ico-react    { width: 16px; height: 16px; background-position: -42px -42px; }
+.ico-edit     { width: 16px; height: 16px; background-position: -62px -42px; }
+.ico-calendar { width: 16px; height: 16px; background-position: -82px -42px; }
+.ico-routine  { width: 16px; height: 16px; background-position: -102px -42px; }
+.ico-mute-on  { width: 16px; height: 16px; background-position: -122px -42px; }
+.ico-mute-off { width: 16px; height: 16px; background-position: -142px -42px; }
+.ico-cam-on   { width: 16px; height: 16px; background-position: -162px -42px; }
 
-/* ── Row 3 ── */
-.ico-cam-off   { width: 16px; height: 16px; background-position:   0px -60px; }
-.ico-screen    { width: 16px; height: 16px; background-position: -20px -60px; }
-.ico-minimize  { width: 16px; height: 16px; background-position: -40px -60px; }
-.ico-hangup    { width: 16px; height: 16px; background-position: -60px -60px; }
-.ico-logout    { width: 16px; height: 16px; background-position: -80px -60px; }
-.ico-export    { width: 16px; height: 16px; background-position: -100px -60px; }
-.ico-bell      { width: 16px; height: 16px; background-position: -120px -60px; }
-.ico-upload    { width: 16px; height: 16px; background-position: -140px -60px; }
-.ico-save      { width: 16px; height: 16px; background-position: -160px -60px; }
+/* Row 3 */
+.ico-cam-off   { width: 16px; height: 16px; background-position:  -2px -62px; }
+.ico-screen    { width: 16px; height: 16px; background-position: -22px -62px; }
+.ico-minimize  { width: 16px; height: 16px; background-position: -42px -62px; }
+.ico-hangup    { width: 16px; height: 16px; background-position: -62px -62px; }
+.ico-logout    { width: 16px; height: 16px; background-position: -82px -62px; }
+.ico-export    { width: 16px; height: 16px; background-position: -102px -62px; }
+.ico-bell      { width: 16px; height: 16px; background-position: -122px -62px; }
+.ico-upload    { width: 16px; height: 16px; background-position: -142px -62px; }
+.ico-save      { width: 16px; height: 16px; background-position: -162px -62px; }
 
-/* ── Row 4 ── */
-.ico-globe      { width: 16px; height: 16px; background-position:   0px -80px; }
-.ico-arrow-prev { width: 16px; height: 16px; background-position: -20px -80px; }
-.ico-arrow-next { width: 16px; height: 16px; background-position: -40px -80px; }
-.ico-file       { width: 16px; height: 16px; background-position: -60px -80px; }
-.ico-image      { width: 16px; height: 16px; background-position: -80px -80px; }
-.ico-file-video { width: 16px; height: 16px; background-position: -100px -80px; }
-.ico-audio      { width: 16px; height: 16px; background-position: -120px -80px; }
+/* Row 4 */
+.ico-globe      { width: 16px; height: 16px; background-position:  -2px -82px; }
+.ico-arrow-prev { width: 16px; height: 16px; background-position: -22px -82px; }
+.ico-arrow-next { width: 16px; height: 16px; background-position: -42px -82px; }
+.ico-file       { width: 16px; height: 16px; background-position: -62px -82px; }
+.ico-image      { width: 16px; height: 16px; background-position: -82px -82px; }
+.ico-file-video { width: 16px; height: 16px; background-position: -102px -82px; }
+.ico-audio      { width: 16px; height: 16px; background-position: -122px -82px; }
