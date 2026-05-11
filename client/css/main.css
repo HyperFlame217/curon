@@ -3785,7 +3785,7 @@ textarea::placeholder {
 
 .timeline-date-label {
   font-family: var(--font-header);
-  font-size: var(--font-size-xsmall);
+  font-size: var(--font-size-caption);
   color: var(--color-base);
   background-color: var(--color-dark);
   padding: 6px 14px;
@@ -3845,7 +3845,7 @@ textarea::placeholder {
 
 .timeline-user-label {
   font-family: var(--font-header);
-  font-size: var(--font-size-timeline-user);
+  font-size: var(--font-size-title);
   color: var(--color-deep);
   width: 80px;
   text-align: right;
@@ -3863,7 +3863,7 @@ textarea::placeholder {
 }
 
 .timeline-user-sub {
-  font-size: var(--font-size-timeline-sub);
+  font-size: var(--font-size-small);
   opacity: 0.9;
 }
 
