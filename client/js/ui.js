@@ -23,14 +23,14 @@
         closeDrawer();
         document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
         el.classList.add('on');
-        const ico = el.querySelector('.ico')?.textContent?.trim() || '';
-        if (ico === '🏠') {
+        const btnText = el.textContent.trim();
+        if (btnText.includes('HOUSE')) {
           openHouse();
-        } else if (ico === '🖼') {
+        } else if (btnText.includes('GALLERY')) {
           openGallery();
-        } else if (ico === '📌') {
+        } else if (btnText.includes('PINNED')) {
           openNotes();
-        } else if (ico === '🗓') {
+        } else if (btnText.includes('DATES')) {
           openDates();
         } else {
           _closeAllViews();

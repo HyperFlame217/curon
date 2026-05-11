@@ -39,11 +39,11 @@ const BadgeManager = {
     const activeNi = document.querySelector('.ni.on');
     if (!activeNi) return 'chat';
     
-    const ico = activeNi.querySelector('.ico')?.textContent?.trim() || '';
+    const btnText = activeNi.textContent.trim();
     
-    if (ico === '📌') return 'notes';
-    if (ico === '🗓') return 'calendar';
-    if (ico === '🖼') return 'gallery';
+    if (btnText.includes('PINNED')) return 'notes';
+    if (btnText.includes('DATES')) return 'calendar';
+    if (btnText.includes('GALLERY')) return 'gallery';
     
     return 'chat';
   },
@@ -65,12 +65,12 @@ const BadgeManager = {
     
     if (!badgeEl) {
       // Find the nav item for this category
-      let targetIco = '💬';
-      if (category === 'notes') targetIco = '📌';
-      else if (category === 'calendar') targetIco = '🗓';
+      let targetText = 'CHAT';
+      if (category === 'notes') targetText = 'PINNED';
+      else if (category === 'calendar') targetText = 'DATES';
       
       const navItem = Array.from(document.querySelectorAll('.ni'))
-        .find(ni => ni.querySelector('.ico')?.textContent?.trim() === targetIco);
+        .find(ni => ni.textContent.trim().includes(targetText));
       
       if (!navItem) return;
       
@@ -111,12 +111,12 @@ const BadgeManager = {
     // Set up listeners for tab changes (works for both click and touch)
     document.querySelectorAll('.ni').forEach(ni => {
       ni.addEventListener('click', () => {
-        const ico = ni.querySelector('.ico')?.textContent?.trim() || '';
+        const btnText = ni.textContent.trim();
         
         // Clear badge when clicking on that tab
-        if (ico === '💬') this.clear('chat');
-        else if (ico === '📌') this.clear('notes');
-        else if (ico === '🗓') this.clear('calendar');
+        if (btnText.includes('CHAT')) this.clear('chat');
+        else if (btnText.includes('PINNED')) this.clear('notes');
+        else if (btnText.includes('DATES')) this.clear('calendar');
       });
     });
     

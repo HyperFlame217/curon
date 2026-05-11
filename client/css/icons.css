@@ -2,6 +2,7 @@
   display: inline-block;
   background-image: var(--sprite-icons);
   background-size: auto;
+  background-repeat: no-repeat;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
