@@ -1,6 +1,8 @@
 // ════════════════════════════════════════════════════════════
 //  ISO ENGINE CONSTANTS & HELPERS (Block 1)
 // ════════════════════════════════════════════════════════════
+const DISABLE_HOUSE = true; // MVP Release: Disable background house logic to save RAM
+
 const ISO = {
   TW: 64,   // tile pixel width (2:1 diamond)
   TH: 32,   // tile pixel height
@@ -77,7 +79,9 @@ function recalcViewScale() {
   const el = document.getElementById('house-rooms-container');
   if (el) el.style.transform = `translate(-50%, -50%) scale(${VIEW_SCALE})`;
 }
-window.addEventListener('resize', recalcViewScale);
+if (!DISABLE_HOUSE) {
+  window.addEventListener('resize', recalcViewScale);
+}
 
 // ════════════════════════════════════════════════════════════
 //  HOUSE SYSTEM (Block 4.5 + 5)
@@ -150,6 +154,11 @@ function toggleBlueprint() {
 }
 
 async function initHouseSystem() {
+  if (DISABLE_HOUSE) {
+    console.log("[House] System disabled for MVP release.");
+    return;
+  }
+  
   // 1. Character/Outfit Assignment (Fallback Chain: Storage -> Sprite -> Emoji)
   const getAvatarOutfit = (isMe) => {
     const avatar = isMe ? (window.getMyAvatar ? getMyAvatar() : null) : (window.getOtherAvatar ? getOtherAvatar() : null);
@@ -348,7 +357,7 @@ function onFurnitureUnlock(data) {
 function getSpriteHTML(val) {
   if (!val) return '❓';
   if (val.includes('.') || val.includes('/')) {
-    return `<img src="${val}" style="width:100%;height:100%;object-fit:contain;pointer-events:none;">`;
+    return `<img src="${val}" alt="house item" class="house-item-img">`;
   }
   return val; // It's an emoji/text
 }
@@ -709,7 +718,7 @@ function renderCharacters() {
     if (pEl.dataset.outfit !== outfitKey) {
       pEl.innerHTML = (char.outfit || []).map((layer, idx) => {
         if (typeof layer === 'string' && (layer.startsWith('data:') || layer.startsWith('http'))) {
-          return `<div class="char-layer" style="z-index:${idx}"><img src="${layer}" style="width:32px;height:64px;object-fit:contain;image-rendering:pixelated;"></div>`;
+          return `<div class="char-layer" style="z-index:${idx}"><img src="${layer}" alt="character outfit layer" class="char-layer-img"></div>`;
         }
         return `<div class="char-layer" style="z-index:${idx};font-size:28px;">${layer}</div>`;
       }).join('');
@@ -1262,7 +1271,7 @@ function showSocialMenu(x, y) {
   items.forEach(it => {
     const btn = document.createElement('button');
     btn.textContent = it.label;
-    btn.style.cssText = 'padding:4px 8px; cursor:pointer; background:#f0f0f0; border:1px solid #ccc; font-size:10px; font-weight:bold;';
+    btn.style.cssText = 'padding:4px 8px; cursor:pointer; background:var(--color-base); border:1px solid var(--color-dark); font-size:var(--font-size-title); font-weight:bold;';
     btn.onclick = () => {
       initiateSocialAction(it.kind);
       menu.remove();
@@ -1324,18 +1333,20 @@ function roamAction(charId) {
 }
 
 // Start roaming for your OWN character only at boot
-setTimeout(() => {
-  startRoamTimer('player');
-}, 5000);
+if (!DISABLE_HOUSE) {
+  setTimeout(() => {
+    startRoamTimer('player');
+  }, 5000);
 
-// Block 7.8: Tab Visibility Sync
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    console.log("[House] Tab woke up — sending position sync");
-    const p = HOUSE_STATE.player;
-    wsSend(WS_EV.C_CHAR_MOVE, { userId: STATE.user.id, x: p.x, y: p.y, charId: 'partner' });
-  }
-});
+  // Block 7.8: Tab Visibility Sync
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      console.log("[House] Tab woke up — sending position sync");
+      const p = HOUSE_STATE.player;
+      wsSend(WS_EV.C_CHAR_MOVE, { userId: STATE.user.id, x: p.x, y: p.y, charId: 'partner' });
+    }
+  });
+}
 
 // ── Drag Logic (Block 5.3 + 5.5) ───────────────────────────
 function handleDragStart(e, id) {
@@ -1420,7 +1431,7 @@ function handleDragMove(e) {
         ghost.style.width = (size[0] * 32) + 'px';
         ghost.style.height = (size[1] * 32) + 'px';
         ghost.style.clipPath = 'none';
-        ghost.style.outline = '2px dashed #638872';
+        ghost.style.outline = '2px dashed var(--color-tertiary)';
       } else {
         const isoOriginX = rRows * (ISO.TW / 2);
         const { px, py } = ISO.toScreen(parent.x, parent.y);
@@ -1682,5 +1693,7 @@ function animateHouse() {
 }
 
 // Start loop
-animateHouse();
+if (!DISABLE_HOUSE) {
+  animateHouse();
+}
 

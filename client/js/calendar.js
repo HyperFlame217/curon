@@ -11,18 +11,20 @@
       popupEventId: null,
     };
 
-    const EVENT_COLORS = ['#80b9b1', '#94c784', '#c3c88c', '#638872', '#e8a0a0', '#a0b4e8'];
+    const EVENT_COLORS = [
+      'var(--color-cal-1)',
+      'var(--color-cal-2)',
+      'var(--color-cal-3)',
+      'var(--color-cal-4)',
+      'var(--color-cal-5)',
+      'var(--color-cal-6)'
+    ];
 
     // ── Helpers ───────────────────────────────────────────────────
     function fmtDate(d) {
       return d.toLocaleDateString('default', { month: 'long', year: 'numeric' }).toUpperCase();
     }
-    function fmtWeekRange(d) {
-      const mon = new Date(d); mon.setDate(d.getDate() - d.getDay() + 1);
-      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-      return mon.toLocaleDateString('default', { month: 'short', day: 'numeric' }).toUpperCase() +
-        ' – ' + sun.toLocaleDateString('default', { month: 'short', day: 'numeric' }).toUpperCase();
-    }
+
     function fmtTime(ts) {
       const d = new Date(ts * 1000);
       return d.toLocaleTimeString('default', { hour: '2-digit', minute: '2-digit' });
@@ -42,31 +44,35 @@
       const m = (mins % 60).toString().padStart(2, '0');
       return h + ':' + m;
     }
-    function getEventsForDay(d) {
-      const start = new Date(d); start.setHours(0, 0, 0, 0);
-      const end = new Date(d); end.setHours(23, 59, 59, 999);
+    function getEventsForDay(startTs, endTs) {
       return CAL.events.filter(e => {
-        const es = e.start_time * 1000;
-        return es >= start.getTime() && es <= end.getTime();
+        return (e.start_time < endTs && e.end_time > startTs);
       });
     }
-    function getDayType(d) {
-      const day = d.getDay();
-      return (day === 0 || day === 6) ? 'weekend' : 'weekday';
+    function getDayType(d, tz = null) {
+      // NIGHT_BOUNDARY FIX: Shift time back by 4 hours to treat early morning
+      // as part of the previous night's routine type.
+      const adjusted = new Date(d.getTime() - (4 * 3600 * 1000));
+      const dayStr = adjusted.toLocaleDateString('en-US', { timeZone: tz || undefined, weekday: 'short' });
+      return (dayStr === 'Sat' || dayStr === 'Sun') ? 'weekend' : 'weekday';
     }
 
 
     // ── Schedule management panel ─────────────────────────────────
     let _schedDayType = 'weekday';
-    let _schedColor = '#94c784';
+    let _schedColor = 'var(--color-cal-1)';
 
-    function openSchedulePanel() {
-      document.getElementById('schedule-panel').classList.add('show');
-      renderScheduleList();
-    }
-
-    function closeSchedulePanel() {
-      document.getElementById('schedule-panel').classList.remove('show');
+    function toggleRoutineDock() {
+      const dock = document.getElementById('routine-dock');
+      if (!dock) return;
+      const isOpen = dock.classList.contains('open');
+      if (isOpen) {
+        dock.classList.remove('open');
+      } else {
+        dock.classList.add('open');
+        renderScheduleList();
+        selectEventColor(_schedColor, 'sched-colors');
+      }
     }
 
     function renderScheduleList() {
@@ -75,7 +81,10 @@
       const blocks = CAL.schedule.filter(b => b.user_id === myId && b.day_type === _schedDayType);
 
       if (!blocks.length) {
-        list.innerHTML = '<div style="font-family:&quot;Press Start 2P&quot;,monospace;font-size:6px;color:#638872;padding:16px;text-align:center;">NO BLOCKS YET</div>';
+        list.innerHTML = `<div class="schedule-empty-state">
+          <div class="schedule-empty-state-icon">🗓</div>
+          <div class="schedule-empty-state-text">NO BLOCKS YET</div>
+        </div>`;
         return;
       }
 
@@ -84,11 +93,11 @@
         const item = document.createElement('div');
         item.className = 'schedule-block-item';
         item.innerHTML = `
-      <div class="schedule-block-color" style="background:${b.color};"></div>
-      <div class="schedule-block-label">${escHtml(b.label)}</div>
-      <div class="schedule-block-time">${minutesToTime(b.start_minute)} – ${minutesToTime(b.end_minute)}</div>
-      <div class="schedule-block-del" data-id="${b.id}">✕</div>
-    `;
+          <div class="schedule-block-chip" style="background:${b.color};"></div>
+          <div class="schedule-block-label">${escHtml(b.label)}</div>
+          <div class="schedule-block-time">${minutesToTime(b.start_minute)} – ${minutesToTime(b.end_minute)}</div>
+          <div class="schedule-block-del" data-id="${b.id}">✕</div>
+        `;
         item.querySelector('.schedule-block-del').addEventListener('click', async () => {
           await fetch(`/calendar/schedule/${b.id}`, {
             method: 'DELETE',
@@ -130,16 +139,34 @@
     }
 
     function initSchedulePanel() {
-      document.getElementById('btn-manage-schedule')?.addEventListener('click', openSchedulePanel);
-      document.getElementById('btn-manage-schedule-mobile')?.addEventListener('click', openSchedulePanel);
-      document.getElementById('schedule-panel-close').addEventListener('click', closeSchedulePanel);
+      document.getElementById('btn-manage-schedule')?.addEventListener('click', toggleRoutineDock);
+      document.getElementById('btn-manage-schedule-mobile')?.addEventListener('click', toggleRoutineDock);
       document.getElementById('sched-add-btn').addEventListener('click', addScheduleBlock);
 
       // Day type tabs
+      const dayTablist = document.querySelector('.routine-dock-tabs');
+      if (dayTablist) {
+        dayTablist.setAttribute('role', 'tablist');
+        dayTablist.addEventListener('keydown', (e) => {
+          const tabs = Array.from(dayTablist.querySelectorAll('[role="tab"]'));
+          const idx = tabs.indexOf(document.activeElement);
+          if (idx === -1) return;
+          let next = null;
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = tabs[(idx + 1) % tabs.length];
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+          else if (e.key === 'Home') next = tabs[0];
+          else if (e.key === 'End') next = tabs[tabs.length - 1];
+          if (next) { e.preventDefault(); next.focus(); }
+        });
+      }
       document.querySelectorAll('.schedule-day-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-          document.querySelectorAll('.schedule-day-tab').forEach(t => t.classList.remove('on'));
+          document.querySelectorAll('.schedule-day-tab').forEach(t => {
+            t.classList.remove('on');
+            t.setAttribute('aria-selected', 'false');
+          });
           tab.classList.add('on');
+          tab.setAttribute('aria-selected', 'true');
           _schedDayType = tab.dataset.dtype;
           renderScheduleList();
         });
@@ -154,10 +181,15 @@
         });
       });
 
-      // Close on overlay click
-      document.getElementById('schedule-panel').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('schedule-panel')) closeSchedulePanel();
+      // Color swatches in ADD EVENT modal
+      document.querySelectorAll('#event-colors .event-color-swatch').forEach(sw => {
+        sw.addEventListener('click', () => {
+          document.querySelectorAll('#event-colors .event-color-swatch').forEach(s => s.classList.remove('selected'));
+          sw.classList.add('selected');
+          // _eventColor is handled by getSelectedColor('event-colors') during save
+        });
       });
+
     }
     // ── Load data ─────────────────────────────────────────────────
     async function loadCalendarData() {
@@ -179,12 +211,12 @@
     function renderCalendar() {
       const title = document.getElementById('cal-title');
       if (CAL.view === 'month') { title.textContent = fmtDate(CAL.date); renderMonth(); }
-      else if (CAL.view === 'week') { title.textContent = fmtWeekRange(CAL.date); renderWeek(); }
       else { title.textContent = fmtDayLabel(CAL.date); renderDay(); }
     }
 
     // ── Month view ────────────────────────────────────────────────
     function renderMonth() {
+      document.getElementById('dates-view').classList.remove('day-mode');
       const body = document.getElementById('cal-body');
       const y = CAL.date.getFullYear(), m = CAL.date.getMonth();
       const first = new Date(y, m, 1);
@@ -207,11 +239,13 @@
         const date = new Date(y, m, d);
         const todayCls = isToday(date) ? ' today' : '';
         const selectedCls = isSameDay(date, CAL.selectedDay) ? ' selected' : '';
-        const dayEvents = getEventsForDay(date);
-        const dots = dayEvents.slice(0, 4).map(e => `<span class="cal-dot" style="background:${e.color};"></span>`).join('');
+        const startTs = Math.floor(new Date(y, m, d, 0, 0, 0).getTime() / 1000);
+        const endTs = Math.floor(new Date(y, m, d, 23, 59, 59).getTime() / 1000);
+        const dayEvents = getEventsForDay(startTs, endTs);
+        const eventBars = dayEvents.slice(0, 4).map(e => `<div class="cal-event-bar" style="background:${e.color};" title="${escHtml(e.title)}"></div>`).join('');
         html += `<div class="cal-day${todayCls}${selectedCls}" data-date="${date.toISOString()}">
       <div class="cal-day-num">${d}</div>
-      <div>${dots}</div>
+      <div class="cal-day-events">${eventBars}</div>
     </div>`;
       }
 
@@ -228,7 +262,9 @@
       // Click handlers
       body.querySelectorAll('.cal-day:not(.other-month)').forEach(el => {
         el.addEventListener('click', () => {
-          CAL.selectedDay = new Date(el.dataset.date);
+          const clicked = new Date(el.dataset.date);
+          CAL.selectedDay = clicked;
+          CAL.date = new Date(clicked); // keep in sync so DAY view navigates from here
           renderTimeline();
           // Update selected styling
           body.querySelectorAll('.cal-day').forEach(d => d.classList.remove('selected'));
@@ -237,68 +273,13 @@
       });
     }
 
-    // ── Week view ─────────────────────────────────────────────────
-    function renderWeek() {
-      const body = document.getElementById('cal-body');
-      const mon = new Date(CAL.date);
-      mon.setDate(CAL.date.getDate() - ((CAL.date.getDay() + 6) % 7));
 
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(mon); d.setDate(mon.getDate() + i); return d;
-      });
-
-      let html = '<div class="cal-week"><div class="cal-week-header"><div style="border-right:2px solid #30253e;"></div>';
-      const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-      days.forEach((d, i) => {
-        const todayCls = isToday(d) ? ' today' : '';
-        html += `<div class="cal-week-day-hd${todayCls}" data-date="${d.toISOString()}">${dayNames[i]}<br>${d.getDate()}</div>`;
-      });
-      html += '</div><div class="cal-week-body"><div class="cal-time-col">';
-
-      for (let h = 0; h < 24; h++) {
-        html += `<div class="cal-time-label">${h.toString().padStart(2, '0')}:00</div>`;
-      }
-      html += '</div>';
-
-      days.forEach(d => {
-        const todayCls = isToday(d) ? ' today-col' : '';
-        const dayEvents = getEventsForDay(d);
-        html += `<div class="cal-week-col${todayCls}">`;
-        for (let h = 0; h < 24; h++) html += '<div class="cal-hour-line"></div>';
-        dayEvents.forEach(e => {
-          const startD = new Date(e.start_time * 1000);
-          const endD = new Date(e.end_time * 1000);
-          const topPct = ((startD.getHours() * 60 + startD.getMinutes()) / 1440) * 100;
-          const heightPct = ((endD - startD) / 1000 / 60 / 1440) * 100;
-          html += `<div class="timeline-block" data-id="${e.id}" style="position:absolute;top:${topPct}%;height:${Math.max(heightPct, 2)}%;left:2px;right:2px;background:${e.color};">${escHtml(e.title)}</div>`;
-        });
-        html += '</div>';
-      });
-
-      html += '</div></div>';
-      body.innerHTML = html;
-
-      // Click day header → select that day
-      body.querySelectorAll('.cal-week-day-hd').forEach(el => {
-        el.addEventListener('click', () => {
-          CAL.selectedDay = new Date(el.dataset.date);
-          renderTimeline();
-        });
-      });
-
-      // Click events
-      body.querySelectorAll('.timeline-block[data-id]').forEach(el => {
-        el.addEventListener('click', (e) => { e.stopPropagation(); showEventPopup(parseInt(el.dataset.id), e); });
-      });
-    }
 
     // ── Day view ──────────────────────────────────────────────────
     function renderDay() {
+      document.getElementById('dates-view').classList.add('day-mode');
       CAL.selectedDay = new Date(CAL.date);
       renderTimeline();
-      // Show a simple message in cal body
-      const body = document.getElementById('cal-body');
-      body.innerHTML = '<div style="padding:20px;font-family:&quot;Press Start 2P&quot;,monospace;font-size:7px;color:#638872;text-align:center;">SEE TIMELINE BELOW</div>';
     }
 
     // ── Timeline ──────────────────────────────────────────────────
@@ -315,9 +296,6 @@
       const myName = (STATE.user?.username || 'YOU').toUpperCase();
       const otherName = (STATE.otherName || 'THEM').toUpperCase();
 
-      const mySchedule = CAL.schedule.filter(b => b.user_id === myId && b.day_type === dayType);
-      const otherSchedule = CAL.schedule.filter(b => b.user_id === otherId && b.day_type === dayType);
-      const dayEvents = getEventsForDay(d);
 
       // Hours header — rendered separately so it stays visible above scrollable tracks
       const hoursInner = document.getElementById('timeline-hours-inner');
@@ -330,103 +308,251 @@
       // Sync horizontal scroll between header and tracks (only add once)
       const headerScroll = document.getElementById('timeline-header-scroll');
       if (!scroll._scrollSynced) {
-        scroll.addEventListener('scroll', () => { if (headerScroll) headerScroll.scrollLeft = scroll.scrollLeft; });
+        let _pendingSync = false;
+        scroll.addEventListener('scroll', () => {
+          if (!_pendingSync && headerScroll) {
+            _pendingSync = true;
+            requestAnimationFrame(() => {
+              headerScroll.scrollLeft = scroll.scrollLeft;
+              _pendingSync = false;
+            });
+          }
+        });
         scroll._scrollSynced = true;
       }
 
-      const PX_PER_MIN = 2; // 2px per minute = 120px per hour
+      // Compute PX_PER_MIN so the full 24h track fills the scroll container.
+      // Falls back to 2px/min (2880px) when the container has no width yet.
+      const TOTAL_MINUTES = 1440;
+      const scrollWidth = scroll.clientWidth > 0 ? scroll.clientWidth : 0;
+      const MIN_PX_PER_MIN = 2;   // never compress below 2px/min (keeps it readable)
+      const PX_PER_MIN = scrollWidth > 0
+        ? Math.max(MIN_PX_PER_MIN, (scrollWidth - 80) / TOTAL_MINUTES)
+        : MIN_PX_PER_MIN;
+      const TRACK_WIDTH = Math.round(TOTAL_MINUTES * PX_PER_MIN);
 
-      // Active display timezone (what the timeline's hour labels represent)
-      const activeTz = _tzViewMode === 'my' ? getMyTz() : getOtherTz();
+      // Propagate track width to CSS so header and track stay in sync
+      scroll.style.setProperty('--track-w', `${TRACK_WIDTH}px`);
+      const hoursScrollEl = document.getElementById('timeline-header-scroll');
+      if (hoursScrollEl) hoursScrollEl.style.setProperty('--track-w', `${TRACK_WIDTH}px`);
 
-      // Get UTC offset in minutes for a given IANA timezone
-      function getTzOffsetMin(tz) {
+      // Register a ResizeObserver once to re-render when the container resizes
+      // (e.g. switching between MON ↔ DAY expands/collapses the timeline pane)
+      if (!scroll._resizeObserver) {
+        scroll._resizeObserver = new ResizeObserver(() => {
+          // Debounce to avoid thrashing during CSS transitions
+          clearTimeout(scroll._resizeTimer);
+          scroll._resizeTimer = setTimeout(() => renderTimeline(), 80);
+        });
+        scroll._resizeObserver.observe(scroll);
+      }
+
+      // Get UTC offset in minutes for a given timezone at a specific time
+      function getUtcOffsetMin(tz, date) {
         try {
-          // Compare what local midnight looks like in two timezones to get offset
-          const ref = new Date(2000, 0, 1, 0, 0, 0); // fixed reference point
-          const inTz = new Date(ref.toLocaleString('en-US', { timeZone: tz }));
-          const inLocal = new Date(ref.toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }));
-          return Math.round((inTz - inLocal) / 60000);
+          const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false
+          }).formatToParts(date);
+          const v = t => parseInt(parts.find(p => p.type === t).value);
+          const tzDate = Date.UTC(v('year'), v('month') - 1, v('day'), v('hour') % 24, v('minute'), v('second'));
+          return Math.round((tzDate - date.getTime()) / 60000);
         } catch { return 0; }
       }
 
-      // Offset of each user's TZ relative to the active display TZ.
-      // Schedule blocks are stored in the owner's local TZ minutes.
-      // To convert owner-local minutes → active-display minutes:
-      //   displayMin = ownerMin - (ownerUTCOffset - activeUTCOffset)
-      //              = ownerMin - ownerUTCOffset + activeUTCOffset
-      // Example: Tokyo 02:00 (UTC+9), viewing in IST (UTC+5:30)
-      //   displayMin = 120 - 540 + 330 = -90  →  23:30 previous day
-      const myTzOffset = getTzOffsetMin(activeTz) - getTzOffsetMin(getMyTz());
-      const otherTzOffset = getTzOffsetMin(activeTz) - getTzOffsetMin(getOtherTz());
+      const activeTz = _tzViewMode === 'my' ? getMyTz() : getOtherTz();
+      
+      const dayStartTs = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0).getTime() / 1000);
+      const dayEndTs = dayStartTs + 86400;
+      const dayEvents = getEventsForDay(dayStartTs, dayEndTs);
 
-      // Current time in the active timezone (for now-line + auto-scroll)
+      // Current time in the active timezone
       let nowMinTz = 0;
       try {
         const nowInTz = new Date(new Date().toLocaleString('en-US', { timeZone: activeTz }));
         nowMinTz = nowInTz.getHours() * 60 + nowInTz.getMinutes();
-      } catch {
-        nowMinTz = new Date().getHours() * 60 + new Date().getMinutes();
+      } catch { nowMinTz = new Date().getHours() * 60 + new Date().getMinutes(); }
+
+      /**
+       * Pre-process schedule blocks to handle cross-day shifting.
+       * Since blocks are 0..1440, we create virtual "Yesterday" and "Tomorrow" versions
+       * and shift them all into the active display timezone.
+       */
+      /**
+       * Pre-process schedule blocks to handle cross-day shifting and continuity.
+       * Uses a 4:00 AM 'Night Boundary' logic: any block starting between 00:00 and 04:00
+       * is considered part of the previous night's routine.
+       */
+      function getShiftedSchedule(userId, ownerTz) {
+        const ownerOffset = getUtcOffsetMin(ownerTz, d);
+        const activeOffset = getUtcOffsetMin(activeTz, d);
+        const shift = activeOffset - ownerOffset; // minutes to shift
+
+        const blocks = [];
+
+        // Check Yesterday, Today, Tomorrow
+        [-1, 0, 1].forEach(dayOffset => {
+          CAL.schedule.filter(b => b.user_id === userId).forEach(b => {
+            // Determine the exact moment this block instance starts
+            const occDate = new Date(d);
+            occDate.setDate(occDate.getDate() + dayOffset);
+            occDate.setMinutes(occDate.getMinutes() + b.start_minute);
+
+            // Does this block instance's type match the owner's reality at this moment?
+            if (b.day_type !== getDayType(occDate, ownerTz)) return;
+
+            // Shift block relative to its original midnight, then add dayOffset
+            const start = b.start_minute + shift + (dayOffset * 1440);
+            const end = b.end_minute + shift + (dayOffset * 1440);
+            
+            // Only keep if it overlaps with today (0..1440)
+            if (end > 0 && start < 1440) {
+              blocks.push({ ...b, start_minute: start, end_minute: end });
+            }
+          });
+        });
+        return blocks;
       }
 
-      function buildTrack(blocks, label, isSchedule, ownerTzOffset) {
+      function buildTrack(blocks, isSchedule, isFreeTime = false) {
         const opacity = isSchedule ? '0.75' : '1';
-        let html = `<div class="timeline-track">`;
-        // Hour ticks
+        let html = `<div class="timeline-track" data-type="${isSchedule ? 'routine' : 'event'}">`;
         for (let h = 0; h < 24; h++) {
           html += `<div class="timeline-hour-tick${h % 6 === 0 ? ' major' : ''}" style="left:${h * 60 * PX_PER_MIN}px;"></div>`;
         }
-        blocks.forEach(b => {
-          let startMin, endMin, title, id, color;
+
+        const DAY_MIN = 1440;
+        
+        let processedBlocks = blocks.map(b => {
+          let startMin, endMin;
           if (isSchedule) {
-            // Apply TZ offset: shift block position on the display axis
-            startMin = b.start_minute + (ownerTzOffset || 0);
-            endMin = b.end_minute + (ownerTzOffset || 0);
-            title = b.label; id = b.id; color = b.color;
+            startMin = b.start_minute;
+            endMin = b.end_minute;
           } else {
-            // Events are stored as UTC timestamps — convert to active display TZ
-            const toActiveTz = ts => new Date(new Date(ts * 1000).toLocaleString('en-US', { timeZone: activeTz }));
-            const sd = toActiveTz(b.start_time), ed = toActiveTz(b.end_time);
-            startMin = sd.getHours() * 60 + sd.getMinutes();
-            endMin = ed.getHours() * 60 + ed.getMinutes();
-            title = b.title; id = b.id; color = b.color;
+            startMin = Math.floor((b.start_time - dayStartTs) / 60);
+            endMin = Math.floor((b.end_time - dayStartTs) / 60);
           }
-          // Handle day-boundary overflow:
-          // - Block spills in from previous day: startMin < 0, endMin > 0  → show 0..endMin
-          // - Block spills out to next day:      startMin < 1440, endMin > 1440 → show startMin..1440
-          // - Completely outside today: skip (nothing to show)
-          const DAY = 1440;
-          if (endMin <= 0 || startMin >= DAY) {
-            // Completely off this day — skip
-          } else {
-            const clampedStart = Math.max(0, startMin);
-            const clampedEnd = Math.min(DAY, endMin);
-            const w = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, 8);
-            // Dashed left edge = continues from previous day; dashed right = continues into next day
-            const leftBorder = startMin < 0 ? 'border-left:3px dashed rgba(0,0,0,0.5);' : '';
-            const rightBorder = endMin > DAY ? 'border-right:3px dashed rgba(0,0,0,0.5);' : '';
-            html += `<div class="timeline-block" data-type="${isSchedule ? 'schedule' : 'event'}" data-id="${id}" style="left:${clampedStart * PX_PER_MIN}px;width:${w}px;background:${color};opacity:${opacity};${leftBorder}${rightBorder}">${escHtml(title)}</div>`;
+          return { ...b, computedStart: startMin, computedEnd: endMin, isConflict: false };
+        }).filter(b => b.computedEnd > 0 && b.computedStart < DAY_MIN);
+
+        processedBlocks.sort((a, b) => a.computedStart - b.computedStart);
+
+        let maxEnd = -Infinity;
+        let lastBlock = null;
+        processedBlocks.forEach(b => {
+          if (b.computedStart < maxEnd) {
+            b.isConflict = true;
+            if (lastBlock) lastBlock.isConflict = true;
           }
+          if (b.computedEnd > maxEnd) {
+            maxEnd = b.computedEnd;
+            lastBlock = b;
+          }
+        });
+
+        processedBlocks.forEach(b => {
+          const clampedStart = Math.max(0, b.computedStart);
+          const clampedEnd = Math.min(DAY_MIN, b.computedEnd);
+          const w = Math.max((clampedEnd - clampedStart) * PX_PER_MIN, 8);
+          const splitStartCls = b.computedStart < 0 ? ' split-start' : '';
+          const splitEndCls = b.computedEnd > DAY_MIN ? ' split-end' : '';
+          const conflictCls = b.isConflict && !isFreeTime ? ' conflict' : '';
+          const freeTimeCls = isFreeTime ? ' free-time' : '';
+          
+          html += `<div class="timeline-block${splitStartCls}${splitEndCls}${conflictCls}${freeTimeCls}" data-type="${isSchedule ? 'schedule' : 'event'}" data-id="${b.id}" style="left:${clampedStart * PX_PER_MIN}px;width:${w}px;background:${b.color};opacity:${opacity};">${escHtml(isSchedule ? b.label : b.title)}</div>`;
         });
         if (isToday(d)) {
           html += `<div class="timeline-now-line" style="left:${nowMinTz * PX_PER_MIN}px;"></div>`;
         }
-        html += '</div>';
-        return html;
+        return html + '</div>';
       }
 
-      // 4 rows: my schedule, my events, their schedule, their events
+      const myScheduleShifted = getShiftedSchedule(myId, getMyTz());
+      const otherScheduleShifted = getShiftedSchedule(otherId, getOtherTz());
+
       scroll.innerHTML =
-        `<div class="timeline-row"><div class="timeline-user-label">${myName}<br><span style="color:#80b9b1;font-size:4px;">ROUTINE</span></div>${buildTrack(mySchedule, myName, true, myTzOffset)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${myName}<br><span style="color:#80b9b1;font-size:4px;">EVENTS</span></div>${buildTrack(dayEvents, myName, false, myTzOffset)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<br><span style="color:#80b9b1;font-size:4px;">ROUTINE</span></div>${buildTrack(otherSchedule, otherName, true, otherTzOffset)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<br><span style="color:#80b9b1;font-size:4px;">EVENTS</span></div>${buildTrack(dayEvents, otherName, false, otherTzOffset)}</div>`;
+        `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(myScheduleShifted, true)}</div>` +
+        `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(dayEvents, false)}</div>` +
+        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(otherScheduleShifted, true)}</div>` +
+        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(dayEvents, false)}</div>`;
+
+      if (window._showFreeTime) {
+        scroll.classList.add('freetime-active');
+        
+        let allBlocks = [];
+        const extractBusy = (arr, isSched) => {
+          arr.forEach(b => {
+            let start, end;
+            if (isSched) {
+              start = b.start_minute;
+              end = b.end_minute;
+            } else {
+              start = Math.floor((b.start_time - dayStartTs) / 60);
+              end = Math.floor((b.end_time - dayStartTs) / 60);
+            }
+            if (end > 0 && start < 1440) {
+              allBlocks.push({ start: Math.max(0, start), end: Math.min(1440, end) });
+            }
+          });
+        };
+
+        extractBusy(myScheduleShifted, true);
+        extractBusy(otherScheduleShifted, true);
+        extractBusy(dayEvents, false);
+
+        allBlocks.sort((a, b) => a.start - b.start);
+
+        let mergedBusy = [];
+        let currentBusy = null;
+        allBlocks.forEach(b => {
+          if (!currentBusy) {
+            currentBusy = { start: b.start, end: b.end };
+          } else {
+            if (b.start <= currentBusy.end) {
+              currentBusy.end = Math.max(currentBusy.end, b.end);
+            } else {
+              mergedBusy.push(currentBusy);
+              currentBusy = { start: b.start, end: b.end };
+            }
+          }
+        });
+        if (currentBusy) mergedBusy.push(currentBusy);
+
+        let freeBlocks = [];
+        let currentMin = 0;
+        mergedBusy.forEach(busy => {
+          if (busy.start > currentMin) {
+            freeBlocks.push({
+              id: 'free-' + currentMin,
+              start_minute: currentMin,
+              end_minute: busy.start,
+              color: 'var(--color-success)',
+              label: 'FREE TIME'
+            });
+          }
+          currentMin = Math.max(currentMin, busy.end);
+        });
+        if (currentMin < 1440) {
+          freeBlocks.push({
+            id: 'free-' + currentMin,
+            start_minute: currentMin,
+            end_minute: 1440,
+            color: 'var(--color-success)',
+            label: 'FREE TIME'
+          });
+        }
+
+        let freeHtml = `<div class="timeline-row free-time-row"><div class="timeline-user-label">MUTUAL<div class="timeline-user-sub">FREE TIME</div></div>${buildTrack(freeBlocks, true, true)}</div>`;
+        scroll.innerHTML = freeHtml + scroll.innerHTML;
+      } else {
+        scroll.classList.remove('freetime-active');
+      }
 
       // Scroll to current time if today
       if (isToday(d)) {
         setTimeout(() => {
           const trackEl = scroll.querySelector('.timeline-track');
-          if (trackEl) scroll.scrollLeft = Math.max(0, nowMinTz * 2 - 200);
+          if (trackEl) scroll.scrollLeft = Math.max(0, nowMinTz * PX_PER_MIN - 200);
         }, 50);
       }
 
@@ -435,18 +561,115 @@
         el.addEventListener('click', (e) => { e.stopPropagation(); showEventPopup(parseInt(el.dataset.id), e); });
       });
 
-      // Click empty timeline to add event
+      // Drag-to-create scheduling logic
       scroll.querySelectorAll('.timeline-track').forEach(track => {
-        track.addEventListener('click', (e) => {
+        function handleStart(clientX, e) {
           if (e.target !== track) return;
+          if (e.cancelable) e.preventDefault();
+
+          const SNAP_MIN = 15;
+          const SNAP_PX = SNAP_MIN * PX_PER_MIN;
           const rect = track.getBoundingClientRect();
-          const minute = Math.floor(e.clientX - rect.left);
-          const h = Math.floor(minute / 60), m = minute % 60;
-          const startDt = new Date(d);
-          startDt.setHours(h, m, 0, 0);
-          const endDt = new Date(startDt.getTime() + 60 * 60 * 1000);
-          openEventModal(null, startDt, endDt);
+          
+          let rawStartX = Math.max(0, clientX - rect.left);
+          const startX = Math.round(rawStartX / SNAP_PX) * SNAP_PX;
+          
+          const ghost = document.createElement('div');
+          ghost.className = 'timeline-block ghost-block';
+          ghost.style.left = `${startX}px`;
+          ghost.style.width = `${SNAP_PX * 4}px`; // Default 1 hour width
+
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'ghost-time-label';
+          ghost.appendChild(labelSpan);
+          track.appendChild(ghost);
+
+          function formatTime(mins) {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+          }
+
+          function updateGhost(currentX) {
+            currentX = Math.max(0, Math.min(currentX, rect.width));
+            currentX = Math.round(currentX / SNAP_PX) * SNAP_PX;
+
+            let left = Math.min(startX, currentX);
+            let width = Math.abs(currentX - startX);
+            
+            if (width === 0) {
+              width = SNAP_PX * 4; // 60 mins fallback if barely dragged
+              // Adjust left if startX is near the right edge
+              if (left + width > rect.width) {
+                left = rect.width - width;
+              }
+            }
+
+            ghost.style.left = `${left}px`;
+            ghost.style.width = `${width}px`;
+
+            const startMin = Math.floor(left / PX_PER_MIN);
+            const endMin = startMin + Math.floor(width / PX_PER_MIN);
+            labelSpan.textContent = `${formatTime(startMin)} - ${formatTime(endMin)}`;
+            
+            return { left, width };
+          }
+
+          // Initial render to show 1-hour block at click
+          let lastValues = updateGhost(startX);
+
+          function handleMove(ev) {
+            const currentClientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+            lastValues = updateGhost(currentClientX - rect.left);
+          }
+
+          function handleEnd(ev) {
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('touchmove', handleMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchend', handleEnd);
+
+            ghost.remove();
+
+            const startMin = Math.floor(lastValues.left / PX_PER_MIN);
+            const durationMin = Math.floor(lastValues.width / PX_PER_MIN);
+
+            const startH = Math.floor(startMin / 60);
+            const startM = startMin % 60;
+            const endMin = startMin + durationMin;
+            const endH = Math.floor(endMin / 60);
+            const endM = endMin % 60;
+
+            const startDt = new Date(d);
+            startDt.setHours(startH, startM, 0, 0);
+            const endDt = new Date(d);
+            endDt.setHours(endH, endM, 0, 0);
+
+            if (track.dataset.type === 'routine') {
+              const fmt = (h, m) => `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+              document.getElementById('sched-start').value = fmt(startH, startM);
+              document.getElementById('sched-end').value = fmt(endH, endM);
+              document.getElementById('routine-dock').classList.add('open');
+              setTimeout(() => document.getElementById('sched-label').focus(), 100);
+            } else {
+              openEventModal(null, startDt, endDt);
+            }
+          }
+
+          document.addEventListener('mousemove', handleMove);
+          document.addEventListener('touchmove', handleMove, { passive: false });
+          document.addEventListener('mouseup', handleEnd);
+          document.addEventListener('touchend', handleEnd);
+        }
+
+        track.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return; // Only left click
+          handleStart(e.clientX, e);
         });
+        
+        track.addEventListener('touchstart', (e) => {
+          handleStart(e.touches[0].clientX, e);
+        }, { passive: false });
       });
     }
 
@@ -457,18 +680,16 @@
       CAL.popupEventId = id;
 
       document.getElementById('event-popup-title').textContent = event.title;
+      document.getElementById('event-popup-color').style.backgroundColor = event.color;
       document.getElementById('event-popup-time').textContent =
         fmtTime(event.start_time) + ' – ' + fmtTime(event.end_time);
       document.getElementById('event-popup-notes').textContent = event.notes || '';
 
       const popup = document.getElementById('event-popup');
       popup.classList.add('show');
-
-      let x = e.clientX + 10, y = e.clientY + 10;
-      if (x + 270 > window.innerWidth) x = window.innerWidth - 270;
-      if (y + 150 > window.innerHeight) y = window.innerHeight - 150;
-      popup.style.left = x + 'px';
-      popup.style.top = y + 'px';
+      // Position is now handled by centered CSS
+      popup.style.left = '';
+      popup.style.top = '';
     }
 
     function closeEventPopup() {
@@ -478,44 +699,44 @@
 
     // ── Add/Edit event modal ──────────────────────────────────────
     function openEventModal(id, startDt, endDt) {
-      CAL.editingId = id;
-      const modal = document.getElementById('event-modal');
-      modal.classList.add('show');
+      MODAL.open('event-modal', {
+        onOpen: () => {
+          CAL.editingId = id;
+          document.getElementById('event-modal-title').textContent = id ? 'EDIT EVENT' : 'ADD EVENT';
 
-      document.getElementById('event-modal-title').textContent = id ? 'EDIT EVENT' : 'ADD EVENT';
+          const pad2 = n => n.toString().padStart(2, '0');
+          const fmtD = d => `${pad2(d.getDate())} / ${pad2(d.getMonth() + 1)} / ${d.getFullYear()}`;
+          const fmtT = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
-      const pad2 = n => n.toString().padStart(2, '0');
-      const fmtD = d => `${pad2(d.getDate())} / ${pad2(d.getMonth() + 1)} / ${d.getFullYear()}`;
-      const fmtT = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-
-      if (id) {
-        const ev = CAL.events.find(e => e.id === id);
-        if (ev) {
-          document.getElementById('event-input-title').value = ev.title;
-          document.getElementById('event-input-notes').value = ev.notes || '';
-          document.getElementById('event-input-recurrence').value = ev.recurrence;
-          const sd = new Date(ev.start_time * 1000);
-          const ed = new Date(ev.end_time * 1000);
-          document.getElementById('event-input-date').value = fmtD(sd);
-          document.getElementById('event-input-start').value = fmtT(sd);
-          document.getElementById('event-input-end').value = fmtT(ed);
-          selectEventColor(ev.color);
-          _miniCalDate = new Date(sd);
+          if (id) {
+            const ev = CAL.events.find(e => e.id === id);
+            if (ev) {
+              document.getElementById('event-input-title').value = ev.title;
+              document.getElementById('event-input-notes').value = ev.notes || '';
+              document.getElementById('event-input-recurrence').value = ev.recurrence;
+              const sd = new Date(ev.start_time * 1000);
+              const ed = new Date(ev.end_time * 1000);
+              document.getElementById('event-input-date').value = fmtD(sd);
+              document.getElementById('event-input-start').value = fmtT(sd);
+              document.getElementById('event-input-end').value = fmtT(ed);
+              selectEventColor(ev.color);
+              _miniCalDate = new Date(sd);
+            }
+          } else {
+            document.getElementById('event-input-title').value = '';
+            document.getElementById('event-input-notes').value = '';
+            document.getElementById('event-input-recurrence').value = 'none';
+            const d = startDt || CAL.selectedDay || new Date();
+            document.getElementById('event-input-date').value = fmtD(d);
+            document.getElementById('event-input-start').value = startDt ? fmtT(startDt) : '';
+            document.getElementById('event-input-end').value = endDt ? fmtT(endDt) : '';
+            selectEventColor(EVENT_COLORS[0]);
+            _miniCalDate = new Date(d);
+          }
+          document.getElementById('event-mini-cal').style.display = 'none';
+          document.getElementById('event-input-title').focus();
         }
-      } else {
-        document.getElementById('event-input-title').value = '';
-        document.getElementById('event-input-notes').value = '';
-        document.getElementById('event-input-recurrence').value = 'none';
-        const d = startDt || CAL.selectedDay || new Date();
-        document.getElementById('event-input-date').value = fmtD(d);
-        document.getElementById('event-input-start').value = startDt ? fmtT(startDt) : '';
-        document.getElementById('event-input-end').value = endDt ? fmtT(endDt) : '';
-        selectEventColor(EVENT_COLORS[0]);
-        _miniCalDate = new Date(d);
-      }
-      document.getElementById('event-mini-cal').style.display = 'none';
-
-      document.getElementById('event-input-title').focus();
+      });
     }
 
     function toLocalDatetimeInput(d) {
@@ -523,18 +744,18 @@
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    function selectEventColor(color) {
-      document.querySelectorAll('.event-color-swatch').forEach(sw => {
+    function selectEventColor(color, containerId = 'event-colors') {
+      document.querySelectorAll(`#${containerId} .event-color-swatch`).forEach(sw => {
         sw.classList.toggle('selected', sw.dataset.color === color);
       });
     }
 
-    function getSelectedColor() {
-      return document.querySelector('.event-color-swatch.selected')?.dataset.color || EVENT_COLORS[0];
+    function getSelectedColor(containerId = 'event-colors') {
+      return document.querySelector(`#${containerId} .event-color-swatch.selected`)?.dataset.color || EVENT_COLORS[0];
     }
 
     function closeEventModal() {
-      document.getElementById('event-modal').classList.remove('show');
+      MODAL.close('event-modal');
       CAL.editingId = null;
     }
 
@@ -545,7 +766,7 @@
       const startVal = document.getElementById('event-input-start').value.trim();
       const endVal = document.getElementById('event-input-end').value.trim();
       const recurrence = document.getElementById('event-input-recurrence').value;
-      const color = getSelectedColor();
+      const color = getSelectedColor('event-colors');
 
       if (!title || !dateVal || !startVal || !endVal) { showToast('FILL IN ALL FIELDS'); return; }
 
@@ -589,6 +810,14 @@
       CAL.events.push(msg.event);
       if (document.getElementById('dates-view').classList.contains('show')) {
         renderCalendar(); renderTimeline();
+      } else {
+        // Play calendar chime and update badge
+        if (typeof AudioManager !== 'undefined' && AudioManager.playCalendarChime) {
+          AudioManager.playCalendarChime();
+        }
+        if (typeof BadgeManager !== 'undefined') {
+          BadgeManager.handleIncoming('calendar');
+        }
       }
     }
     function onCalendarEventUpdate(msg) {
@@ -608,7 +837,7 @@
     function onScheduleBlockAdd(msg) {
       CAL.schedule.push(msg.block);
       if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
-      if (document.getElementById('schedule-panel').classList.contains('show')) renderScheduleList();
+      if (document.getElementById('routine-dock').classList.contains('open')) renderScheduleList();
     }
     function onScheduleBlockUpdate(msg) {
       const idx = CAL.schedule.findIndex(b => b.id === msg.block.id);
@@ -618,7 +847,7 @@
     function onScheduleBlockDelete(msg) {
       CAL.schedule = CAL.schedule.filter(b => b.id !== msg.id);
       if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
-      if (document.getElementById('schedule-panel').classList.contains('show')) renderScheduleList();
+      if (document.getElementById('routine-dock').classList.contains('open')) renderScheduleList();
     }
 
     // ── Open / close dates view ───────────────────────────────────
@@ -636,11 +865,33 @@
 
     // ── Init ──────────────────────────────────────────────────────
     function initCalendar() {
+      // View tab keyboard nav
+      const calTablist = document.querySelector('.cal-view-tabs');
+      if (calTablist) {
+        calTablist.setAttribute('role', 'tablist');
+        calTablist.addEventListener('keydown', (e) => {
+          const tabs = Array.from(calTablist.querySelectorAll('[role="tab"]'));
+          const idx = tabs.indexOf(document.activeElement);
+          if (idx === -1) return;
+          let next = null;
+          if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+          else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+          else if (e.key === 'Home') next = tabs[0];
+          else if (e.key === 'End') next = tabs[tabs.length - 1];
+          if (next) { e.preventDefault(); next.focus(); }
+        });
+      }
+
       // View tabs
       document.querySelectorAll('.cal-view-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-          document.querySelectorAll('.cal-view-tab').forEach(t => t.classList.remove('on'));
+        tab.addEventListener('click', (e) => {
+          console.log('[CAL] Tab clicked:', tab.dataset.view, 'classList:', tab.className);
+          document.querySelectorAll('.cal-view-tab').forEach(t => {
+            t.classList.remove('on');
+            t.setAttribute('aria-selected', 'false');
+          });
           tab.classList.add('on');
+          tab.setAttribute('aria-selected', 'true');
           CAL.view = tab.dataset.view;
           renderCalendar();
         });
@@ -717,7 +968,7 @@
         // Day headers
         ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(d => {
           const el = document.createElement('div');
-          el.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:5px;color:#638872;text-align:center;padding:2px;';
+          el.style.cssText = 'font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-tertiary);text-align:center;padding:2px;';
           el.textContent = d;
           grid.appendChild(el);
         });
@@ -732,10 +983,10 @@
         for (let d = 1; d <= daysInMonth; d++) {
           const el = document.createElement('div');
           const isToday = d === today.getDate() && m === today.getMonth() && y === today.getFullYear();
-          el.style.cssText = `font-family:"Press Start 2P",monospace;font-size:5px;text-align:center;padding:3px 1px;cursor:pointer;border:1px solid transparent;${isToday ? 'background:#94c784;' : 'background:#f4f9f8;'}`;
+          el.style.cssText = `font-family:var(--font-header);font-size:var(--font-size-micro);text-align:center;padding:3px 1px;cursor:pointer;border:1px solid transparent;${isToday ? 'background:var(--color-success);' : 'background:var(--color-base);'}`;
           el.textContent = d;
-          el.addEventListener('mouseenter', () => { el.style.background = '#80b9b1'; });
-          el.addEventListener('mouseleave', () => { el.style.background = isToday ? '#94c784' : '#f4f9f8'; });
+          el.addEventListener('mouseenter', () => { el.style.background = 'var(--color-tertiary)'; });
+          el.addEventListener('mouseleave', () => { el.style.background = isToday ? 'var(--color-success)' : 'var(--color-base)'; });
           el.addEventListener('click', () => {
             const pad2 = n => n.toString().padStart(2, '0');
             document.getElementById('event-input-date').value = `${pad2(d)} / ${pad2(m + 1)} / ${y}`;
@@ -765,11 +1016,20 @@
       });
 
       // Auto-format date input DD / MM / YYYY
-      document.getElementById('event-input-date').addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+      const dateInput = document.getElementById('event-input-date');
+      const formatFn = (el) => {
+        let v = el.value.replace(/\D/g, '').slice(0, 8);
         if (v.length >= 5) v = v.slice(0, 2) + ' / ' + v.slice(2, 4) + ' / ' + v.slice(4);
         else if (v.length >= 3) v = v.slice(0, 2) + ' / ' + v.slice(2);
-        e.target.value = v;
+        el.value = v;
+      };
+
+      dateInput.addEventListener('input', (e) => formatFn(e.target));
+      dateInput.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        e.target.value = text.replace(/\D/g, '').slice(0, 8);
+        formatFn(e.target);
       });
 
       // Auto-format time inputs HH:MM
@@ -789,6 +1049,10 @@
       // Add event via + button (add btn already shown in notes, reuse concept via timeline click)
       // Keyboard shortcut: N for new event when dates view open
       document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (document.getElementById('event-modal').classList.contains('show')) { closeEventModal(); return; }
+          if (document.getElementById('event-popup').classList.contains('show')) { closeEventPopup(); return; }
+        }
         if (e.key === 'n' && document.getElementById('dates-view').classList.contains('show')
           && document.activeElement.tagName !== 'INPUT'
           && document.activeElement.tagName !== 'TEXTAREA') {

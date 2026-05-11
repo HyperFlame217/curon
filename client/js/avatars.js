@@ -52,7 +52,7 @@ window.applyAvatars = function() {
   // Message avatars (their side — update existing ones)
   document.querySelectorAll('.row.them .ra').forEach(el => {
     if (other) {
-      el.innerHTML = `<img src="${other}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+      el.innerHTML = `<img src="${other}" alt="${escAttr(STATE.otherName || 'THEM')} avatar" class="avatar-img">`;
     } else {
       el.textContent = '👧';
     }
@@ -62,7 +62,7 @@ window.applyAvatars = function() {
   const preview = document.getElementById('avatar-preview-me');
   if (preview) {
     if (mine) {
-      preview.innerHTML = `<img src="${mine}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+      preview.innerHTML = `<img src="${mine}" alt="Your avatar preview" class="avatar-preview">`;
     } else {
       preview.textContent = '🧑';
     }
@@ -84,19 +84,34 @@ window.initAvatars = function() {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
-      localStorage.setItem('curon_my_avatar_img', dataUrl);
+    reader.onload = async (e) => {
+      const originalUrl = e.target.result;
+      const preview = document.getElementById('avatar-preview-me');
+      
+      // Show processing state immediately (P1-K)
+      if (preview) {
+        preview.innerHTML = `<div style="background:var(--color-sky);width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:var(--font-size-micro);color:var(--color-offwhite);animation:blink 1s infinite;">PRC...</div>`;
+      }
+      
+      // Downscale to 128x128 to save storage (P1-K)
+      let finalUrl = originalUrl;
+      try {
+        finalUrl = await resizeImage(originalUrl, 128, 128);
+      } catch (err) {
+        console.error('[Avatars] Resize failed, using original:', err);
+      }
+
+      localStorage.setItem('curon_my_avatar_img', finalUrl);
       
       // Persistence fix
-      fetch('/auth/keys/avatar', {
+      fetch('/auth/avatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${STATE.token}` },
-        body: JSON.stringify({ img: dataUrl }),
+        body: JSON.stringify({ img: finalUrl }),
       }).catch(console.error);
 
       applyAvatars();
-      if (window.wsSend) wsSend(WS_EV.C_AVATAR_UPDATE, { img: dataUrl });
+      if (window.wsSend) wsSend(WS_EV.C_AVATAR_UPDATE, { img: finalUrl });
       if (window.showToast) showToast('AVATAR UPDATED');
     };
     reader.readAsDataURL(file);
@@ -105,3 +120,28 @@ window.initAvatars = function() {
 
   applyAvatars();
 };
+
+async function resizeImage(dataUrl, maxW, maxH) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width;
+      let h = img.height;
+
+      if (w > h) {
+        if (w > maxW) { h *= maxW / w; w = maxW; }
+      } else {
+        if (h > maxH) { w *= maxH / h; h = maxH; }
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality jpeg is tiny
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}

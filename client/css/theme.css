@@ -1,0 +1,371 @@
+/* ==========================================================================
+   CURON THEME CONFIG
+   ============================================================================
+   This is the SINGLE SOURCE OF TRUTH for all visual parameters in Curon.
+   Edit this file to change colors, sizes, and spacing — no need to search
+   through main.css or curon-redesign.css.
+
+   Active Theme: "Cozy Digital Peach"
+   ========================================================================== */
+
+:root {
+
+   /* ── 1. CORE BRAND COLORS ───────────────────────────────────────────────
+      The primary palette that defines the overall "vibe" of the application.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --color-primary: #F6B092;
+   /* Warm Peach    — Buttons, active tabs, my bubbles */
+   --color-secondary: #B7C6D9;
+   /* Soft Slate    — Sidebar, desktop wallpaper */
+   --color-accent: #E58DA3;
+   /* Dusty Rose    — Send button, window titles */
+   --color-base: #FFF7F0;
+   /* Cream White   — Window surfaces, input fields */
+   --color-soft: #FFD8B5;
+   /* Soft Peach    — Their chat bubbles, scrollbars */
+   --color-dark: #393f45;
+   /* Blue-Grey Ink — All borders, text, shadows */
+   --color-muted: #393f45;
+   /* Mid Blue-Grey — Timestamps, labels, disabled */
+   --color-highlight: var(--color-primary);
+   /* Legacy Alias */
+
+
+   /* ── 2. CALENDAR PALETTE ────────────────────────────────────────────────
+      The selectable colors in the "Routine" and "Add Event" managers.
+      Update these to change the options available in your planners.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --color-cal-1: var(--color-primary);
+   /* Peach     */
+   --color-cal-2: var(--color-secondary);
+   /* Slate     */
+   --color-cal-3: var(--color-accent);
+   /* Rose      */
+   --color-cal-4: var(--color-success);
+   /* Sage      */
+   --color-cal-5: #e8a0a0;
+   /* Soft Pink */
+   --color-cal-6: #a0b4e8;
+   /* Soft Blue */
+
+
+   /* ── 3. SEMANTIC COLORS ─────────────────────────────────────────────────
+       Functional colors used for statuses, errors, and system feedback.
+    ──────────────────────────────────────────────────────────────────────── */
+
+   --color-online: #00ff73;
+   /* Success Dot   — Online status */
+   --color-offline: #999999;
+   /* Neutral Grey  — Offline / Idle */
+   --color-idle: #FACC15;
+   /* Soft Yellow   — Idle status dot */
+   --color-away: #FB923C;
+   /* Soft Orange   — Away status dot */
+   --color-danger: #db3b3b;
+   /* Soft Red      — Deletions, errors */
+   --color-success: #94c784;
+   /* Soft Green    — Success, health */
+   --color-warning: #f4e28c;
+   /* Soft Yellow   — Alerts, warnings */
+   --color-overlay: #1a1226;
+   /* Deep Purple   — Call/settings overlay background */
+
+
+   /* ── 4. GLOBAL METRICS ──────────────────────────────────────────────────
+      Foundational spacing and structural measurements.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --border-width: 2px;
+   /* All window/button borders */
+   --shadow-depth: 3px;
+   /* Hard pixel shadow offset */
+   --win-padding: 12px;
+   /* Window interior padding */
+   --btn-padding: 8px 16px;
+   /* Default button padding */
+   --grid-size: 32px;
+   /* Pixel grid tile size */
+   --grid-opacity: 0.08;
+   /* Grid line opacity (0-1) */
+
+
+   /* ── 4.5. TYPOGRAPHY: FONT FAMILIES ─────────────────────────────────────
+      Global font families for the interface.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --font-header: 'Press Start 2P', monospace;
+   /* Bold, blocky pixel font for titles and headers */
+   --font-display: var(--font-header);
+   /* Alias for font-header (used in legacy code) */
+   --font-main: 'VT323', monospace;
+   /* Taller, more readable pixel font for body text and time labels */
+
+
+
+   /* ── 5. TYPOGRAPHY: INTERFACE ───────────────────────────────────────────
+      Font sizes for general UI elements and navigation.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --font-size-title: 10px;
+   /* Main window title bars */
+   --font-size-nav: 10px;
+   /* Sidebar navigation items */
+   --font-size-btn: 10px;
+   /* Generic action buttons */
+   --font-size-sidebar-label: 7px;
+   /* Sidebar section headers */
+   --font-size-muted: 14px;
+   /* Meta labels and timestamps */
+   --font-size-micro: 5px;
+   /* Tiny labels, badges, hints */
+   --font-size-tiny: 6px;
+   /* Very small labels, timestamps */
+   --font-size-small: 8px;
+   /* Small labels, timers */
+   --font-size-caption: 9px;
+   /* Caption text */
+   --font-size-xsmall: 11px;
+   /* Extra small text */
+   --font-size-emoji: 48px;
+   /* Emoji display size */
+   --font-size-icon: 22px;
+   /* Icon and file label sizes */
+
+
+   /* ── 6. TYPOGRAPHY: CALENDAR & PLANNERS ─────────────────────────────────
+      Specific font sizes for the scheduling and timeline systems.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --font-size-cal-header: 10px;
+   /* Calendar month and weekday headers */
+   --font-size-cal-day-num: 15px;
+   /* Calendar grid day numbers */
+   --font-size-cal-sub: 15px;
+   /* View toggle tabs (DAY/WEEK/MON) */
+
+   --font-size-win-title: 12px;
+   /* Modal titles (Routine/Event Manage) */
+   --font-size-win-label: 15px;
+   /* Field labels (e.g. "ADD BLOCK") */
+   --font-size-win-btn: 12px;
+   /* Modal-specific action buttons */
+
+   --font-size-timeline-user: 20px;
+   /* User name labels in tracks */
+   --font-size-timeline-sub: 12px;
+   /* ROUTINE/EVENTS sub-labels */
+   --font-size-timeline-tick: 12px;
+   /* Vertical hour markers (12:00) */
+   --font-size-timeline-label: 25px;
+   /* Name of blocks on the track */
+   --font-size-timeline-time: 20px;
+   /* Time ranges shown on blocks */
+
+
+   /* ── 7. TYPOGRAPHY: CHAT & INPUTS ───────────────────────────────────────
+      Font sizes for communication and text entry.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --font-size-status-name: 18px;
+   /* Chat header: Partner name */
+   --font-size-status-sub: 14px;
+   /* Chat header: Online status */
+   --font-size-chat-bubble: 18px;
+   /* Chat message text */
+   --font-size-input: 16px;
+   /* Main text input fields */
+
+
+   /* ── 8. COMPONENT SPECIFICS ─────────────────────────────────────────────
+      Metrics tailored to individual UI components.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --status-bar-min-height: 52px;
+   --status-bar-padding: 12px 16px;
+   --status-bar-avatar-size: 35px;
+   --status-bar-avatar-font: 30px;
+
+
+   /* ── 9. Z-INDEX HIERARCHY ─────────────────────────────────────────────── */
+
+   --z-base: 0;
+   /* Clouds, background elements */
+   --z-sticky: 1;
+   /* Shell, sticky notes */
+   --z-sticky-note: 3;
+   /* Sticky note pins */
+   --z-elevated: 10;
+   /* House camera, mobile header */
+   --z-header: 50;
+   /* Status bar, mobile header */
+   --z-drawer: 100;
+   /* Sidebar, drawer overlay */
+   --z-floating: 200;
+   /* Search bar, FABs */
+   --z-above-floating: 299;
+   /* Settings overlay */
+   --z-panel: 300;
+   /* Settings panel */
+   --z-modal: 1000;
+   /* Emoji panel, modals */
+   --z-emoji-autocomplete: 1001;
+   /* Emoji autocomplete above panel */
+   --z-emoji-tooltip: 999;
+   /* Custom emoji tooltips */
+   --z-avatar: 1100;
+   /* Status bar avatar above toolbar */
+   --z-overlay: 1800;
+   /* Call mini bar */
+   --z-overlay-active: 1900;
+   /* Active call overlay */
+   --z-overlay-top: 2000;
+   /* Incoming call dialog */
+   --z-modal-top: 2500;
+   /* Event modal, schedule panel */
+   --z-popover: 5000;
+   /* Context menu, reaction picker */
+   --z-lightbox: 9000;
+   /* Image lightbox */
+   --z-max: 10000;
+   /* Drag items, house items */
+   --z-toast: 10002;
+   /* Toast notifications */
+
+   /* ── SURFACE COLORS ────────────────────────────────────────────────
+       Semantic names for major UI surfaces. Aliases point to core
+       palette colors based on current theme values.
+    ──────────────────────────────────────────────────────────────────────── */
+
+   --color-surface-page: var(--color-secondary);
+   /* Page/wallpaper bg     */
+   --color-surface-raised: var(--color-soft);
+   /* Window/chat surface   */
+   --color-surface-sidebar: var(--color-secondary);
+   /* Sidebar bg           */
+   --color-surface-call: var(--color-overlay);
+   /* Call overlay bg      */
+   --color-border: var(--color-dark);
+   /* Borders, shadows     */
+   --color-border-light: #c8cdd4;
+   /* Subtle grid borders   */
+   --color-tertiary: #8ac4a8;
+   /* Mint accent (loader)  */
+
+   /* ── LEGACY ALIASES ─────────────────────────────────────────────────
+       Map old variable names to new semantic tokens for backward compat.
+       These exist only in main.css — future themes update surface/border
+       tokens above and these aliases follow automatically.
+    ──────────────────────────────────────────────────────────────────────── */
+
+   --color-sky: var(--color-surface-page);
+   --color-deep: var(--color-border);
+   --color-forest: var(--color-surface-sidebar);
+   --color-offwhite: var(--color-surface-raised);
+   --color-text: var(--color-dark);
+   --color-mint: var(--color-tertiary);
+   --color-peach: var(--color-primary);
+
+
+   /* ── 10. SPRITE SHEETS ────────────────────────────────────────────────
+      Path to pixel art spritesheets — only icons for now.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --sprite-icons: url('../assets/themes/classic/icons.png');
+
+
+   /* ── 11. BUTTON SURFACES ──────────────────────────────────────────────
+      All button chrome is pure CSS (box-shadow + hard borders).
+      Recolor via these tokens — no button sprites needed.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --btn-bg: var(--color-base);
+   --btn-border: var(--color-dark);
+   --btn-shadow: var(--color-dark);
+   --btn-text: var(--color-dark);
+   --btn-font: var(--font-header);
+
+   --btn-hover-bg: var(--color-primary);
+   --btn-hover-shadow: var(--color-dark);
+
+   --btn-active-bg: var(--color-dark);
+   --btn-active-text: var(--color-primary);
+
+   --btn-primary-bg: var(--color-accent);
+   --btn-primary-text: var(--color-base);
+
+   --btn-danger-border: var(--color-danger);
+   --btn-danger-shadow: var(--color-danger);
+   --btn-danger-hover-bg: var(--color-danger);
+   --btn-danger-hover-text: var(--color-base);
+
+   --btn-icon-size: 36px;
+   --btn-call-size: 60px;
+   --btn-mini-size: 24px;
+   --btn-padding: 8px 16px;
+
+
+   /* ── 12. WINDOW CHROME ────────────────────────────────────────────────
+      Windows use CSS borders + shadows exclusively.
+   ──────────────────────────────────────────────────────────────────────── */
+
+   --win-bg: var(--color-base);
+   --win-border: var(--color-dark);
+   --win-shadow: var(--color-dark);
+   --win-bar-bg: var(--color-dark);
+   --win-bar-text: var(--color-base);
+   --win-bar-accent: var(--color-accent);
+   --win-body-bg: var(--color-base);
+
+   --panel-floating-bg: var(--color-base);
+   --panel-floating-border: var(--color-dark);
+   --panel-floating-shadow: var(--color-dark);
+   --panel-slide-bg: var(--color-base);
+   --panel-slide-border: var(--color-dark);
+
+   --input-bg: var(--color-base);
+   --input-border: var(--color-dark);
+   --input-shadow: var(--color-dark);
+   --input-focus-border: var(--color-surface-sidebar);
+
+
+   /* ── 13. CHAT BUBBLES ───────────────────────────────────────────────── */
+
+   --bubble-them-bg: var(--color-base);
+   --bubble-them-border: var(--color-dark);
+   --bubble-them-text: var(--color-dark);
+
+   --bubble-me-bg: var(--color-primary);
+   --bubble-me-border: var(--color-dark);
+   --bubble-me-text: var(--color-dark);
+
+   --bubble-shadow: var(--color-dark);
+   --bubble-radius: 0;
+   --bubble-padding: 10px 14px;
+
+
+   /* ── 14. ADDITIONAL SURFACES ────────────────────────────────────────── */
+
+   --scrollbar-width: 12px;
+   --scrollbar-track: var(--color-soft);
+   --scrollbar-thumb: var(--color-primary);
+   --scrollbar-border: var(--color-dark);
+
+   --tab-bg: var(--color-base);
+   --tab-active-bg: var(--color-primary);
+   --tab-border: var(--color-primary);
+
+   --cork-bg: #b5813c;
+   --cork-shadow: rgba(0, 0, 0, 0.03);
+
+   --toast-bg: var(--color-dark);
+   --toast-text: var(--color-accent);
+   --toast-border: var(--color-accent);
+
+   --ctx-bg: var(--color-dark);
+   --ctx-text: var(--color-accent);
+   --ctx-border: var(--color-accent);
+   --ctx-hover: var(--color-forest);
+
+}

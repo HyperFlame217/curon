@@ -110,4 +110,5 @@
     // Load on boot and add to WS dispatcher
     async function initSpotify() {
       await loadSpotifyStatus();
+      document.getElementById('spot-connect-btn')?.addEventListener('click', connectSpotify);
     }

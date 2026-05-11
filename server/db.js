@@ -4,10 +4,14 @@
  * Key design: sql.js operates entirely in memory. We load from disk on
  * startup and write back to disk after every mutation. The wrapper
  * exposes a synchronous-style API matching better-sqlite3.
+ *
+ * Supabase integration: DB is backed up to Supabase Storage after each
+ * mutation. On cold start (no local DB), restores from Supabase.
  */
 const initSqlJs = require('sql.js');
 const path      = require('path');
 const fs        = require('fs');
+const supabaseStorage = require('./supabase-storage');
 
 const DB_PATH = path.join(__dirname, 'curon.db');
 
@@ -26,11 +30,7 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS messages (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id           INTEGER NOT NULL,
-    encrypted_content_a TEXT    NOT NULL,
-    encrypted_content_b TEXT    NOT NULL,
-    encrypted_key_a     TEXT    NOT NULL,
-    encrypted_key_b     TEXT    NOT NULL,
-    iv                  TEXT    NOT NULL,
+    content             TEXT,
     media_id            INTEGER,
     reply_to_id         INTEGER,
     deleted_by_a        INTEGER NOT NULL DEFAULT 0,
@@ -47,12 +47,13 @@ const SCHEMA = `
     UNIQUE(message_id, user_id, emoji)
   );
   CREATE TABLE IF NOT EXISTS media (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    uploader_id INTEGER NOT NULL,
-    filename    TEXT    NOT NULL,
-    mime_type   TEXT    NOT NULL,
-    size_bytes  INTEGER NOT NULL,
-    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    uploader_id      INTEGER NOT NULL,
+    filename         TEXT    NOT NULL,
+    mime_type        TEXT    NOT NULL,
+    size_bytes       INTEGER NOT NULL,
+    storage_provider TEXT    NOT NULL DEFAULT 'local',
+    created_at       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
   CREATE TABLE IF NOT EXISTS custom_emojis (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,6 +133,28 @@ const SCHEMA = `
     expires_at    INTEGER NOT NULL
   );
 
+  CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+  CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+  CREATE INDEX IF NOT EXISTS idx_messages_read_at ON messages(read_at);
+  CREATE INDEX IF NOT EXISTS idx_reactions_message_id ON reactions(message_id);
+  CREATE INDEX IF NOT EXISTS idx_events_created_by ON events(created_by);
+  CREATE INDEX IF NOT EXISTS idx_schedule_blocks_user_id ON schedule_blocks(user_id);
+
+  -- FTS4 Search Index
+  CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts4(content);
+
+  -- Triggers to keep FTS in sync
+  CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages WHEN new.content IS NOT NULL BEGIN
+    INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
+  END;
+  CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
+    DELETE FROM messages_fts WHERE rowid = old.id;
+  END;
+  CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE ON messages WHEN new.content IS NOT NULL BEGIN
+    DELETE FROM messages_fts WHERE rowid = old.id;
+    INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
+  END;
+
 
 `;
 
@@ -164,6 +187,14 @@ function _writeToDisk(rawDb) {
     _isDirty = false;
     const dur = Date.now() - start;
     if (dur > 30) console.log(`[db] Persisted to disk (${dur}ms)`);
+
+    // Also upload to Supabase (async, fire-and-forget)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+      const buffer = Buffer.from(data);
+      supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream')
+        .then(() => console.log('[db] Uploaded backup to Supabase'))
+        .catch(err => console.warn('[db] Supabase backup failed:', err.message));
+    }
   } catch (e) {
     console.error('[db] Disk write failed:', e.message);
   }
@@ -224,10 +255,23 @@ class Db {
 // ── Init ─────────────────────────────────────────────────────
 let _dbPromise = null;
 
-function getDb() {
+async function getDb() {
   if (_dbPromise) return _dbPromise;
   _dbPromise = initSqlJs().then(async SQL => {
-    const fileData = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
+    let fileData = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
+
+    // If no local DB, try to restore from Supabase
+    if (!fileData && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+      try {
+        console.log('[db] No local DB — attempting restore from Supabase...');
+        const buffer = await supabaseStorage.download(supabaseStorage.DB_BUCKET, 'backups/curon.db');
+        fileData = buffer;
+        console.log('[db] Restored DB from Supabase backup');
+      } catch (err) {
+        console.warn('[db] Could not restore from Supabase:', err.message);
+      }
+    }
+
     const rawDb    = fileData ? new SQL.Database(fileData) : new SQL.Database();
 
     rawDb.run(SCHEMA);

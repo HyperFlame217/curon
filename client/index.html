@@ -7,4604 +7,39 @@
   <title>Curon</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js"></script>
-  <style>
-    :root {
-      --color-sky: #80b9b1;
-      --color-deep: #30253e;
-      --color-surface: #ffffff;
-      --color-forest: #638872;
-      --color-highlight: #94c784;
-      --color-secondary: #c3c88c;
-      --color-offwhite: #f4f9f8;
-      --color-accent: #c3c88c;
-
-      --font-display: 'Press Start 2P', monospace;
-      --font-body: 'VT323', monospace;
-    }
-
-    /* Visibility Utilities */
-    .hide {
-      display: none !important;
-    }
-
-    .show {
-      display: flex !important;
-    }
-
-    .show-block {
-      display: block !important;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    /*
-  #80b9b1  teal   → sky bg
-  #30253e  deep   → borders, title bars, shadows
-  #ffffff  white  → window surfaces, their bubbles
-  #638872  forest → sidebar bg
-  #94c784  mint   → my bubbles, active, send btn
-  #c3c88c  lime   → title text, accents
-  #f4f9f8  offwhite → chat bg
-*/
-
-    html,
-    body {
-      height: 100%;
-      width: 100%;
-      font-family: var(--font-body);
-      background-color: var(--color-sky);
-      color: var(--color-deep);
-      overflow: hidden;
-    }
-
-    /* clouds */
-    .clouds {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
-    }
-
-    .cloud {
-      position: absolute;
-      background-color: rgba(255, 255, 255, 0.6);
-    }
-
-    /* mountains */
-    .mountains {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      pointer-events: none;
-      z-index: 0;
-      background-color: var(--color-forest);
-      clip-path: polygon(0% 100%, 0% 55%, 3% 35%, 6% 55%, 9% 28%, 12% 50%, 15% 18%, 18% 42%,
-          21% 12%, 24% 38%, 27% 22%, 30% 48%, 33% 30%, 36% 55%, 39% 24%, 42% 50%,
-          45% 32%, 48% 58%, 51% 20%, 54% 46%, 57% 14%, 60% 40%, 63% 26%, 66% 52%,
-          69% 18%, 72% 44%, 75% 30%, 78% 56%, 81% 22%, 84% 48%, 87% 35%, 90% 58%,
-          93% 24%, 96% 46%, 100% 36%, 100% 100%);
-    }
-
-    /* ── WINDOW ── */
-    .win {
-      background-color: var(--color-surface);
-      border: 2px solid var(--color-deep);
-      box-shadow: 3px 3px 0 var(--color-deep);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .win-bar {
-      background-color: var(--color-deep);
-      padding: 5px 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-      gap: 8px;
-    }
-
-    .win-title {
-      font-family: var(--font-display);
-      font-size: 7px;
-      color: var(--color-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .win-btns {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .win-btn {
-      width: 11px;
-      height: 11px;
-      border: 2px solid var(--color-secondary);
-      background: transparent;
-      cursor: pointer;
-    }
-
-    .win-btn:hover {
-      background-color: var(--color-secondary);
-    }
-
-    /* ════════════════════════════════
-   DESKTOP LAYOUT  (≥ 900px)
-════════════════════════════════ */
-    .shell {
-      display: grid;
-      grid-template-columns: 262px 1fr;
-      height: 100vh;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* sidebar */
-    .sidebar {
-      background-color: var(--color-forest);
-      border-right: 3px solid var(--color-deep);
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      padding: 8px;
-      overflow: hidden;
-    }
-
-    .app-header {
-      background-color: var(--color-deep);
-      border: 2px solid var(--color-secondary);
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-
-    .app-title {
-      font-family: var(--font-display);
-      font-size: 9px;
-      color: var(--color-secondary);
-    }
-
-    .app-dot {
-      width: 8px;
-      height: 8px;
-      background-color: var(--color-highlight);
-      border: 2px solid var(--color-secondary);
-      animation: blink 1.2s steps(1) infinite;
-    }
-
-    @keyframes blink {
-
-      0%,
-      49% {
-        opacity: 1
-      }
-
-      50%,
-      100% {
-        opacity: 0.3
-      }
-    }
-
-    .pair-body {
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .pair-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-
-    .pxava {
-      width: 32px;
-      height: 32px;
-      border: 2px solid var(--color-deep);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      flex-shrink: 0;
-      position: relative;
-    }
-
-    .pxava.you {
-      background-color: var(--color-secondary);
-    }
-
-    .pxava.her {
-      background-color: var(--color-sky);
-    }
-
-    .sdot {
-      position: absolute;
-      bottom: -3px;
-      right: -3px;
-      width: 8px;
-      height: 8px;
-      border: 2px solid var(--color-surface);
-    }
-
-    .sdot.on {
-      background-color: var(--color-highlight);
-    }
-
-    .sdot.idl {
-      background-color: var(--color-secondary);
-    }
-
-    .pair-name {
-      font-family: var(--font-display);
-      font-size: 7px;
-      color: var(--color-deep);
-      line-height: 2;
-    }
-
-    .pair-sub {
-      font-size: 14px;
-      color: var(--color-forest);
-    }
-
-    .streak {
-      background-color: var(--color-highlight);
-      border: 2px solid var(--color-deep);
-      padding: 5px 8px;
-      font-family: var(--font-display);
-      font-size: 6px;
-      color: var(--color-deep);
-      box-shadow: 2px 2px 0 var(--color-deep);
-    }
-
-    /* Wallet Status (P2-A) */
-    .wallet-status {
-      background-color: var(--color-deep);
-      border: 2px solid var(--color-secondary);
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 2px;
-      box-shadow: 2px 2px 0 var(--color-forest);
-    }
-
-    .coin-icon {
-      font-size: 14px;
-      animation: coin-bounce 2s ease-in-out infinite;
-    }
-
-    .coin-amount {
-      font-family: var(--font-display);
-      font-size: 8px;
-      color: var(--color-secondary);
-      flex: 1;
-    }
-
-    .coin-label {
-      font-family: var(--font-body);
-      font-size: 14px;
-      color: var(--color-highlight);
-      letter-spacing: 1px;
-    }
-
-    @keyframes coin-bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-2px); }
-    }
-
-    .coin-pulse {
-      animation: coin-pulse-anim 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes coin-pulse-anim {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.5); color: #fff; }
-      100% { transform: scale(1); }
-    }
-
-    .nav-body {
-      padding: 5px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .ni {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 9px;
-      font-size: 15px;
-      color: #30253e;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all 0.08s;
-    }
-
-    .ni:hover {
-      background-color: #80b9b1;
-      border-color: #30253e;
-    }
-
-    .ni.on {
-      background-color: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .ni .ico {
-      width: 18px;
-      text-align: center;
-      flex-shrink: 0;
-    }
-
-    .ni .bdg {
-      margin-left: auto;
-      background-color: #30253e;
-      color: #c3c88c;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      padding: 3px 5px;
-    }
-
-    .spot-body {
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-
-    .spot-icon {
-      width: 30px;
-      height: 30px;
-      background-color: #94c784;
-      border: 2px solid #30253e;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      flex-shrink: 0;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .msong {
-      font-size: 15px;
-      color: #30253e;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .martist {
-      font-size: 13px;
-      color: #638872;
-    }
-
-    .mbars {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 14px;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .mbars span {
-      display: block;
-      width: 3px;
-      background-color: #638872;
-      animation: mb .6s steps(3) infinite alternate;
-    }
-
-    .mbars span:nth-child(1) {
-      height: 5px;
-      animation-delay: 0s
-    }
-
-    .mbars span:nth-child(2) {
-      height: 13px;
-      animation-delay: .12s
-    }
-
-    .mbars span:nth-child(3) {
-      height: 7px;
-      animation-delay: .24s
-    }
-
-    .mbars span:nth-child(4) {
-      height: 10px;
-      animation-delay: .06s
-    }
-
-    @keyframes mb {
-      from {
-        transform: scaleY(.2)
-      }
-
-      to {
-        transform: scaleY(1)
-      }
-    }
-
-    .sb-btm {
-      margin-top: auto;
-      display: flex;
-      gap: 7px;
-      flex-shrink: 0;
-    }
-
-    .sb-btn {
-      flex: 1;
-      padding: 8px 4px;
-      background-color: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 15px;
-      color: #30253e;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.08s;
-    }
-
-    .sb-btn:hover {
-      background-color: #94c784;
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 #30253e;
-    }
-
-    .sb-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 #30253e;
-    }
-
-    /* chat area */
-    .chat {
-      display: flex;
-      flex-direction: column;
-      padding: 8px 8px 8px 5px;
-      gap: 6px;
-      overflow: hidden;
-    }
-
-    .chat-win {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .chat-win .win-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background-color: #f4f9f8;
-    }
-
-    .status-bar {
-      padding: 5px 10px;
-      border-bottom: 2px solid #30253e;
-      background-color: #c3c88c;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .status-name {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #30253e;
-    }
-
-    .status-sub {
-      font-size: 13px;
-      color: #638872;
-    }
-
-    .status-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 5px;
-    }
-
-    .act-btn {
-      width: 26px;
-      height: 26px;
-      background-color: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.08s;
-    }
-
-    .act-btn:hover {
-      background-color: #94c784;
-      transform: translate(-1px, -1px);
-    }
-
-    /* messages */
-    .msgs {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 14px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .msgs::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .msgs::-webkit-scrollbar-track {
-      background-color: #f4f9f8;
-      border-left: 2px solid #30253e;
-    }
-
-    .msgs::-webkit-scrollbar-thumb {
-      background-color: #80b9b1;
-      border: 1px solid #30253e;
-    }
-
-    .dsep {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 8px 0 4px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #80b9b1;
-    }
-
-    .dsep::before,
-    .dsep::after {
-      content: '';
-      flex: 1;
-      height: 2px;
-      background: repeating-linear-gradient(90deg, #80b9b1 0, #80b9b1 4px, transparent 4px, transparent 8px);
-    }
-
-    .row {
-      display: flex;
-      align-items: flex-end;
-      gap: 7px;
-      animation: pop .16s steps(3) both;
-    }
-
-    .row.me {
-      flex-direction: row-reverse;
-    }
-
-    @keyframes pop {
-      0% {
-        opacity: 0;
-        transform: translateY(8px) scaleY(0.5)
-      }
-
-      60% {
-        opacity: 1;
-        transform: translateY(-1px)
-      }
-
-      100% {
-        transform: none
-      }
-    }
-
-    .row:nth-child(1) {
-      animation-delay: .04s
-    }
-
-    .row:nth-child(2) {
-      animation-delay: .08s
-    }
-
-    .row:nth-child(3) {
-      animation-delay: .12s
-    }
-
-    .row:nth-child(4) {
-      animation-delay: .16s
-    }
-
-    .row:nth-child(5) {
-      animation-delay: .20s
-    }
-
-    .row:nth-child(6) {
-      animation-delay: .24s
-    }
-
-    .row:nth-child(7) {
-      animation-delay: .28s
-    }
-
-    .row:nth-child(8) {
-      animation-delay: .32s
-    }
-
-    .row:nth-child(9) {
-      animation-delay: .36s
-    }
-
-    .ra {
-      width: 26px;
-      height: 26px;
-      background-color: #80b9b1;
-      border: 2px solid #30253e;
-      flex-shrink: 0;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .row.me .ra {
-      display: none;
-    }
-
-    .bw {
-      max-width: 420px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .row.me .bw {
-      align-items: flex-end;
-    }
-
-    .b {
-      padding: 8px 12px;
-      font-size: 17px;
-      line-height: 1.55;
-      word-break: break-word;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .row.them .b {
-      background-color: #ffffff;
-      color: #30253e;
-    }
-
-    .row.me .b {
-      background-color: #94c784;
-      color: #30253e;
-    }
-
-    .ts {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      float: right;
-      margin-left: 10px;
-      margin-top: 5px;
-      color: #638872;
-      opacity: .7;
-    }
-
-    .rxns {
-      display: flex;
-      gap: 3px;
-      margin-top: 3px;
-    }
-
-    .rxn {
-      background-color: #ffffff;
-      border: 2px solid #30253e;
-      padding: 1px 7px;
-      font-size: 12px;
-      color: #30253e;
-      cursor: pointer;
-      box-shadow: 2px 2px 0 #30253e;
-      transition: all .08s;
-    }
-
-    .rxn:hover {
-      transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0 #30253e;
-    }
-
-    .rxn.mine {
-      background-color: #c3c88c;
-    }
-
-    /* reaction picker */
-    .rxn-picker {
-      position: absolute;
-      z-index: 100;
-      background-color: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-      display: flex;
-      gap: 2px;
-      padding: 5px;
-      flex-wrap: wrap;
-      max-width: 180px;
-    }
-
-    .rxn-picker span {
-      font-size: 18px;
-      cursor: pointer;
-      padding: 2px 4px;
-      transition: transform 0.08s;
-    }
-
-    .rxn-picker span:hover {
-      transform: scale(1.3);
-    }
-
-    .row {
-      position: relative;
-    }
-
-    .rcpt {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-top: 3px;
-      text-align: right;
-    }
-
-    .b.ib {
-      padding: 3px;
-    }
-
-    .imgw {
-      width: 200px;
-      border: 2px solid #30253e;
-      overflow: hidden;
-    }
-
-    .ifake {
-      width: 100%;
-      height: 118px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 38px;
-    }
-
-    .icap {
-      background-color: #30253e;
-      padding: 3px 6px;
-      font-size: 12px;
-      display: flex;
-      justify-content: space-between;
-      color: #c3c88c;
-    }
-
-    .ab {
-      background-color: #ffffff !important;
-      border: 2px solid #30253e !important;
-      box-shadow: 2px 2px 0 #30253e !important;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 8px 12px !important;
-      min-width: 195px;
-      color: #30253e !important;
-    }
-
-    .aplay {
-      width: 30px;
-      height: 30px;
-      background-color: #94c784;
-      border: 2px solid #30253e;
-      color: #30253e;
-      font-size: 12px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 2px 2px 0 #30253e;
-      transition: all .08s;
-    }
-
-    .aplay:hover {
-      background-color: #638872;
-      color: #c3c88c;
-      transform: translate(-1px, -1px);
-    }
-
-    .albl {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-bottom: 5px;
-    }
-
-    .abar {
-      height: 4px;
-      background-color: #e0e0e0;
-      border: 1px solid #30253e;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .abar::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 35%;
-      height: 100%;
-      background-color: #80b9b1;
-    }
-
-    .adur {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-top: 4px;
-    }
-
-    .tyrow {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 2px 0 4px;
-    }
-
-    .tybub {
-      background-color: #ffffff;
-      border: 2px solid #30253e;
-      padding: 9px 12px;
-      box-shadow: 2px 2px 0 #30253e;
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    .tybub span {
-      width: 5px;
-      height: 5px;
-      background-color: #80b9b1;
-      animation: td .9s steps(2) infinite;
-    }
-
-    .tybub span:nth-child(2) {
-      animation-delay: .2s
-    }
-
-    .tybub span:nth-child(3) {
-      animation-delay: .4s
-    }
-
-    @keyframes td {
-
-      0%,
-      100% {
-        opacity: .25;
-        transform: translateY(0)
-      }
-
-      50% {
-        opacity: 1;
-        transform: translateY(-5px)
-      }
-    }
-
-    .input-win {
-      flex-shrink: 0;
-      position: relative;
-    }
-
-    .input-body {
-      padding: 8px 10px;
-      background-color: #ffffff;
-    }
-
-    .ibox {
-      display: flex;
-      align-items: flex-end;
-      gap: 7px;
-      background-color: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 6px 8px;
-    }
-
-    .ibox:focus-within {
-      border-color: #638872;
-    }
-
-    .ia {
-      width: 28px;
-      height: 28px;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #80b9b1;
-      flex-shrink: 0;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      transition: color .1s;
-    }
-
-    .ia:hover {
-      color: #30253e;
-    }
-
-    .ifield {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      resize: none;
-      max-height: 100px;
-      padding: 2px 0;
-      line-height: 1.5;
-      caret-color: #638872;
-    }
-
-    .ifield::placeholder {
-      color: #80b9b1;
-    }
-
-    .sendbtn {
-      width: 34px;
-      height: 34px;
-      flex-shrink: 0;
-      background-color: #94c784;
-      border: 2px solid #30253e;
-      color: #30253e;
-      font-size: 15px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: inherit;
-      transition: all .08s;
-    }
-
-    .sendbtn:hover {
-      background-color: #638872;
-      color: #c3c88c;
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 #30253e;
-    }
-
-    .sendbtn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 #30253e;
-    }
-
-    /* ════════════════════════════════
-   MOBILE NAV BAR (hidden on desktop)
-════════════════════════════════ */
-    .mobile-nav {
-      display: none;
-    }
-
-    .mobile-header {
-      display: none;
-    }
-
-    .mobile-drawer {
-      display: none;
-    }
-
-    .drawer-overlay {
-      display: none;
-    }
-
-    /* ════════════════════════════════
-   TABLET  (600px – 899px)
-════════════════════════════════ */
-    @media (max-width: 899px) and (min-width: 600px) {
-      .shell {
-        grid-template-columns: 200px 1fr;
-      }
-
-      .sidebar {
-        padding: 6px;
-        gap: 5px;
-      }
-
-      .app-title {
-        font-size: 7px;
-      }
-
-      .pair-name {
-        font-size: 6px;
-      }
-
-      .ni {
-        font-size: 13px;
-        padding: 6px 7px;
-      }
-
-      .spot-body {
-        padding: 6px 8px;
-      }
-
-      .msong {
-        font-size: 13px;
-      }
-
-      .martist {
-        font-size: 11px;
-      }
-
-      .b {
-        font-size: 15px;
-      }
-
-      .chat {
-        padding: 6px 6px 6px 4px;
-      }
-    }
-
-    /* ════════════════════════════════
-   MOBILE  (< 600px)
-   Full-screen chat, bottom nav bar,
-   sidebar becomes a slide-in drawer
-════════════════════════════════ */
-    @media (max-width: 599px) {
-
-      html,
-      body {
-        overflow: hidden;
-      }
-
-      .mountains {
-        height: 40px;
-      }
-
-      /* hide desktop sidebar entirely */
-      .shell {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr;
-        height: 100vh;
-      }
-
-      /* sidebar becomes off-screen drawer */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 280px;
-        z-index: 200;
-        border-right: 3px solid #30253e;
-        transform: translateX(-100%);
-        transition: transform 0.2s steps(6);
-        padding: 10px;
-        gap: 8px;
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      /* overlay behind drawer — only covers chat area, not sidebar */
-      .drawer-overlay {
-        display: block;
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        left: 280px;
-        /* start after the sidebar width */
-        right: 0;
-        background: rgba(48, 37, 62, 0.6);
-        z-index: 199;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s;
-      }
-
-      .drawer-overlay.show {
-        opacity: 1;
-        pointer-events: all;
-      }
-
-      /* chat fills full screen */
-      .chat {
-        grid-column: 1;
-        padding: 0;
-        gap: 0;
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-      }
-
-      /* mobile top header bar */
-      .mobile-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background-color: #30253e;
-        border-bottom: 3px solid #c3c88c;
-        padding: 8px 12px;
-        flex-shrink: 0;
-        z-index: 10;
-      }
-
-      .mh-menu {
-        width: 32px;
-        height: 32px;
-        background-color: transparent;
-        border: 2px solid #c3c88c;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        cursor: pointer;
-        flex-shrink: 0;
-        color: #c3c88c;
-        font-family: 'Press Start 2P', monospace;
-        font-size: 10px;
-      }
-
-      .mh-menu:active {
-        background-color: #c3c88c;
-        color: #30253e;
-      }
-
-      .mh-ava {
-        width: 32px;
-        height: 32px;
-        background-color: #80b9b1;
-        border: 2px solid #c3c88c;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        flex-shrink: 0;
-        position: relative;
-      }
-
-      .mh-info {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .mh-name {
-        font-family: 'Press Start 2P', monospace;
-        font-size: 8px;
-        color: #c3c88c;
-      }
-
-      .mh-sub {
-        font-size: 14px;
-        color: #80b9b1;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      .mh-dot {
-        width: 6px;
-        height: 6px;
-        background-color: #94c784;
-        animation: blink 1.2s steps(1) infinite;
-      }
-
-      .mh-actions {
-        display: flex;
-        gap: 6px;
-        flex-shrink: 0;
-      }
-
-      .mh-btn {
-        width: 30px;
-        height: 30px;
-        background-color: transparent;
-        border: 2px solid #638872;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        cursor: pointer;
-        color: #c3c88c;
-      }
-
-      .mh-btn:active {
-        background-color: #638872;
-      }
-
-      /* hide desktop status bar on mobile */
-      .status-bar {
-        display: none;
-      }
-
-      /* chat window fills space */
-      .chat-win {
-        flex: 1;
-        border: none;
-        box-shadow: none;
-        border-radius: 0;
-      }
-
-      .chat-win .win-bar {
-        display: none;
-      }
-
-      .chat-win .win-body {
-        background-color: #f4f9f8;
-      }
-
-      /* messages */
-      .msgs {
-        padding: 10px 12px 6px;
-      }
-
-      .b {
-        font-size: 16px;
-      }
-
-      .bw {
-        max-width: 82vw;
-      }
-
-      .imgw {
-        width: 160px;
-      }
-
-      .ifake {
-        height: 100px;
-      }
-
-      /* input at bottom */
-      .input-win {
-        border: none;
-        box-shadow: none;
-        border-top: 3px solid #30253e;
-        flex-shrink: 0;
-      }
-
-      .input-win .win-bar {
-        display: none;
-      }
-
-      .input-body {
-        padding: 8px 10px;
-        background-color: #ffffff;
-        padding-bottom: max(8px, env(safe-area-inset-bottom));
-      }
-
-      /* bottom nav bar */
-      .mobile-nav {
-        display: flex;
-        background-color: #30253e;
-        border-top: 3px solid #c3c88c;
-        flex-shrink: 0;
-      }
-
-      .mn-item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 4px 10px;
-        cursor: pointer;
-        gap: 4px;
-        border-right: 2px solid #638872;
-        transition: background-color 0.08s;
-        color: #80b9b1;
-        font-family: 'Press Start 2P', monospace;
-        font-size: 5px;
-      }
-
-      .mn-item:last-child {
-        border-right: none;
-      }
-
-      .mn-item:active {
-        background-color: #638872;
-      }
-
-      .mn-item.on {
-        background-color: #638872;
-        color: #c3c88c;
-      }
-
-      .mn-item .mico {
-        font-size: 18px;
-      }
-
-      .mn-badge {
-        position: relative;
-      }
-
-      .mn-badge::after {
-        content: '!';
-        position: absolute;
-        top: -4px;
-        right: -8px;
-        background-color: #94c784;
-        color: #30253e;
-        font-family: 'Press Start 2P', monospace;
-        font-size: 5px;
-        padding: 1px 3px;
-        border: 1px solid #30253e;
-      }
-
-      /* spotify mini bar on mobile — shown in drawer */
-      .sb-btm {
-        padding-top: 4px;
-      }
-
-      /* clouds fewer on mobile */
-      .cloud:nth-child(n+7) {
-        display: none;
-      }
-    }
-
-    /* ── Reaction picker ── */
-    .rxn-picker {
-      position: fixed;
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 4px 4px 0 #c3c88c;
-      display: flex;
-      gap: 2px;
-      padding: 4px 6px;
-      z-index: 9999;
-      animation: pop .12s steps(3) both;
-    }
-
-    .rxn-pick-btn {
-      font-size: 20px;
-      cursor: pointer;
-      padding: 4px 5px;
-      border: 2px solid transparent;
-      background: transparent;
-      transition: all .08s;
-      line-height: 1;
-    }
-
-    .rxn-pick-btn:hover {
-      background: #638872;
-      border-color: #c3c88c;
-      transform: scale(1.2);
-    }
-
-    /* ── Media messages ── */
-    .media-img {
-      max-width: 280px;
-      max-height: 280px;
-      display: block;
-      border: 2px solid #30253e;
-      cursor: pointer;
-      image-rendering: auto;
-    }
-
-    .media-img:hover {
-      opacity: 0.9;
-    }
-
-    .file-attach {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      min-width: 180px;
-      cursor: pointer;
-    }
-
-    .file-attach:hover {
-      background: #f4f9f8;
-    }
-
-    .file-icon {
-      font-size: 22px;
-      flex-shrink: 0;
-    }
-
-    .file-name {
-      font-size: 14px;
-      color: #30253e;
-      word-break: break-all;
-    }
-
-    .file-size {
-      font-size: 12px;
-      color: #638872;
-    }
-
-    /* Recording state */
-    .ia.recording {
-      color: #c0392b !important;
-      animation: blink 0.6s steps(1) infinite;
-    }
-
-    .rec-indicator {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #c0392b;
-      flex-shrink: 0;
-    }
-
-    .rec-indicator.show {
-      display: flex;
-    }
-
-    .rec-dot {
-      width: 8px;
-      height: 8px;
-      background: #c0392b;
-      border-radius: 50%;
-      animation: blink 0.6s steps(1) infinite;
-    }
-
-    /* Image lightbox */
-    .lightbox {
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.92);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9998;
-      cursor: zoom-out;
-    }
-
-    .lightbox img {
-      max-width: 92vw;
-      max-height: 92vh;
-      border: 3px solid #c3c88c;
-      box-shadow: 6px 6px 0 #c3c88c;
-    }
-
-    /* ── Custom emoji picker ── */
-    .emoji-panel {
-      display: none;
-      position: fixed;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: -3px -3px 0 #30253e;
-      z-index: 1000;
-      width: 320px;
-      max-height: 260px;
-      overflow-y: auto;
-      flex-direction: column;
-    }
-
-    .emoji-panel.open {
-      display: flex;
-    }
-
-    .emoji-panel-tabs {
-      display: flex;
-      border-bottom: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .emoji-tab {
-      flex: 1;
-      padding: 6px 4px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      background: #f4f9f8;
-      border: none;
-      cursor: pointer;
-      color: #638872;
-      border-right: 2px solid #30253e;
-    }
-
-    .emoji-tab:last-child {
-      border-right: none;
-    }
-
-    .emoji-tab.on {
-      background: #94c784;
-      color: #30253e;
-    }
-
-    .emoji-panel-search {
-      padding: 5px 8px;
-      border-bottom: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .emoji-panel-search input {
-      width: 100%;
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 4px 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .emoji-panel-search input:focus {
-      border-color: #638872;
-    }
-
-    .emoji-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 3px;
-      padding: 8px;
-      flex: 1;
-    }
-
-    .emoji-grid-item {
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      border: 2px solid transparent;
-      font-size: 20px;
-      transition: all .08s;
-      position: relative;
-    }
-
-    .emoji-grid-item:hover {
-      background: #f4f9f8;
-      border-color: #30253e;
-    }
-
-    .emoji-grid-item img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
-    .emoji-grid-item .emoji-tooltip {
-      display: none;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #30253e;
-      color: #c3c88c;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      padding: 3px 5px;
-      white-space: nowrap;
-      pointer-events: none;
-      margin-bottom: 3px;
-      z-index: 999;
-    }
-
-    .emoji-grid-item:hover .emoji-tooltip {
-      display: block;
-    }
-
-    .emoji-empty {
-      padding: 16px;
-      font-size: 14px;
-      color: #80b9b1;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      text-align: center;
-    }
-
-    .emoji-upload-row {
-      display: flex;
-      gap: 6px;
-      padding: 6px 8px;
-      border-top: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .emoji-upload-input {
-      flex: 1;
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 4px 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .emoji-upload-btn {
-      background: #94c784;
-      border: 2px solid #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 14px;
-      color: #30253e;
-      padding: 4px 8px;
-      cursor: pointer;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .emoji-upload-btn:hover {
-      background: #638872;
-      color: #c3c88c;
-    }
-
-    /* Inline custom emoji in messages */
-    .custom-emoji {
-      width: 22px;
-      height: 22px;
-      vertical-align: middle;
-      object-fit: contain;
-      display: inline-block;
-      margin: 0 1px;
-    }
-
-    /* Autocomplete dropdown */
-    .emoji-autocomplete {
-      display: none;
-      position: fixed;
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-      z-index: 1001;
-      max-height: 200px;
-      overflow-y: auto;
-      width: 220px;
-    }
-
-    .emoji-autocomplete.show {
-      display: block;
-    }
-
-    .emoji-ac-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #c3c88c;
-    }
-
-    .emoji-ac-item:hover,
-    .emoji-ac-item.selected {
-      background: #638872;
-    }
-
-    .emoji-ac-item img {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-    }
-
-    /* ════════════════════════════════
-   CALL OVERLAY
-════════════════════════════════ */
-
-    /* Incoming call modal */
-    .call-incoming {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.85);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .call-incoming.show {
-      display: flex;
-    }
-
-    .call-incoming-box {
-      background: #30253e;
-      border: 3px solid #c3c88c;
-      box-shadow: 6px 6px 0 #c3c88c;
-      padding: 28px 32px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      min-width: 260px;
-    }
-
-    .call-incoming-avatar {
-      width: 64px;
-      height: 64px;
-      background: #80b9b1;
-      border: 3px solid #c3c88c;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      animation: call-pulse 1s steps(2) infinite;
-    }
-
-    @keyframes call-pulse {
-
-      0%,
-      100% {
-        box-shadow: 0 0 0 0 rgba(195, 200, 140, 0.6);
-      }
-
-      50% {
-        box-shadow: 0 0 0 10px rgba(195, 200, 140, 0);
-      }
-    }
-
-    .call-incoming-name {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 9px;
-      color: #c3c88c;
-    }
-
-    .call-incoming-type {
-      font-size: 16px;
-      color: #80b9b1;
-    }
-
-    .call-incoming-btns {
-      display: flex;
-      gap: 12px;
-    }
-
-    .call-btn-accept {
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #c3c88c;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      padding: 8px 18px;
-      cursor: pointer;
-      transition: all .08s;
-    }
-
-    .call-btn-accept:hover {
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 #c3c88c;
-    }
-
-    .call-btn-decline {
-      background: #c0392b;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #c3c88c;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #ffffff;
-      padding: 8px 18px;
-      cursor: pointer;
-      transition: all .08s;
-    }
-
-    .call-btn-decline:hover {
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 #c3c88c;
-    }
-
-    /* Active call overlay */
-    .call-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(26, 18, 38, 0.96);
-      z-index: 1900;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .call-overlay.show {
-      display: flex;
-    }
-
-    .call-overlay.fullscreen-mode {
-      background: #000;
-    }
-
-    /* Video containers */
-    .call-videos {
-      position: relative;
-      width: 100%;
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      max-height: calc(100vh - 100px);
-    }
-
-    .call-video-remote {
-      width: 100%;
-      height: 100%;
-      max-width: 900px;
-      max-height: calc(100vh - 100px);
-      object-fit: cover;
-      background: #1a1226;
-      display: block;
-      transform: scaleX(-1);
-      /* mirror remote video so they look correct */
-    }
-
-    .call-video-local {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      width: 140px;
-      height: 100px;
-      object-fit: cover;
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-      cursor: pointer;
-      transform: scaleX(-1);
-      /* mirror your own preview — feels natural */
-    }
-
-    .call-video-local:hover {
-      opacity: 0.9;
-    }
-
-    /* Voice-only avatar */
-    .call-voice-avatar {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .call-voice-emoji {
-      width: 100px;
-      height: 100px;
-      background: #30253e;
-      border: 3px solid #c3c88c;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      box-shadow: 4px 4px 0 #c3c88c;
-    }
-
-    .call-voice-name {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
-      color: #c3c88c;
-    }
-
-    .call-voice-status {
-      font-size: 18px;
-      color: #80b9b1;
-    }
-
-    .call-soundwave {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      height: 30px;
-    }
-
-    .call-soundwave span {
-      display: block;
-      width: 4px;
-      background: #94c784;
-      animation: soundwave 0.8s steps(4) infinite alternate;
-    }
-
-    .call-soundwave span:nth-child(1) {
-      height: 8px;
-      animation-delay: 0s;
-    }
-
-    .call-soundwave span:nth-child(2) {
-      height: 20px;
-      animation-delay: .1s;
-    }
-
-    .call-soundwave span:nth-child(3) {
-      height: 28px;
-      animation-delay: .2s;
-    }
-
-    .call-soundwave span:nth-child(4) {
-      height: 16px;
-      animation-delay: .3s;
-    }
-
-    .call-soundwave span:nth-child(5) {
-      height: 24px;
-      animation-delay: .15s;
-    }
-
-    .call-soundwave span:nth-child(6) {
-      height: 10px;
-      animation-delay: .25s;
-    }
-
-    @keyframes soundwave {
-      from {
-        transform: scaleY(0.2);
-      }
-
-      to {
-        transform: scaleY(1);
-      }
-    }
-
-    /* Call timer */
-    .call-timer {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #c3c88c;
-      letter-spacing: 2px;
-    }
-
-    /* Controls bar */
-    .call-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 20px;
-      flex-shrink: 0;
-      background: rgba(48, 37, 62, 0.9);
-      border-top: 2px solid #638872;
-      width: 100%;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .call-ctrl {
-      width: 48px;
-      height: 48px;
-      background: #30253e;
-      border: 2px solid #638872;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 3px 3px 0 #638872;
-      transition: all .08s;
-      position: relative;
-    }
-
-    .call-ctrl:hover {
-      background: #638872;
-      transform: translate(-1px, -1px);
-    }
-
-    .call-ctrl.active {
-      background: #94c784;
-      border-color: #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-    }
-
-    .call-ctrl.danger {
-      background: #c0392b;
-      border-color: #e74c3c;
-      box-shadow: 3px 3px 0 #e74c3c;
-    }
-
-    .call-ctrl.danger:hover {
-      background: #e74c3c;
-    }
-
-    .call-ctrl.off {
-      background: #638872;
-      opacity: 0.6;
-    }
-
-    .call-ctrl-label {
-      position: absolute;
-      bottom: -18px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 4px;
-      color: #80b9b1;
-      white-space: nowrap;
-    }
-
-    /* Mini call bar */
-    .call-mini {
-      display: none;
-      position: fixed;
-      bottom: 70px;
-      right: 12px;
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 4px 4px 0 #c3c88c;
-      padding: 8px 12px;
-      z-index: 1800;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #c3c88c;
-      cursor: pointer;
-    }
-
-    .call-mini.show {
-      display: flex;
-    }
-
-    .call-mini-dot {
-      width: 8px;
-      height: 8px;
-      background: #94c784;
-      animation: blink 0.8s steps(1) infinite;
-    }
-
-    /* ── Settings panel ── */
-    .settings-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 280px;
-      background: #30253e;
-      border-right: 3px solid #c3c88c;
-      box-shadow: 4px 0 0 #c3c88c;
-      z-index: 300;
-      transform: translateX(-100%);
-      transition: transform 0.2s steps(6);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-
-    .settings-panel.open {
-      transform: translateX(0);
-    }
-
-    .settings-header {
-      background: #1a1226;
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #c3c88c;
-      flex-shrink: 0;
-    }
-
-    .settings-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #c3c88c;
-    }
-
-    .settings-close {
-      color: #c3c88c;
-      cursor: pointer;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      padding: 4px 6px;
-      border: 2px solid #c3c88c;
-    }
-
-    .settings-close:hover {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    .settings-section {
-      padding: 12px;
-      border-bottom: 1px solid #638872;
-    }
-
-    .settings-section-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-bottom: 10px;
-      letter-spacing: 1px;
-    }
-
-    .settings-btn {
-      width: 100%;
-      background: #ffffff;
-      border: 2px solid #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      padding: 8px 12px;
-      cursor: pointer;
-      text-align: left;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-      transition: all .08s;
-    }
-
-    .settings-btn:hover {
-      background: #94c784;
-      transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 #c3c88c;
-    }
-
-    .settings-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 #c3c88c;
-    }
-
-    .settings-btn.danger {
-      border-color: #e74c3c;
-      box-shadow: 3px 3px 0 #e74c3c;
-    }
-
-    .settings-btn.danger:hover {
-      background: #e74c3c;
-      color: #fff;
-      box-shadow: 4px 4px 0 #e74c3c;
-    }
-
-    .settings-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.5);
-      z-index: 299;
-    }
-
-    .settings-overlay.show {
-      display: block;
-    }
-
-    /* ⚙ button in sidebar header */
-    .app-settings-btn {
-      width: 18px;
-      height: 18px;
-      background: transparent;
-      border: 2px solid #c3c88c;
-      color: #c3c88c;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      flex-shrink: 0;
-      transition: all .08s;
-    }
-
-    .app-settings-btn:hover {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    /* ── Chat search ── */
-    .search-bar {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 10px;
-      background: #30253e;
-      border-bottom: 2px solid #c3c88c;
-      flex-shrink: 0;
-    }
-
-    .search-bar.show {
-      display: flex;
-    }
-
-    .search-input {
-      flex: 1;
-      background: #f4f9f8;
-      border: 2px solid #c3c88c;
-      padding: 4px 8px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .search-input:focus {
-      border-color: #94c784;
-    }
-
-    .search-count {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #c3c88c;
-      white-space: nowrap;
-      min-width: 60px;
-    }
-
-    .search-nav-btn {
-      width: 24px;
-      height: 24px;
-      background: transparent;
-      border: 2px solid #c3c88c;
-      color: #c3c88c;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .search-nav-btn:hover {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    .search-close {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #638872;
-      cursor: pointer;
-      padding: 2px 4px;
-      border: 2px solid #638872;
-    }
-
-    .search-close:hover {
-      background: #638872;
-      color: #c3c88c;
-    }
-
-    /* highlight matched text */
-    .search-highlight {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    .search-highlight.current {
-      background: #94c784;
-      outline: 2px solid #30253e;
-    }
-
-    /* ── Reply preview bar ── */
-    .reply-preview {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      background: #f4f9f8;
-      border-top: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .reply-preview.show {
-      display: flex;
-    }
-
-    .reply-preview-bar {
-      width: 3px;
-      height: 100%;
-      min-height: 28px;
-      background: #80b9b1;
-      flex-shrink: 0;
-    }
-
-    .reply-preview-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .reply-preview-name {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-bottom: 3px;
-    }
-
-    .reply-preview-text {
-      font-size: 14px;
-      color: #30253e;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .reply-preview-close {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #638872;
-      cursor: pointer;
-      padding: 2px 5px;
-      flex-shrink: 0;
-    }
-
-    .reply-preview-close:hover {
-      color: #30253e;
-    }
-
-    /* ── Reply quote block in message ── */
-    .reply-quote {
-      background: #f4f9f8;
-      border-left: 3px solid #80b9b1;
-      padding: 4px 8px;
-      margin-bottom: 4px;
-      cursor: pointer;
-      max-width: 100%;
-    }
-
-    .row.me .reply-quote {
-      border-left-color: #638872;
-      background: rgba(255, 255, 255, 0.4);
-    }
-
-    .reply-quote:hover {
-      opacity: 0.8;
-    }
-
-    .reply-quote-name {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-      margin-bottom: 3px;
-    }
-
-    .reply-quote-text {
-      font-size: 13px;
-      color: #30253e;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* ── Context menu ── */
-    .msg-context-menu {
-      display: none;
-      position: fixed;
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 4px 4px 0 #c3c88c;
-      z-index: 9000;
-      min-width: 140px;
-    }
-
-    .msg-context-menu.show {
-      display: block;
-    }
-
-    .ctx-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      font-family: 'VT323', monospace;
-      font-size: 17px;
-      color: #c3c88c;
-      cursor: pointer;
-      border-bottom: 1px solid #638872;
-    }
-
-    .ctx-item:last-child {
-      border-bottom: none;
-    }
-
-    .ctx-item:hover {
-      background: #638872;
-    }
-
-    /* ── Gallery ── */
-    .gallery-view {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-      padding: 8px 8px 8px 5px;
-      gap: 6px;
-    }
-
-    .gallery-view.show {
-      display: flex;
-    }
-
-    .gallery-win {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .gallery-win .win-body {
-      flex: 1;
-      overflow-y: auto;
-      background: #f4f9f8;
-      padding: 12px;
-    }
-
-    .gallery-win .win-body::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .gallery-win .win-body::-webkit-scrollbar-track {
-      background: #f4f9f8;
-      border-left: 2px solid #30253e;
-    }
-
-    .gallery-win .win-body::-webkit-scrollbar-thumb {
-      background: #80b9b1;
-      border: 1px solid #30253e;
-    }
-
-    .gallery-month {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #80b9b1;
-      margin: 12px 0 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .gallery-month::before,
-    .gallery-month::after {
-      content: '';
-      flex: 1;
-      height: 2px;
-      background: repeating-linear-gradient(90deg, #80b9b1 0, #80b9b1 4px, transparent 4px, transparent 8px);
-    }
-
-    .gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-    }
-
-    .gallery-item {
-      aspect-ratio: 1;
-      overflow: hidden;
-      border: 2px solid #30253e;
-      cursor: pointer;
-      position: relative;
-      background: #30253e;
-      transition: border-color .08s;
-    }
-
-    .gallery-item:hover {
-      border-color: #c3c88c;
-    }
-
-    .gallery-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: opacity .1s;
-    }
-
-    .gallery-item:hover img {
-      opacity: 0.85;
-    }
-
-    .gallery-item .gallery-item-gif {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      background: #30253e;
-      color: #c3c88c;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      padding: 2px 4px;
-      border: 1px solid #c3c88c;
-    }
-
-    .gallery-empty {
-      text-align: center;
-      padding: 40px 20px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #80b9b1;
-      line-height: 2.5;
-    }
-
-    .gallery-loading {
-      text-align: center;
-      padding: 20px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-    }
-
-    @media (max-width: 599px) {
-      .gallery-view {
-        padding: 0;
-      }
-
-      .gallery-win {
-        border: none;
-        box-shadow: none;
-      }
-
-      .gallery-win .win-bar {
-        display: none;
-      }
-
-      .gallery-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 3px;
-      }
-    }
-
-    /* ── Corkboard / Notes ── */
-    .notes-view {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-      padding: 8px 8px 8px 5px;
-      gap: 6px;
-    }
-
-    .notes-view.show {
-      display: flex;
-    }
-
-    .notes-win {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      min-height: 0;
-    }
-
-    .notes-win>.win-body {
-      flex: 1;
-      min-height: 0;
-    }
-
-    .notes-win .win-body {
-      flex: 1;
-      overflow-y: auto;
-      /* Corkboard texture */
-      background-color: #b5813c;
-      background-image:
-        repeating-linear-gradient(0deg,
-          transparent,
-          transparent 3px,
-          rgba(0, 0, 0, 0.03) 3px,
-          rgba(0, 0, 0, 0.03) 4px),
-        repeating-linear-gradient(90deg,
-          transparent,
-          transparent 3px,
-          rgba(0, 0, 0, 0.03) 3px,
-          rgba(0, 0, 0, 0.03) 4px);
-      position: relative;
-      min-height: 100%;
-    }
-
-    /* Sticky note */
-    .sticky-note {
-      width: 180px;
-      min-height: 160px;
-      background: #fef9c3;
-      border: 1px solid #e8d84a;
-      box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.08);
-      padding: 28px 14px 14px;
-      position: absolute;
-      font-family: 'VT323', monospace;
-      font-size: 17px;
-      color: #30253e;
-      line-height: 1.5;
-      word-break: break-word;
-      transition: transform .15s, z-index 0s;
-      z-index: 1;
-    }
-
-    .sticky-note:hover {
-      transform: rotate(0deg) scale(1.05) !important;
-      z-index: 10;
-    }
-
-    /* Note colors */
-    .sticky-note.color-0 {
-      background: #fef9c3;
-      border-color: #e8d84a;
-    }
-
-    /* yellow */
-    .sticky-note.color-1 {
-      background: #dcfce7;
-      border-color: #86efac;
-    }
-
-    /* green */
-    .sticky-note.color-2 {
-      background: #fce7f3;
-      border-color: #f9a8d4;
-    }
-
-    /* pink */
-    .sticky-note.color-3 {
-      background: #e0f2fe;
-      border-color: #7dd3fc;
-    }
-
-    /* blue */
-    .sticky-note.color-4 {
-      background: #fef3c7;
-      border-color: #fcd34d;
-    }
-
-    /* amber */
-
-    /* Pushpin */
-    .sticky-pin {
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 16px;
-      height: 16px;
-      background: #c0392b;
-      border: 2px solid #922b21;
-      border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-      cursor: pointer;
-      z-index: 3;
-    }
-
-    .sticky-pin::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 3px;
-      height: 8px;
-      background: #7f8c8d;
-    }
-
-    .sticky-pin:hover {
-      background: #e74c3c;
-    }
-
-    /* Note meta */
-    .sticky-meta {
-      position: absolute;
-      bottom: 6px;
-      right: 8px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: rgba(48, 37, 62, 0.5);
-      text-align: right;
-      line-height: 1.8;
-    }
-
-    /* Board navigation */
-    .board-nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      border-top: 2px solid rgba(0, 0, 0, 0.2);
-      flex-shrink: 0;
-    }
-
-    .board-nav-btn {
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      color: #c3c88c;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      box-shadow: 2px 2px 0 #c3c88c;
-      transition: all .08s;
-    }
-
-    .board-nav-btn:hover {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    .board-nav-btn:disabled {
-      opacity: 0.3;
-      cursor: default;
-      transform: none;
-      box-shadow: none;
-    }
-
-    .board-nav-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: rgba(255, 255, 255, 0.7);
-      min-width: 80px;
-      text-align: center;
-    }
-
-    /* Confirm delete popup */
-    .pin-confirm {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #30253e;
-      border: 2px solid #c3c88c;
-      box-shadow: 3px 3px 0 #c3c88c;
-      padding: 6px 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      z-index: 20;
-      white-space: nowrap;
-    }
-
-    .pin-confirm-text {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #c3c88c;
-    }
-
-    .pin-confirm-yes {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #94c784;
-      cursor: pointer;
-      padding: 2px 4px;
-      border: 1px solid #94c784;
-    }
-
-    .pin-confirm-yes:hover {
-      background: #94c784;
-      color: #30253e;
-    }
-
-    .pin-confirm-no {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-      cursor: pointer;
-      padding: 2px 4px;
-      border: 1px solid #638872;
-    }
-
-    .pin-confirm-no:hover {
-      background: #638872;
-      color: #fff;
-    }
-
-    /* Add note button */
-    .notes-add-btn {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      width: 48px;
-      height: 48px;
-      background: #94c784;
-      border: 3px solid #30253e;
-      box-shadow: 4px 4px 0 #30253e;
-      font-size: 24px;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      transition: all .08s;
-    }
-
-    .notes-add-btn.show {
-      display: flex;
-    }
-
-    .notes-add-btn:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0 #30253e;
-    }
-
-    .notes-add-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    /* Add note modal */
-    .notes-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.7);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .notes-modal.show {
-      display: flex;
-    }
-
-    .notes-modal-box {
-      background: #fef9c3;
-      border: 3px solid #30253e;
-      box-shadow: 6px 6px 0 #30253e;
-      padding: 20px;
-      width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .notes-modal-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #30253e;
-    }
-
-    .notes-modal-textarea {
-      width: 100%;
-      height: 120px;
-      background: rgba(255, 255, 255, 0.6);
-      border: 2px solid #30253e;
-      padding: 8px;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      resize: none;
-      outline: none;
-    }
-
-    .notes-modal-textarea:focus {
-      border-color: #638872;
-    }
-
-    .notes-modal-chars {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-      text-align: right;
-    }
-
-    .notes-modal-btns {
-      display: flex;
-      gap: 8px;
-    }
-
-    .notes-modal-pin {
-      flex: 1;
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .notes-modal-pin:hover {
-      background: #638872;
-      color: #fff;
-    }
-
-    .notes-modal-cancel {
-      background: #fff;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-
-    /* PINNED badge */
-    .pinned-badge {
-      display: none;
-      background: #94c784;
-      color: #30253e;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      padding: 2px 4px;
-      border: 1px solid #30253e;
-      margin-left: auto;
-    }
-
-    .pinned-badge.show {
-      display: inline-block;
-    }
-
-    @media (max-width: 599px) {
-      .notes-view {
-        padding: 0;
-      }
-
-      .notes-win {
-        border: none;
-        box-shadow: none;
-      }
-
-      .notes-win .win-bar {
-        display: none;
-      }
-
-      .sticky-note {
-        width: 140px;
-        font-size: 15px;
-      }
-
-      .notes-add-btn {
-        bottom: 130px;
-      }
-    }
-
-    /* ════════════════════════════════
-   DATES / CALENDAR TAB
-════════════════════════════════ */
-    .dates-view {
-      display: none;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-      padding: 8px 8px 8px 5px;
-      gap: 6px;
-      min-height: 0;
-    }
-
-    .dates-view.show {
-      display: flex;
-    }
-
-    /* Top half — calendar */
-    .cal-win {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .cal-win .win-body {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      background: #f4f9f8;
-      padding: 0;
-    }
-
-    /* Calendar nav bar */
-    .cal-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 12px;
-      background: #ffffff;
-      border-bottom: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .cal-nav-btn {
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      padding: 2px 10px;
-      cursor: pointer;
-      transition: all .08s;
-    }
-
-    .cal-nav-btn:hover {
-      background: #94c784;
-      transform: translate(-1px, -1px);
-    }
-
-    .cal-nav-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #30253e;
-    }
-
-    .cal-view-tabs {
-      display: flex;
-      gap: 4px;
-    }
-
-    .cal-view-tab {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      padding: 4px 8px;
-      cursor: pointer;
-      border: 2px solid #30253e;
-      color: #638872;
-      background: #f4f9f8;
-      transition: all .08s;
-    }
-
-    .cal-view-tab.on {
-      background: #30253e;
-      color: #c3c88c;
-    }
-
-    /* Month grid */
-    .cal-month {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
-    .cal-month-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-
-    .cal-day-header {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-      text-align: center;
-      padding: 4px 0;
-      border-bottom: 2px solid #30253e;
-    }
-
-    .cal-day {
-      min-height: 70px;
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      padding: 4px;
-      cursor: pointer;
-      transition: background .08s;
-      position: relative;
-    }
-
-    .cal-day:hover {
-      background: #f4f9f8;
-      border-color: #80b9b1;
-    }
-
-    .cal-day.today {
-      border: 2px solid #94c784;
-      background: #f0faf0;
-    }
-
-    .cal-day.selected {
-      border: 2px solid #30253e;
-      background: #e8f4f0;
-    }
-
-    .cal-day.other-month {
-      opacity: 0.4;
-    }
-
-    .cal-day-num {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #30253e;
-      margin-bottom: 4px;
-    }
-
-    .cal-day.today .cal-day-num {
-      color: #94c784;
-    }
-
-    .cal-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      display: inline-block;
-      margin: 1px;
-    }
-
-    /* Week view */
-    .cal-week {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .cal-week-header {
-      display: grid;
-      grid-template-columns: 52px repeat(7, 1fr);
-      border-bottom: 2px solid #30253e;
-      flex-shrink: 0;
-      background: #ffffff;
-    }
-
-    .cal-week-day-hd {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #30253e;
-      text-align: center;
-      padding: 8px 4px;
-      border-left: 1px solid #e0e0e0;
-      cursor: pointer;
-    }
-
-    .cal-week-day-hd:hover {
-      background: #f4f9f8;
-    }
-
-    .cal-week-day-hd.today {
-      color: #94c784;
-    }
-
-    .cal-week-body {
-      flex: 1;
-      overflow-y: auto;
-      display: grid;
-      grid-template-columns: 52px repeat(7, 1fr);
-      position: relative;
-    }
-
-    .cal-time-col {
-      border-right: 2px solid #30253e;
-      background: #ffffff;
-      min-width: 52px;
-    }
-
-    .cal-time-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-      text-align: center;
-      height: 60px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 4px;
-      border-bottom: 1px solid #e8e8e8;
-      white-space: nowrap;
-    }
-
-    .cal-week-col {
-      border-left: 1px solid #e0e0e0;
-      position: relative;
-      background: #f4f9f8;
-    }
-
-    .cal-week-col.today-col {
-      background: #f0faf0;
-    }
-
-    .cal-hour-line {
-      height: 60px;
-      border-bottom: 1px solid #e8e8e8;
-    }
-
-    /* Timeline (bottom half) */
-    .timeline-win {
-      flex-shrink: 0;
-      height: 260px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .timeline-win .win-body {
-      flex: 1;
-      overflow: hidden;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      padding: 4px 0 0;
-    }
-
-    .timeline-date-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #30253e;
-      padding: 0 10px 4px;
-      flex-shrink: 0;
-    }
-
-    /* Hours header — syncs scroll with tracks */
-    .timeline-header-scroll {
-      overflow-x: hidden;
-      flex-shrink: 0;
-      padding-left: 80px;
-      border-bottom: 2px solid #30253e;
-    }
-
-    .timeline-hours-inner {
-      display: flex;
-      padding-bottom: 3px;
-      width: 2880px;
-    }
-
-    .timeline-scroll {
-      flex: 1;
-      overflow-x: auto;
-      overflow-y: auto;
-      padding: 4px 0 4px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-height: 0;
-    }
-
-    .timeline-scroll::-webkit-scrollbar {
-      height: 6px;
-    }
-
-    .timeline-scroll::-webkit-scrollbar-track {
-      background: #f4f9f8;
-    }
-
-    .timeline-scroll::-webkit-scrollbar-thumb {
-      background: #80b9b1;
-      border-radius: 2px;
-    }
-
-    .timeline-row {
-      display: grid;
-      grid-template-columns: 80px 1fr;
-      align-items: center;
-      height: 38px;
-      flex-shrink: 0;
-      min-width: max-content;
-    }
-
-    .timeline-user-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #30253e;
-      width: 80px;
-      text-align: right;
-      padding-right: 8px;
-      line-height: 1.8;
-      background: #ffffff;
-      border-right: 2px solid #e0e0e0;
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .timeline-track {
-      position: relative;
-      width: 2880px;
-      height: 34px;
-      background: #f4f9f8;
-      border: 1px solid #e0e0e0;
-    }
-
-    .timeline-hour-tick {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: #e0e0e0;
-    }
-
-    .timeline-hour-tick.major {
-      background: #c0c0c0;
-    }
-
-    .timeline-block {
-      position: absolute;
-      top: 2px;
-      bottom: 2px;
-      border-radius: 2px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      padding: 0 6px;
-      overflow: hidden;
-      font-family: 'VT323', monospace;
-      font-size: 15px;
-      color: #30253e;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      white-space: nowrap;
-    }
-
-    .timeline-block:hover {
-      opacity: 0.85;
-      z-index: 2;
-    }
-
-    .timeline-now-line {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: #c0392b;
-      z-index: 1;
-    }
-
-    /* .timeline-hours-row replaced by .timeline-header-scroll */
-    .timeline-hour-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #80b9b1;
-      width: 120px;
-      flex-shrink: 0;
-      overflow: visible;
-      white-space: nowrap;
-    }
-
-    /* Event popup */
-    .event-popup {
-      display: none;
-      position: fixed;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: 4px 4px 0 #30253e;
-      z-index: 2000;
-      width: 260px;
-      flex-direction: column;
-    }
-
-    .event-popup.show {
-      display: flex;
-    }
-
-    .event-popup-bar {
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 2px solid #30253e;
-    }
-
-    .event-popup-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #30253e;
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .event-popup-close {
-      cursor: pointer;
-      color: #638872;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      padding: 2px 4px;
-      flex-shrink: 0;
-    }
-
-    .event-popup-body {
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .event-popup-time {
-      font-size: 15px;
-      color: #638872;
-    }
-
-    .event-popup-notes {
-      font-size: 15px;
-      color: #30253e;
-    }
-
-    .event-popup-btns {
-      display: flex;
-      gap: 6px;
-      padding: 0 10px 10px;
-    }
-
-    .event-popup-btn {
-      flex: 1;
-      padding: 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      cursor: pointer;
-      background: #f4f9f8;
-      transition: all .08s;
-    }
-
-    .event-popup-btn:hover {
-      transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0 #30253e;
-    }
-
-    .event-popup-btn.danger {
-      background: #fde8e8;
-      border-color: #c0392b;
-      box-shadow: 2px 2px 0 #c0392b;
-    }
-
-    /* Add event modal */
-    .event-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.7);
-      z-index: 2500;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .event-modal.show {
-      display: flex;
-    }
-
-    .event-modal-box {
-      background: #ffffff;
-      border: 3px solid #30253e;
-      box-shadow: 6px 6px 0 #30253e;
-      width: 320px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .event-modal-bar {
-      background: #30253e;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .event-modal-bar-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #c3c88c;
-    }
-
-    .event-modal-body {
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .event-field-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      margin-bottom: 4px;
-    }
-
-    .event-input {
-      width: 100%;
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 6px 8px;
-      font-family: 'VT323', monospace;
-      font-size: 17px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .event-input:focus {
-      border-color: #638872;
-    }
-
-    .event-input[type="datetime-local"] {
-      color-scheme: light;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-    }
-
-    .event-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.4);
-      cursor: pointer;
-    }
-
-    .event-colors {
-      display: flex;
-      gap: 6px;
-    }
-
-    .event-color-swatch {
-      width: 24px;
-      height: 24px;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: all .08s;
-    }
-
-    .event-color-swatch.selected {
-      border-color: #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .event-modal-btns {
-      display: flex;
-      gap: 8px;
-      padding: 0 14px 14px;
-    }
-
-    .event-modal-save {
-      flex: 1;
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .event-modal-save:hover {
-      background: #638872;
-      color: #fff;
-    }
-
-    .event-modal-cancel {
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: #30253e;
-      padding: 8px 14px;
-      cursor: pointer;
-    }
-
-    @media (max-width: 599px) {
-      .dates-view {
-        padding: 0;
-        gap: 0;
-      }
-
-      #btn-manage-schedule {
-        display: none !important;
-      }
-
-      #btn-manage-schedule-mobile {
-        display: block !important;
-      }
-
-      .cal-win {
-        border: none;
-        box-shadow: none;
-        border-radius: 0;
-        flex: 1;
-        min-height: 0;
-      }
-
-      .cal-win .win-bar {
-        display: none;
-      }
-
-      .cal-win .win-body {
-        flex: 1;
-      }
-
-      .timeline-win {
-        border: none;
-        box-shadow: none;
-        height: 220px;
-        flex-shrink: 0;
-      }
-
-      .timeline-win .win-bar {
-        display: none;
-      }
-
-      .cal-month {
-        padding: 4px;
-      }
-
-      .cal-day {
-        min-height: 50px;
-        padding: 2px;
-      }
-
-      .cal-day-num {
-        font-size: 6px;
-      }
-
-      .cal-dot {
-        width: 5px;
-        height: 5px;
-      }
-
-      .cal-nav-title {
-        font-size: 7px;
-      }
-
-      .cal-view-tab {
-        font-size: 5px;
-        padding: 4px 6px;
-      }
-    }
-
-    /* Schedule management panel */
-    .schedule-panel {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.7);
-      z-index: 2500;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .schedule-panel.show {
-      display: flex;
-    }
-
-    .schedule-panel-box {
-      background: #ffffff;
-      border: 3px solid #30253e;
-      box-shadow: 6px 6px 0 #30253e;
-      width: 360px;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .schedule-panel-bar {
-      background: #30253e;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-
-    .schedule-panel-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #c3c88c;
-    }
-
-    .schedule-day-tabs {
-      display: flex;
-      border-bottom: 2px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .schedule-day-tab {
-      flex: 1;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      padding: 8px;
-      text-align: center;
-      cursor: pointer;
-      color: #638872;
-      border-right: 1px solid #e0e0e0;
-      background: #f4f9f8;
-    }
-
-    .schedule-day-tab:last-child {
-      border-right: none;
-    }
-
-    .schedule-day-tab.on {
-      background: #30253e;
-      color: #c3c88c;
-    }
-
-    .schedule-blocks-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .schedule-block-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .schedule-block-color {
-      width: 12px;
-      height: 12px;
-      border: 1px solid #30253e;
-      flex-shrink: 0;
-    }
-
-    .schedule-block-label {
-      flex: 1;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-    }
-
-    .schedule-block-time {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #638872;
-    }
-
-    .schedule-block-del {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #c0392b;
-      cursor: pointer;
-      padding: 2px 4px;
-      border: 1px solid #c0392b;
-    }
-
-    .schedule-block-del:hover {
-      background: #c0392b;
-      color: #fff;
-    }
-
-    .schedule-add-form {
-      padding: 10px;
-      border-top: 2px solid #30253e;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex-shrink: 0;
-      background: #f4f9f8;
-    }
-
-    .schedule-add-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .schedule-input {
-      flex: 1;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      padding: 4px 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .schedule-time-input {
-      width: 80px;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      padding: 4px 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .schedule-add-btn {
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      padding: 4px 10px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .schedule-add-btn:hover {
-      background: #638872;
-      color: #fff;
-    }
-
-    /* ── Stats / Milestone Modal ── */
-    .stats-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(48, 37, 62, 0.7);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .stats-modal.show {
-      display: flex;
-    }
-
-    .stats-modal-box {
-      background: #ffffff;
-      border: 3px solid #30253e;
-      box-shadow: 6px 6px 0 #30253e;
-      width: 100%;
-      max-width: 420px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .stats-modal-bar {
-      background: #30253e;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-
-    .stats-modal-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #c3c88c;
-    }
-
-    .stats-modal-close {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #c3c88c;
-      background: transparent;
-      color: #c3c88c;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-    }
-
-    .stats-modal-close:hover {
-      background: #c3c88c;
-      color: #30253e;
-    }
-
-    .stats-modal-body {
-      padding: 14px;
-      overflow-y: auto;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .stats-section-label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
-      color: #638872;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .stats-section-label::before {
-      content: '▸';
-      color: #94c784;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .stats-tile {
-      border: 2px solid #30253e;
-      padding: 10px 12px;
-      box-shadow: 3px 3px 0 #30253e;
-    }
-
-    .stats-tile:nth-child(1) {
-      background: #94c784;
-    }
-
-    .stats-tile:nth-child(2) {
-      background: #c3c88c;
-    }
-
-    .stats-tile:nth-child(3) {
-      background: #80b9b1;
-    }
-
-    .stats-tile:nth-child(4) {
-      background: #f4f9f8;
-    }
-
-    .stats-tile-val {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 16px;
-      color: #30253e;
-      line-height: 1;
-    }
-
-    .stats-tile-lbl {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
-      color: #30253e;
-      margin-top: 6px;
-      opacity: 0.7;
-    }
-
-    .milestone-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 8px;
-      min-height: 32px;
-    }
-
-    .milestone-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border: 2px solid #30253e;
-      padding: 6px 10px;
-      background: #f4f9f8;
-      box-shadow: 2px 2px 0 #30253e;
-    }
-
-    .milestone-name {
-      flex: 1;
-      font-size: 15px;
-      color: #30253e;
-    }
-
-    .milestone-date {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #638872;
-      flex-shrink: 0;
-    }
-
-    .milestone-del {
-      width: 20px;
-      height: 20px;
-      background: transparent;
-      border: 2px solid #30253e;
-      color: #30253e;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      flex-shrink: 0;
-    }
-
-    .milestone-del:hover {
-      background: #ff6b6b;
-      color: #fff;
-    }
-
-    .milestone-add-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .milestone-add-row input {
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 6px 8px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .milestone-add-row input:focus {
-      border-color: #638872;
-    }
-
-    #milestone-input-name {
-      flex: 1;
-    }
-
-    #milestone-input-date {
-      width: 110px;
-      flex-shrink: 0;
-    }
-
-    .milestone-add-btn {
-      flex-shrink: 0;
-      padding: 6px 10px;
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #30253e;
-      cursor: pointer;
-    }
-
-    .milestone-add-btn:hover {
-      background: #638872;
-      color: #c3c88c;
-    }
-
-    /* Timezone settings inputs */
-    .tz-input-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .tz-input-row input {
-      flex: 1;
-      background: #f4f9f8;
-      border: 2px solid #30253e;
-      padding: 5px 8px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      outline: none;
-    }
-
-    .tz-input-row input:focus {
-      border-color: #638872;
-    }
-
-    .tz-save-btn {
-      flex-shrink: 0;
-      padding: 5px 8px;
-      background: #94c784;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: #30253e;
-      cursor: pointer;
-    }
-
-    .tz-save-btn:hover {
-      background: #638872;
-      color: #c3c88c;
-    }
-
-
-    /* Avatar upload in settings */
-    .avatar-upload-area {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .avatar-preview {
-      width: 52px;
-      height: 52px;
-      border: 3px solid #30253e;
-      box-shadow: 3px 3px 0 #30253e;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #c3c88c;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      overflow: hidden;
-    }
-
-    .avatar-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .avatar-upload-btn {
-      flex: 1;
-      padding: 8px;
-      background: #ffffff;
-      border: 2px solid #30253e;
-      box-shadow: 2px 2px 0 #30253e;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: #30253e;
-      cursor: pointer;
-      text-align: center;
-      transition: all .08s;
-      line-height: 1.8;
-    }
-
-    .avatar-upload-btn:hover {
-      background: #94c784;
-      transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0 #30253e;
-    }
-
-    .avatar-upload-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 var(--color-deep);
-    }
-
-    /* 🏠 HOUSE VIEW (Block 4) */
-    .house-view {
-      position: absolute;
-      inset: 0;
-      background-color: var(--color-sky);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      z-index: 10;
-    }
-
-    #house-camera {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    #house-viewport {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* 🗺️ ISO ROOMS CONTAINER — no more rotateX/rotateZ! */
-    #house-rooms-container {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      /* Scale is set dynamically by JS (VIEW_SCALE) */
-      transform: translate(-50%, -50%) scale(1);
-      transform-origin: center center;
-      pointer-events: none;
-    }
-
-    /* Drafting Mode: same container, flat square grid */
-    #house-rooms-container.drafting {
-      top: 45%;
-    }
-
-    /* ── GRID CONTAINER ────────────────────────────────── */
-    #house-grid {
-      pointer-events: auto;
-      position: relative;
-      /* Width/height set dynamically by JS in ISO mode */
-      image-rendering: pixelated;
-      overflow: visible;
-      touch-action: none;
-    }
-
-    /* ISO mode: no background, tiles are drawn as diamonds */
-    #house-grid.iso-grid {
-      background: transparent;
-    }
-
-    /* Drafting mode: square tile grid */
-    #house-grid.draft-grid {
-      display: grid;
-      background-color: #f0f4f8;
-      background-image:
-        linear-gradient(rgba(48, 37, 62, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(48, 37, 62, 0.1) 1px, transparent 1px);
-      background-size: 32px 32px;
-      border: 3px solid var(--color-deep);
-      box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
-    }
-
-    /* ── ISO DIAMOND TILE ──────────────────────────────── */
-    .house-tile {
-      position: absolute;
-      width: 64px;
-      height: 32px;
-      /* Diamond shape via clip-path */
-      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-      background: #f5f0e8;
-      box-sizing: border-box;
-      cursor: pointer;
-      image-rendering: pixelated;
-      user-select: none;
-      -webkit-user-select: none;
-      overflow: hidden;
-    }
-
-    /* Tile in drafting mode: plain square */
-    .house-tile.draft-tile {
-      width: 32px;
-      height: 32px;
-      clip-path: none;
-      outline: 1px solid rgba(0, 0, 0, 0.12);
-      background: transparent;
-    }
-
-    /* ── ISOMETRIC WALLS ───────────────────────────────── */
-    /* North wall — runs along the top-right edge of the room diamond */
-    .house-wall-n {
-      position: absolute;
-      background: #8a9bb0;
-      transform-origin: top left;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-select: none;
-      z-index: 2;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    /* West wall — runs along the top-left edge */
-    .house-wall-w {
-      position: absolute;
-      background: #6b7c91;
-      transform-origin: top right;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-select: none;
-      z-index: 2;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    /* ── DRAG GHOST ────────────────────────────────────── */
-    #house-ghost {
-      position: absolute;
-      /* Width/height set via JS for each item */
-      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-      background: rgba(103, 169, 131, 0.45);
-      border: none;
-      z-index: 9999;
-      pointer-events: none;
-      display: none;
-    }
-
-    #house-ghost.ghost-invalid {
-      background: rgba(220, 60, 60, 0.4);
-    }
-
-    .house-toolbar {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      min-width: 200px;
-      z-index: 9999;
-    }
-
-    .house-actions {
-      display: flex;
-      gap: 8px;
-      padding: 5px;
-      background: var(--color-surface);
-    }
-
-    .pixel-btn {
-      padding: 4px 8px;
-      font-family: var(--font-display);
-      font-size: 7px;
-      cursor: pointer;
-      background: var(--color-offwhite);
-      border: 2px solid var(--color-deep);
-    }
-
-    .pixel-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: none;
-    }
-
-    .pixel-btn.on {
-      background: var(--color-highlight);
-      border-color: var(--color-deep);
-      box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.1);
-    }
-
-    /* legacy selector retained for compatibility */
-    .blueprint-view { display: none; }
-
-    /* 📦 FURNITURE & ITEMS */
-    .house-item {
-      position: absolute;
-      will-change: left, top;
-      transform-origin: bottom center;
-      image-rendering: pixelated;
-      cursor: grab;
-      display: flex;
-      align-items: flex-end; /* FIX: anchors items dynamically to bottom of their ISO volume */
-      justify-content: center;
-      transition: outline 0.1s;
-    }
-
-    .house-item.dragging {
-      opacity: 0.6;
-      cursor: grabbing;
-      z-index: 10000 !important;
-    }
-
-    /* 🎯 Action Handles (Block 6.7 - Multi-device) */
-    .house-item-actions {
-      position: absolute;
-      top: -24px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      gap: 4px;
-      z-index: 10001;
-      pointer-events: auto;
-    }
-
-    .house-item.selected .house-item-actions {
-      display: flex;
-    }
-
-    .action-handle {
-      width: 20px;
-      height: 20px;
-      background: #ffffff;
-      border: 2px solid var(--color-deep);
-      box-shadow: 2px 2px 0 var(--color-deep);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      cursor: pointer;
-    }
-
-    .action-handle.danger {
-      background: #ffcccc;
-    }
-
-    .action-handle:active {
-      transform: translate(1px, 1px);
-      box-shadow: none;
-    }
-
-    .house-player {
-      position: absolute;
-      will-change: left, top;
-      width: 32px;
-      /* Sprite is 32x64 — anchored at feet; bottom of sprite == tile origin */
-      height: 64px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      font-size: 28px;
-      z-index: 1000;
-      pointer-events: auto;
-      transition: left 0.15s linear, top 0.15s linear;
-    }
-
-    .house-player .char-layer {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      top: 0;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      pointer-events: none;
-    }
-
-    .social-interaction-fx {
-      position: absolute;
-      font-size: 20px;
-      z-index: 2000;
-      pointer-events: none;
-      animation: social-float 2.5s ease-out forwards;
-    }
-    @keyframes social-float {
-      0% { transform: translateY(0) scale(0.5); opacity: 0; }
-      20% { transform: translateY(-10px) scale(1.2); opacity: 1; }
-      80% { transform: translateY(-30px) scale(1); opacity: 1; }
-      100% { transform: translateY(-40px) scale(0.8); opacity: 0; }
-    }
-
-    .house-toast {
-      position: absolute;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--color-deep);
-      color: var(--color-secondary);
-      padding: 6px 12px;
-      font-family: var(--font-display);
-      font-size: 8px;
-      border: 2px solid var(--color-secondary);
-      box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
-      z-index: 10002;
-      pointer-events: none;
-      animation: toast-fade 2.5s forwards;
-    }
-    @keyframes toast-fade {
-      0% { opacity: 0; transform: translate(-50%, 10px); }
-      10% { opacity: 1; transform: translate(-50%, 0); }
-      80% { opacity: 1; }
-      100% { opacity: 0; transform: translate(-50%, -10px); }
-    }
-
-    .locked-by-partner {
-      cursor: not-allowed !important;
-    }
-    .locked-by-partner .action-handle {
-      pointer-events: none !important;
-      opacity: 0.5;
-      filter: grayscale(1);
-    }
-
-    /* Inventory Window — Desktop Right-Side Drawer */
-    .inventory-win {
-      position: fixed;
-      right: 0;
-      top: 0;
-      width: 300px;
-      height: 100vh;
-      z-index: 9999;
-      display: flex !important;
-      flex-direction: column;
-      transform: translateX(110%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: -8px 0 30px rgba(0,0,0,0.25);
-      border-right: none;
-      border-top: none;
-      border-bottom: none;
-      border-left: 3px solid var(--color-text);
-    }
-
-    .inventory-win.show {
-      transform: translateX(0);
-    }
-
-    .inventory-grid {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 10px;
-      background: var(--color-offwhite);
-    }
-
-    .inv-cat-header {
-      font-family: var(--font-display);
-      font-size: 14px;
-      background: var(--color-deep);
-      color: var(--color-surface);
-      padding: 6px 10px;
-      cursor: pointer;
-      border: 2px solid var(--color-text);
-      display: flex;
-      justify-content: space-between;
-      user-select: none;
-    }
-
-    .inv-cat-header:hover { background: var(--color-text); }
-
-    .inv-cat-items {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .inv-cat-items.collapsed {
-      display: none;
-    }
-
-    .inv-item {
-      background: var(--color-surface);
-      border: 2px solid var(--color-deep);
-      aspect-ratio: 1/1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.1s;
-    }
-
-    .inv-item:hover {
-      background: var(--color-highlight);
-      transform: scale(1.05);
-    }
-
-    .inv-item span {
-      font-size: 18px;
-    }
-
-    .inv-item label {
-      font-size: 10px;
-      font-family: var(--font-body);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: 100%;
-    }
-  </style>
+  <link rel="stylesheet" href="css/main.css?v=5">
+  <link rel="stylesheet" href="css/icons.css?v=1">
 </head>
 
 <body>
-
-  <!-- clouds -->
-  <div class="clouds">
-    <div class="cloud" style="width:64px;height:24px;top:55px;left:60px;"></div>
-    <div class="cloud" style="width:40px;height:16px;top:63px;left:40px;"></div>
-    <div class="cloud" style="width:40px;height:16px;top:63px;left:108px;"></div>
-    <div class="cloud" style="width:72px;height:28px;top:38px;left:340px;"></div>
-    <div class="cloud" style="width:44px;height:18px;top:48px;left:318px;"></div>
-    <div class="cloud" style="width:44px;height:18px;top:48px;left:388px;"></div>
-    <div class="cloud" style="width:56px;height:22px;top:65px;left:620px;"></div>
-    <div class="cloud" style="width:36px;height:14px;top:72px;left:602px;"></div>
-    <div class="cloud" style="width:36px;height:14px;top:72px;left:660px;"></div>
-    <div class="cloud" style="width:80px;height:30px;top:32px;left:900px;"></div>
-    <div class="cloud" style="width:48px;height:20px;top:42px;left:878px;"></div>
-    <div class="cloud" style="width:48px;height:20px;top:42px;left:952px;"></div>
+  <!-- Reconnection Overlay -->
+  <div id="reconnect-overlay" style="display:none;position:fixed;inset:0;background:rgba(20,15,30,0.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+    <div class="pixel-loader" style="transform:scale(1.5);"><span></span><span></span><span></span></div>
+    <div style="font-family:var(--font-header);font-size:var(--font-size-title);color:var(--color-accent);letter-spacing:2px;">RECONNECTING...</div>
+    <div id="reconnect-status" style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);"></div>
   </div>
-  <div class="mountains"></div>
-
-  <style>
-    /* 📱 MOBILE HOUSE OVERRIDES */
-    @media (max-width: 768px) {
-      .inventory-win {
-        width: 100% !important;
-        height: 55vh !important;
-        bottom: 0 !important;
-        top: auto !important;
-        right: 0 !important;
-        left: 0 !important;
-        border-left: none !important;
-        border-top: 3px solid var(--color-text) !important;
-        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2) !important;
-        transform: translateY(110%) !important;
-      }
-
-      .inventory-win.show {
-        transform: translateY(0) !important;
-      }
-
-      .inventory-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
-      }
-
-      .house-toolbar {
-        bottom: 10px !important;
-        min-width: 90% !important;
-      }
-
-      .pixel-btn {
-        padding: 8px 12px !important;
-        font-size: 8px !important;
-      }
-    }
-  </style>
 
   <!-- drawer overlay (mobile) -->
-  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
-
+  <div class="drawer-overlay" id="drawerOverlay"></div>
   <div class="shell">
-
     <!-- ══ SIDEBAR / DRAWER ══ -->
     <aside class="sidebar" id="sidebar">
       <div class="app-header">
-        <div class="app-title">CURON.EXE</div>
+        <h1 class="app-title">CURON</h1>
         <div style="display:flex;align-items:center;gap:6px;">
           <div class="app-dot"></div>
           <button class="app-settings-btn" id="btn-settings" title="Settings">⚙</button>
         </div>
       </div>
-
-      <!-- Wallet Status (P2-A) -->
-      <div class="wallet-status">
+      <!-- Wallet Status (P2-A) DISABLED P22-A -->
+      <!-- <div class="wallet-status">
         <div class="coin-icon">💰</div>
         <div id="coin-balance" class="coin-amount">0</div>
         <div class="coin-label">COINS</div>
-      </div>
-
+      </div> -->
       <div class="win pair-win">
         <div class="win-bar">
           <div class="win-title" id="pair-win-title">YOU &amp; HER</div>
-          <div class="win-btns">
-            <div class="win-btn"></div>
-            <div class="win-btn"></div>
-          </div>
         </div>
         <div class="pair-body">
           <div class="pair-row">
@@ -4613,54 +48,44 @@
             <div class="pxava her" style="margin-left:-4px;">👧<div class="sdot idl"></div>
             </div>
             <div style="margin-left:8px;">
-              <div class="pair-name" id="pair-name-label">YOU &amp; HER</div>
+              <h2 class="pair-name" id="pair-name-label">YOU &amp; HER</h2>
               <div class="pair-sub">private world</div>
             </div>
           </div>
         </div>
       </div>
-
       <div class="win">
         <div class="win-bar">
-          <div class="win-title">MENU.EXE</div>
-          <div class="win-btns">
-            <div class="win-btn"></div>
-            <div class="win-btn"></div>
-          </div>
+          <div class="win-title">MENU</div>
         </div>
         <div class="nav-body">
-          <div class="ni on"><span class="ico">💬</span>CHAT</div>
-          <div class="ni"><span class="ico">🏠</span>HOUSE</div>
-          <div class="ni"><span class="ico">🖼</span>GALLERY</div>
-          <div class="ni"><span class="ico">🎮</span>GAMES<span class="bdg">NEW</span></div>
-          <div class="ni" id="nav-pinned"><span class="ico">📌</span>PINNED<span class="pinned-badge"
-              id="pinned-badge">NEW</span></div>
-          <div class="ni"><span class="ico">🗓</span>DATES</div>
+          <button class="ni on"><span class="ico">💬</span>CHAT</button>
+          <!-- <button class="ni"><span class="ico">🏠</span>HOUSE</button> DISABLED P22-A (server-side gated) -->
+          <button class="ni"><span class="ico">🖼</span>GALLERY</button>
+          <button class="ni" style="display: none !important;"><span class="ico">🎮</span>GAMES<span class="bdg">NEW</span></button>
+          <button class="ni" id="nav-pinned"><span class="ico">📌</span>PINNED<span class="pinned-badge" id="pinned-badge">NEW</span></button>
+          <button class="ni"><span class="ico">🗓</span>DATES</button>
         </div>
       </div>
-
       <div class="win" id="spotify-win">
         <div class="win-bar">
-          <div class="win-title">SPOTIFY.EXE</div>
-          <div class="win-btns">
-            <div class="win-btn"></div>
-            <div class="win-btn"></div>
-          </div>
+          <div class="win-title">SPOTIFY</div>
         </div>
         <!-- My now playing -->
         <div class="spot-body" id="spot-me">
           <div class="spot-art" id="spot-art-me"
-            style="width:30px;height:30px;background:#94c784;border:2px solid #30253e;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;box-shadow:2px 2px 0 #30253e;overflow:hidden;">
+            style="width:30px;height:30px;background:var(--color-primary);border:2px solid var(--color-dark);display:flex;align-items:center;justify-content:center;font-size:var(--font-size-muted);flex-shrink:0;box-shadow:2px 2px 0 var(--color-dark);overflow:hidden;">
             🎵</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-family:'Press Start 2P',monospace;font-size:5px;color:#638872;margin-bottom:2px;"
+            <div
+              style="font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-secondary);margin-bottom:2px;"
               id="spot-label-me">YOU</div>
             <div class="msong" id="spot-song-me">NOT CONNECTED</div>
             <div class="martist" id="spot-artist-me"></div>
             <div id="spot-progress-me"
-              style="display:none;height:3px;background:#30253e;margin-top:4px;position:relative;">
+              style="display:none;height:3px;background:var(--color-dark);margin-top:4px;position:relative;">
               <div id="spot-bar-me"
-                style="position:absolute;left:0;top:0;height:100%;background:#94c784;width:0%;transition:width 1s linear;">
+                style="position:absolute;left:0;top:0;height:100%;background:var(--color-primary);width:0%;transition:width 1s linear;">
               </div>
             </div>
           </div>
@@ -4669,21 +94,22 @@
           </div>
         </div>
         <!-- Divider -->
-        <div style="height:1px;background:#30253e;margin:0 8px;opacity:0.3;"></div>
+        <div style="height:1px;background:var(--color-dark);margin:0 8px;opacity:0.3;"></div>
         <!-- Their now playing -->
         <div class="spot-body" id="spot-them">
           <div class="spot-art" id="spot-art-them"
-            style="width:30px;height:30px;background:#80b9b1;border:2px solid #30253e;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;box-shadow:2px 2px 0 #30253e;overflow:hidden;">
+            style="width:30px;height:30px;background:var(--color-secondary);border:2px solid var(--color-dark);display:flex;align-items:center;justify-content:center;font-size:var(--font-size-muted);flex-shrink:0;box-shadow:2px 2px 0 var(--color-dark);overflow:hidden;">
             🎵</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-family:'Press Start 2P',monospace;font-size:5px;color:#638872;margin-bottom:2px;"
+            <div
+              style="font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-secondary);margin-bottom:2px;"
               id="spot-label-them">THEM</div>
             <div class="msong" id="spot-song-them">NOT CONNECTED</div>
             <div class="martist" id="spot-artist-them"></div>
             <div id="spot-progress-them"
-              style="display:none;height:3px;background:#30253e;margin-top:4px;position:relative;">
+              style="display:none;height:3px;background:var(--color-dark);margin-top:4px;position:relative;">
               <div id="spot-bar-them"
-                style="position:absolute;left:0;top:0;height:100%;background:#80b9b1;width:0%;transition:width 1s linear;">
+                style="position:absolute;left:0;top:0;height:100%;background:var(--color-secondary);width:0%;transition:width 1s linear;">
               </div>
             </div>
           </div>
@@ -4693,106 +119,101 @@
         </div>
         <!-- Connect button (shown if not connected) -->
         <div style="padding:4px 8px 6px;" id="spot-connect-row">
-          <button id="spot-connect-btn" onclick="connectSpotify()"
-            style="width:100%;background:#94c784;border:2px solid #30253e;box-shadow:2px 2px 0 #30253e;font-family:'VT323',monospace;font-size:14px;color:#30253e;padding:4px;cursor:pointer;">
-            ♫ CONNECT SPOTIFY
-          </button>
+          <button id="spot-connect-btn" style="width:100%;background:var(--color-primary);border:2px solid var(--color-dark);box-shadow:2px 2px 0 var(--color-dark);font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-dark);padding:4px;cursor:pointer;">♫ CONNECT SPOTIFY</button>
         </div>
       </div>
-
       <div class="sb-btm">
         <button class="sb-btn">📞 CALL</button>
         <button class="sb-btn">🎥 VIDEO</button>
       </div>
     </aside>
-
     <!-- ══ CHAT ══ -->
     <main class="chat">
-
       <!-- mobile only top bar -->
       <div class="mobile-header">
-        <div class="mh-menu" onclick="openDrawer()">☰</div>
-        <div class="mh-ava">👧<div class="sdot idl" style="border-color:#30253e;"></div>
-        </div>
+        <button class="mh-menu" id="mh-menu" aria-label="Open menu">☰</button>
+        <div class="mh-ava">👧</div>
         <div class="mh-info">
-          <div class="mh-name" id="mh-name">GIRLFRIEND</div>
+          <div class="mh-name" id="mh-name">User</div>
           <div class="mh-sub">
             <div class="mh-dot"></div>...
           </div>
         </div>
         <div class="mh-actions">
-          <div class="mh-btn">📞</div>
-          <div class="mh-btn">🎥</div>
-          <div class="mh-btn" id="btn-search-mobile" title="Search">🔍</div>
-          <div class="mh-btn" id="btn-clear-chat-mobile" title="Clear chat for me">🗑</div>
+          <button class="mh-btn" aria-label="Start voice call">📞</button>
+          <button class="mh-btn" aria-label="Start video call">🎥</button>
+          <button class="mh-btn" id="btn-search-mobile" aria-label="Search messages" title="Search">🔍</button>
+          <button class="mh-btn" id="btn-clear-chat-mobile" aria-label="Clear chat" title="Clear chat for me">🗑</button>
         </div>
       </div>
-
       <!-- chat window -->
       <div class="win chat-win">
         <div class="win-bar">
-          <div class="win-title" id="chat-win-title">CHAT.EXE — GIRLFRIEND</div>
-          <div class="win-btns">
-            <div class="win-btn"></div>
-            <div class="win-btn"></div>
-          </div>
+          <h2 class="win-title" id="chat-win-title">CHAT — User</h2>
         </div>
         <div class="win-body"
-          style="flex:1;display:flex;flex-direction:column;overflow:hidden;background-color:#f4f9f8;">
-
+          style="flex:1;display:flex;flex-direction:column;overflow:hidden;background-color:var(--color-base);">
           <!-- desktop status bar -->
           <div class="status-bar">
-            <div class="pxava her" style="width:24px;height:24px;font-size:11px;">👧<div class="sdot idl"
-                style="border-color:#c3c88c;"></div>
-            </div>
-            <div class="status-name" id="status-name">GIRLFRIEND</div>
+            <div class="pxava her" style="width:24px;height:24px;font-size:var(--font-size-xsmall);">👧</div>
+            <div class="status-name" id="status-name">User</div>
             <div class="status-sub">...</div>
             <div class="status-actions">
-              <div class="act-btn">📞</div>
-              <div class="act-btn">🎥</div>
-              <div class="act-btn" id="btn-search" title="Search">🔍</div>
-              <div class="act-btn" id="btn-clear-chat" title="Clear chat for me">🗑</div>
+              <button class="act-btn" aria-label="Start voice call">📞</button>
+              <button class="act-btn" aria-label="Start video call">🎥</button>
+              <button class="act-btn" id="btn-search" aria-label="Search messages" title="Search">🔍</button>
+              <button class="act-btn" id="btn-clear-chat" aria-label="Clear chat" title="Clear chat for me">🗑</button>
             </div>
           </div>
-
           <!-- Search bar (hidden by default) -->
           <div class="search-bar" id="search-bar">
+            <label for="search-input" class="sr-only">Search messages</label>
             <input class="search-input" id="search-input" placeholder="search messages..." autocomplete="off" />
             <div class="search-count" id="search-count"></div>
-            <button class="search-nav-btn" id="search-prev" title="Previous">▲</button>
-            <button class="search-nav-btn" id="search-next" title="Next">▼</button>
-            <div class="search-close" id="search-close">✕</div>
+            <button class="search-close" id="search-close" aria-label="Close search">✕</button>
+            <div class="search-results-panel" id="search-results-panel">
+              <div class="search-results-list" id="search-results-list"></div>
+            </div>
           </div>
+          <div class="msgs" id="msgs" aria-live="polite" aria-label="Chat messages"></div>
+          <button class="jump-to-present" id="jump-to-present">↓ JUMP TO PRESENT</button>
+        </div>
+      </div>
 
-          <div class="msgs" id="msgs"></div>
+      <!-- ══ PERSISTENT CALL BAR ══ -->
+      <div class="call-bar" id="call-bar">
+        <div class="call-bar-dot"></div>
+        <div class="call-bar-info">
+          <div class="call-bar-participants" id="call-bar-participants">HER IN CALL</div>
+          <div class="call-bar-timer" id="call-bar-timer">00:00</div>
+        </div>
+        <div class="call-bar-actions">
+          <button class="call-bar-join" id="call-bar-join">📞 JOIN</button>
+          <button class="call-bar-leave" id="call-bar-leave" style="display:none">📵 LEAVE</button>
         </div>
       </div>
 
       <!-- input -->
       <div class="win input-win">
         <div class="win-bar">
-          <div class="win-title">INPUT.EXE</div>
-          <div class="win-btns">
-            <div class="win-btn"></div>
-            <div class="win-btn"></div>
-          </div>
+          <div class="win-title">INPUT</div>
         </div>
         <!-- GIF picker panel -->
         <div id="gif-panel" style="
-        display:none; position:fixed; background:#30253e;
-        border:2px solid #c3c88c; box-shadow:4px 4px 0 #c3c88c;
+        display:none; position:absolute; background:var(--color-dark);
+        border:2px solid var(--color-primary); box-shadow:4px 4px 0 var(--color-primary);
         z-index:1000; width:320px; flex-direction:column;
       ">
           <div
-            style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:2px solid #638872;flex-shrink:0;">
-            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#c3c88c;flex-shrink:0;">GIF</span>
-            <input id="gif-search" placeholder="search giphy..." autocomplete="off" style="
-            flex:1;background:#ffffff;border:2px solid #638872;padding:4px 7px;
-            font-family:'VT323',monospace;font-size:16px;color:#30253e;outline:none;
+            style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:2px solid var(--color-secondary);flex-shrink:0;">
+            <span
+              style="font-family:var(--font-header);font-size:var(--font-size-sidebar-label);color:var(--color-primary);flex-shrink:0;">GIF</span>
+            <label for="gif-search" class="sr-only">Search GIFs</label>
+            <input id="gif-search" placeholder="search klipy..." autocomplete="off" style="
+            flex:1;background:#ffffff;border:2px solid var(--color-secondary);padding:4px 7px;
+            font-family:var(--font-main);font-size:var(--font-size-input);color:var(--color-dark);outline:none;
           " />
-            <div id="gif-close"
-              style="color:#c3c88c;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:8px;padding:2px 4px;">
-              ✕</div>
+            <button id="gif-close" aria-label="Close GIF panel" style="color:var(--color-primary);background:none;border:none;cursor:pointer;font-family:var(--font-header);font-size:var(--font-size-small);padding:2px 4px;">✕</button>
           </div>
           <div id="gif-grid" style="
           display:flex;flex-wrap:wrap;gap:4px;
@@ -4800,27 +221,28 @@
           align-content:flex-start;
         ">
             <div id="gif-placeholder" style="grid-column:1/-1;text-align:center;padding:20px;
-            font-family:'Press Start 2P',monospace;font-size:6px;color:#638872;">
+            font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-secondary);">
               SEARCH FOR GIFS...
             </div>
           </div>
-          <div style="padding:4px 8px;border-top:2px solid #638872;flex-shrink:0;">
-            <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:#638872;">POWERED BY GIPHY</span>
+          <div style="padding:4px 8px;border-top:2px solid var(--color-secondary);flex-shrink:0;">
+            <span style="font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-secondary);">POWERED BY
+              KLIPY</span>
           </div>
         </div>
-
         <!-- emoji picker panel -->
         <div class="emoji-panel" id="emoji-panel">
-          <div class="emoji-panel-tabs">
-            <button class="emoji-tab on" id="etab-std" onclick="switchEmojiTab('std')">STANDARD</button>
-            <button class="emoji-tab" id="etab-custom" onclick="switchEmojiTab('custom')">CUSTOM</button>
+          <div class="emoji-panel-tabs" role="tablist">
+            <button class="emoji-tab on" id="etab-std" role="tab" aria-selected="true" aria-controls="emoji-std-panel">STANDARD</button>
+            <button class="emoji-tab" id="etab-custom" role="tab" aria-selected="false" aria-controls="emoji-custom-panel">CUSTOM</button>
           </div>
           <div class="emoji-panel-search">
+            <label for="emoji-search" class="sr-only">Search emojis</label>
             <input id="emoji-search" placeholder="search emojis..." autocomplete="off" />
           </div>
-          <div class="emoji-grid" id="emoji-grid"></div>
-          <!-- upload row — only shown to emoji admin -->
-          <div class="emoji-upload-row" id="emoji-upload-row" style="display:none;">
+          <div class="emoji-grid" id="emoji-std-panel" role="tabpanel" aria-labelledby="etab-std"></div>
+          <div class="emoji-upload-row" id="emoji-custom-panel" role="tabpanel" aria-labelledby="etab-custom" style="display:none;">
+            <label for="emoji-name-input" class="sr-only">Emoji name</label>
             <input class="emoji-upload-input" id="emoji-name-input" placeholder="name (no spaces)" />
             <button class="emoji-upload-btn" id="emoji-upload-btn">+ UPLOAD</button>
           </div>
@@ -4834,23 +256,23 @@
             <div class="reply-preview-name" id="reply-preview-name"></div>
             <div class="reply-preview-text" id="reply-preview-text"></div>
           </div>
-          <div class="reply-preview-close" id="reply-preview-close">✕</div>
+          <button class="reply-preview-close" id="reply-preview-close" aria-label="Cancel reply">✕</button>
         </div>
         <div class="input-body">
           <div class="ibox">
-            <div class="ia" id="btn-attach" title="Attach file">📎</div>
-            <div class="ia" id="btn-gif" title="Search GIFs">GIF</div>
-            <div class="ia" id="btn-mic" title="Hold to record voice message">🎙</div>
+            <button class="ia" id="btn-attach" aria-label="Attach file" title="Attach file">📎</button>
+            <button class="ia" id="btn-gif" aria-label="Search GIFs" title="Search GIFs">GIF</button>
+            <button class="ia" id="btn-mic" aria-label="Record voice message" title="Hold to record voice message">🎙</button>
             <div class="rec-indicator" id="rec-indicator">
               <div class="rec-dot"></div>REC
             </div>
+            <label for="ifield" class="sr-only">Type a message</label>
             <textarea class="ifield" id="ifield" placeholder="type here_" rows="1"></textarea>
-            <div class="ia" id="btn-emoji" title="Emoji picker">:)</div>
+            <button class="ia" id="btn-emoji" aria-label="Open emoji picker" title="Emoji picker">:)</button>
             <button class="sendbtn" id="sb">▶</button>
           </div>
         </div>
       </div>
-
       <!-- ══ HOUSE VIEW (Block 4) ══ -->
       <div class="house-view hide" id="house-view">
         <div id="house-camera">
@@ -4867,35 +289,30 @@
           <div class="house-actions">
             <button class="pixel-btn" id="btn-architect">🏡 BLUEPRINT</button>
             <button class="pixel-btn" id="btn-inventory">📦 ITEMS</button>
-            <button class="pixel-btn" onclick="closeHouse()">✕ EXIT</button>
+            <button class="pixel-btn" id="btn-house-close">✕ EXIT</button>
           </div>
         </div>
       </div>
-
       <!-- 📦 INVENTORY WINDOW (Block 5) -->
       <div class="win inventory-win" id="inventory-win">
         <div class="win-bar">
-          <div class="win-title">INVENTORY.EXE</div>
-          <div class="win-btns">
-            <div class="win-btn" onclick="toggleInventory()"></div>
-          </div>
+          <div class="win-title">INVENTORY</div>
         </div>
         <div class="inventory-grid" id="inventory-grid">
           <!-- Items populated by JS -->
         </div>
       </div>
-
       <!-- ══ GALLERY VIEW ══ -->
       <div class="gallery-view" id="gallery-view">
         <div class="win gallery-win">
           <div class="win-bar">
-            <div class="win-title">GALLERY.EXE</div>
-            <div class="win-btns">
-              <div class="win-btn"></div>
-              <div class="win-btn"></div>
+            <h2 class="win-title">GALLERY</h2>
+            <div class="gallery-tabs" role="tablist">
+              <button class="gallery-tab active" id="gallery-tab-media" data-tab="media" role="tab" aria-selected="true" tabindex="0" aria-controls="gallery-body">MEDIA</button>
+              <button class="gallery-tab" id="gallery-tab-files" data-tab="files" role="tab" aria-selected="false" tabindex="-1" aria-controls="gallery-body">FILES</button>
             </div>
           </div>
-          <div class="win-body" id="gallery-body">
+          <div class="win-body" id="gallery-body" role="tabpanel" aria-labelledby="gallery-tab-media">
             <div class="gallery-empty" id="gallery-empty" style="display:none;">
               📷 NO IMAGES YET<br>SHARE SOME PHOTOS!
             </div>
@@ -4903,16 +320,11 @@
           </div>
         </div>
       </div>
-
       <!-- ══ NOTES / CORKBOARD VIEW ══ -->
       <div class="notes-view" id="notes-view">
         <div class="win notes-win">
           <div class="win-bar">
-            <div class="win-title">📌 PINNED.EXE</div>
-            <div class="win-btns">
-              <div class="win-btn"></div>
-              <div class="win-btn"></div>
-            </div>
+            <h2 class="win-title">📌 PINNED</h2>
           </div>
           <div class="win-body" id="notes-board">
             <!-- Notes rendered here -->
@@ -4923,29 +335,24 @@
         <button class="board-nav-btn" id="board-next">◀ NEWER</button>
         <div class="board-nav-label" id="board-label">BOARD 1 / 1</div>
         <button class="board-nav-btn" id="board-prev">OLDER ▶</button>
+        <button class="board-nav-btn" id="notes-add-btn"
+          style="background:var(--color-highlight);color:var(--color-deep);aspect-ratio:1/1;padding:8px;font-size:var(--font-size-input);">📌</button>
       </div>
-
       <!-- ══ DATES / CALENDAR VIEW ══ -->
       <div class="dates-view" id="dates-view">
-
         <!-- Top: Calendar -->
         <div class="win cal-win">
           <div class="win-bar">
-            <div class="win-title">CALENDAR.EXE</div>
-            <div class="win-btns">
-              <div class="win-btn"></div>
-              <div class="win-btn"></div>
-            </div>
+            <h2 class="win-title">CALENDAR</h2>
           </div>
           <div class="win-body">
             <!-- Nav bar -->
             <div class="cal-nav">
               <button class="cal-nav-btn" id="cal-prev">◀</button>
               <div class="cal-nav-title" id="cal-title">MARCH 2026</div>
-              <div class="cal-view-tabs">
-                <div class="cal-view-tab on" data-view="month">MON</div>
-                <div class="cal-view-tab" data-view="week">WEK</div>
-                <div class="cal-view-tab" data-view="day">DAY</div>
+              <div class="cal-view-tabs" role="tablist">
+                <div class="cal-view-tab pixel-btn on" role="tab" aria-selected="true" tabindex="0" data-view="month">MON</div>
+                <div class="cal-view-tab pixel-btn" role="tab" aria-selected="false" tabindex="-1" data-view="day">DAY</div>
               </div>
               <button class="cal-nav-btn" id="cal-next">▶</button>
             </div>
@@ -4953,40 +360,87 @@
             <div id="cal-body" style="flex:1;overflow:auto;"></div>
           </div>
         </div>
-
         <!-- Bottom: Timeline -->
         <div class="win timeline-win">
           <div class="win-bar">
-            <div class="win-title">SCHEDULE.EXE</div>
+            <div class="win-title">SCHEDULE</div>
             <div style="display:flex;align-items:center;gap:6px;">
-              <button id="btn-manage-schedule"
-                style="background:#94c784;border:2px solid #c3c88c;box-shadow:2px 2px 0 #c3c88c;font-family:'Press Start 2P',monospace;font-size:7px;color:#30253e;padding:5px 10px;cursor:pointer;">⚙
-                MANAGE</button>
-              <div class="win-btns">
-                <div class="win-btn"></div>
-                <div class="win-btn"></div>
-              </div>
+              <button id="btn-free-time" class="pixel-btn">
+                FIND FREE TIME
+              </button>
+              <button id="btn-tz-toggle" class="pixel-btn">🌐
+                MY TZ</button>
+              <button id="btn-manage-schedule" class="pixel-btn">⚙
+                ROUTINE</button>
             </div>
           </div>
-          <div class="win-body">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px 4px;gap:6px;">
-              <div class="timeline-date-label" id="timeline-date-label" style="padding:0;">TODAY</div>
-              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                <button id="btn-tz-toggle"
-                  style="background:#80b9b1;border:2px solid #30253e;box-shadow:2px 2px 0 #30253e;font-family:'Press Start 2P',monospace;font-size:6px;color:#30253e;padding:4px 8px;cursor:pointer;">🌐
-                  MY TZ</button>
-                <button id="btn-manage-schedule-mobile"
-                  style="display:none;background:#94c784;border:2px solid #30253e;font-family:'Press Start 2P',monospace;font-size:6px;color:#30253e;padding:4px 8px;cursor:pointer;">⚙
-                  MANAGE</button>
+          <div class="win-body timeline-body-flex">
+            <!-- TIMELINE MAIN -->
+            <div class="timeline-main">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px 4px;gap:6px;">
+                <div class="timeline-date-label" id="timeline-date-label" style="padding:0;">TODAY</div>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <button id="btn-free-time-mobile"
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;">⏰</button>
+                  <button id="btn-tz-toggle-mobile"
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;">🌐</button>
+                  <button id="btn-manage-schedule-mobile"
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;">⚙
+                    ROUTINE</button>
+                </div>
+              </div>
+              <div class="timeline-header-scroll" id="timeline-header-scroll">
+                <div class="timeline-hours-inner" id="timeline-hours-inner">
+                  <!-- Hour labels rendered by JS -->
+                </div>
+              </div>
+              <div class="timeline-scroll" id="timeline-scroll">
+                <!-- Track rows rendered by JS -->
               </div>
             </div>
-            <div class="timeline-header-scroll" id="timeline-header-scroll">
-              <div class="timeline-hours-inner" id="timeline-hours-inner">
-                <!-- Hour labels rendered by JS -->
+
+            <!-- ROUTINE DOCK (Bottom Drawer) -->
+            <div class="routine-dock" id="routine-dock">
+              <!-- Left side: Tabs and Block List -->
+              <div class="routine-dock-left">
+                <div class="routine-dock-tabs" role="tablist">
+                  <div class="schedule-day-tab on" role="tab" aria-selected="true" tabindex="0" data-dtype="weekday">WEEKDAY</div>
+                  <div class="schedule-day-tab" role="tab" aria-selected="false" tabindex="-1" data-dtype="weekend">WEEKEND</div>
+                </div>
+                <div class="routine-dock-body">
+                  <div class="schedule-blocks-list" id="schedule-blocks-list"></div>
+                </div>
               </div>
-            </div>
-            <div class="timeline-scroll" id="timeline-scroll">
-              <!-- Track rows rendered by JS -->
+              
+              <!-- Right side: Add Block Form -->
+              <div class="routine-dock-right">
+                <div class="schedule-add-form">
+                  <div class="event-field-label">ADD BLOCK</div>
+                  <div class="schedule-add-row">
+                    <label for="sched-label" class="sr-only">Block label</label>
+                    <input class="schedule-input" id="sched-label" placeholder="label (e.g. Work)" maxlength="30" />
+                  </div>
+                  <div class="schedule-add-row">
+                    <label for="sched-start" class="sr-only">Start time</label>
+                    <input class="schedule-time-input" id="sched-start" type="time" title="Start time" />
+                    <span
+                      style="font-family:var(--font-header);font-size:var(--font-size-small);color:var(--color-secondary);">→</span>
+                    <label for="sched-end" class="sr-only">End time</label>
+                    <input class="schedule-time-input" id="sched-end" type="time" title="End time" />
+                  </div>
+                  <div class="schedule-add-row">
+                    <div class="event-colors" id="sched-colors">
+                      <button class="event-color-swatch selected" data-color="var(--color-cal-1)" style="background:var(--color-cal-1);" aria-label="Color 1"></button>
+                      <button class="event-color-swatch" data-color="var(--color-cal-2)" style="background:var(--color-cal-2);" aria-label="Color 2"></button>
+                      <button class="event-color-swatch" data-color="var(--color-cal-3)" style="background:var(--color-cal-3);" aria-label="Color 3"></button>
+                      <button class="event-color-swatch" data-color="var(--color-cal-4)" style="background:var(--color-cal-4);" aria-label="Color 4"></button>
+                      <button class="event-color-swatch" data-color="var(--color-cal-5)" style="background:var(--color-cal-5);" aria-label="Color 5"></button>
+                      <button class="event-color-swatch" data-color="var(--color-cal-6)" style="background:var(--color-cal-6);" aria-label="Color 6"></button>
+                    </div>
+                  </div>
+                  <button class="schedule-add-btn" id="sched-add-btn">+ ADD BLOCK</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4995,8 +449,9 @@
       <!-- Event popup -->
       <div class="event-popup" id="event-popup">
         <div class="event-popup-bar">
+          <div class="event-popup-color" id="event-popup-color"></div>
           <div class="event-popup-title" id="event-popup-title">EVENT</div>
-          <div class="event-popup-close" id="event-popup-close">✕</div>
+          <button class="event-popup-close" id="event-popup-close" aria-label="Close event">✕</button>
         </div>
         <div class="event-popup-body">
           <div class="event-popup-time" id="event-popup-time"></div>
@@ -5007,79 +462,33 @@
           <button class="event-popup-btn danger" id="event-popup-delete">🗑 DELETE</button>
         </div>
       </div>
-
-      <!-- Schedule management panel -->
-      <div class="schedule-panel" id="schedule-panel">
-        <div class="schedule-panel-box">
-          <div class="schedule-panel-bar">
-            <div class="schedule-panel-title">MANAGE SCHEDULE</div>
-            <div class="event-popup-close" id="schedule-panel-close" style="color:#c3c88c;">✕</div>
-          </div>
-          <div class="schedule-day-tabs">
-            <div class="schedule-day-tab on" data-dtype="weekday">WEEKDAY</div>
-            <div class="schedule-day-tab" data-dtype="weekend">WEEKEND</div>
-          </div>
-          <div class="schedule-blocks-list" id="schedule-blocks-list"></div>
-          <div class="schedule-add-form">
-            <div class="event-field-label">ADD BLOCK</div>
-            <div class="schedule-add-row">
-              <input class="schedule-input" id="sched-label" placeholder="label (e.g. Work)" maxlength="30" />
-            </div>
-            <div class="schedule-add-row">
-              <input class="schedule-time-input" id="sched-start" type="time" title="Start time" />
-              <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#638872;">→</span>
-              <input class="schedule-time-input" id="sched-end" type="time" title="End time" />
-              <div class="event-colors" id="sched-colors" style="gap:4px;">
-                <div class="event-color-swatch selected" data-color="#94c784"
-                  style="background:#94c784;width:18px;height:18px;"></div>
-                <div class="event-color-swatch" data-color="#80b9b1" style="background:#80b9b1;width:18px;height:18px;">
-                </div>
-                <div class="event-color-swatch" data-color="#c3c88c" style="background:#c3c88c;width:18px;height:18px;">
-                </div>
-                <div class="event-color-swatch" data-color="#e8a0a0" style="background:#e8a0a0;width:18px;height:18px;">
-                </div>
-                <div class="event-color-swatch" data-color="#a0b4e8" style="background:#a0b4e8;width:18px;height:18px;">
-                </div>
-              </div>
-            </div>
-            <button class="schedule-add-btn" id="sched-add-btn">+ ADD BLOCK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add/Edit event modal -->
-      <div class="event-modal" id="event-modal">
+      <div class="event-modal" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
         <div class="event-modal-box">
           <div class="event-modal-bar">
             <div class="event-modal-bar-title" id="event-modal-title">ADD EVENT</div>
-            <div class="event-popup-close" id="event-modal-close" style="color:#c3c88c;">✕</div>
+            <button class="event-popup-close" id="event-modal-close" aria-label="Close event modal" style="color:var(--color-primary);">✕</button>
           </div>
           <div class="event-modal-body">
             <div>
               <div class="event-field-label">TITLE</div>
-              <input class="event-input" id="event-input-title" placeholder="event title..." maxlength="60" />
+              <input class="event-input" id="event-input-title" aria-label="Event title" placeholder="event title..." maxlength="60" />
             </div>
             <div>
               <div class="event-field-label">DATE</div>
               <div style="display:flex;align-items:center;gap:6px;">
-                <input class="event-input" id="event-input-date" placeholder="DD / MM / YYYY" maxlength="14"
+                <input class="event-input" id="event-input-date" aria-label="Event date" placeholder="DD / MM / YYYY" maxlength="14"
                   style="flex:1;" autocomplete="off" />
-                <div id="event-cal-toggle"
-                  style="width:32px;height:32px;background:#30253e;border:2px solid #c3c88c;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;">
-                  📅</div>
+                <button id="event-cal-toggle" aria-label="Toggle calendar" style="width:32px;height:32px;background:var(--color-dark);border:2px solid var(--color-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--font-size-muted);flex-shrink:0;">📅</button>
               </div>
               <!-- Mini calendar picker -->
               <div id="event-mini-cal"
-                style="display:none;border:2px solid #30253e;background:#ffffff;box-shadow:4px 4px 0 #30253e;margin-top:4px;padding:6px;z-index:100;position:relative;">
+                style="display:none;border:2px solid var(--color-dark);background:#ffffff;box-shadow:4px 4px 0 var(--color-dark);margin-top:4px;padding:6px;z-index:100;position:relative;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                  <div id="mini-cal-prev"
-                    style="cursor:pointer;font-family:'Press Start 2P',monospace;font-size:8px;padding:2px 6px;border:2px solid #30253e;background:#f4f9f8;">
-                    ◀</div>
-                  <div id="mini-cal-title" style="font-family:'Press Start 2P',monospace;font-size:6px;color:#30253e;">
+                  <button class="mini-cal-prev" id="mini-cal-prev" aria-label="Previous month">◀</button>
+                  <div id="mini-cal-title"
+                    style="font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-dark);">
                   </div>
-                  <div id="mini-cal-next"
-                    style="cursor:pointer;font-family:'Press Start 2P',monospace;font-size:8px;padding:2px 6px;border:2px solid #30253e;background:#f4f9f8;">
-                    ▶</div>
+                  <button class="mini-cal-next" id="mini-cal-next" aria-label="Next month">▶</button>
                 </div>
                 <div id="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;"></div>
               </div>
@@ -5087,33 +496,33 @@
             <div style="display:flex;gap:8px;margin-top:4px;">
               <div style="flex:1;">
                 <div class="event-field-label">START TIME</div>
-                <input class="event-input" id="event-input-start" placeholder="09:00" maxlength="5"
+                <input class="event-input" id="event-input-start" aria-label="Start time" placeholder="09:00" maxlength="5"
                   autocomplete="off" />
               </div>
               <div style="flex:1;">
                 <div class="event-field-label">END TIME</div>
-                <input class="event-input" id="event-input-end" placeholder="17:00" maxlength="5" autocomplete="off" />
+                <input class="event-input" id="event-input-end" aria-label="End time" placeholder="17:00" maxlength="5" autocomplete="off" />
               </div>
             </div>
             <div>
               <div class="event-field-label">NOTES</div>
-              <input class="event-input" id="event-input-notes" placeholder="optional notes..." maxlength="200" />
+              <input class="event-input" id="event-input-notes" aria-label="Event notes" placeholder="optional notes..." maxlength="200" />
             </div>
             <div>
               <div class="event-field-label">COLOR</div>
               <div class="event-colors" id="event-colors">
-                <div class="event-color-swatch selected" data-color="#80b9b1" style="background:#80b9b1;"></div>
-                <div class="event-color-swatch" data-color="#94c784" style="background:#94c784;"></div>
-                <div class="event-color-swatch" data-color="#c3c88c" style="background:#c3c88c;"></div>
-                <div class="event-color-swatch" data-color="#638872" style="background:#638872;"></div>
-                <div class="event-color-swatch" data-color="#e8a0a0" style="background:#e8a0a0;"></div>
-                <div class="event-color-swatch" data-color="#a0b4e8" style="background:#a0b4e8;"></div>
+                <button class="event-color-swatch selected" data-color="var(--color-cal-1)" style="background:var(--color-cal-1);" aria-label="Color 1"></button>
+                <button class="event-color-swatch" data-color="var(--color-cal-2)" style="background:var(--color-cal-2);" aria-label="Color 2"></button>
+                <button class="event-color-swatch" data-color="var(--color-cal-3)" style="background:var(--color-cal-3);" aria-label="Color 3"></button>
+                <button class="event-color-swatch" data-color="var(--color-cal-4)" style="background:var(--color-cal-4);" aria-label="Color 4"></button>
+                <button class="event-color-swatch" data-color="var(--color-cal-5)" style="background:var(--color-cal-5);" aria-label="Color 5"></button>
+                <button class="event-color-swatch" data-color="var(--color-cal-6)" style="background:var(--color-cal-6);" aria-label="Color 6"></button>
               </div>
             </div>
             <div>
               <div class="event-field-label">REPEAT</div>
-              <select class="event-input" id="event-input-recurrence"
-                style="cursor:pointer;background:#f4f9f8;font-family:'VT323',monospace;font-size:17px;">
+              <select class="event-input" id="event-input-recurrence" aria-label="Repeat"
+                style="cursor:pointer;background:var(--color-soft);font-family:var(--font-main);font-size:var(--font-size-input);">
                 <option value="none">No repeat</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -5122,128 +531,120 @@
             </div>
           </div>
           <div class="event-modal-btns">
-            <button class="event-modal-save" id="event-modal-save">📌 SAVE</button>
-            <button class="event-modal-cancel" id="event-modal-cancel">✕</button>
+            <button class="event-modal-btn primary" id="event-modal-save">📌 SAVE</button>
+            <button class="event-modal-btn" id="event-modal-cancel">✕</button>
           </div>
         </div>
       </div>
-
-      <!-- Add note floating button -->
-      <div class="notes-add-btn" id="notes-add-btn" title="Pin a note">📌</div>
-
-      <!-- Add note modal -->
-      <div class="notes-modal" id="notes-modal">
-        <div class="notes-modal-box">
-          <div class="notes-modal-title">📌 PIN A NOTE</div>
-          <textarea class="notes-modal-textarea" id="notes-textarea" placeholder="write something..."
-            maxlength="200"></textarea>
-          <div class="notes-modal-chars"><span id="notes-chars">200</span> CHARS LEFT</div>
-          <div class="notes-modal-btns">
-            <button class="notes-modal-pin" id="notes-modal-submit">📌 PIN IT</button>
-            <button class="notes-modal-cancel" id="notes-modal-cancel">✕</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- mobile bottom nav -->
-      <nav class="mobile-nav">
-        <div class="mn-item on"><span class="mico">💬</span>CHAT</div>
-        <div class="mn-item"><span class="mico">🏠</span>HOUSE</div>
-        <div class="mn-item"><span class="mico mn-badge">🎮</span>GAMES</div>
-        <div class="mn-item"><span class="mico">🖼</span>GALLERY</div>
-        <div class="mn-item" id="mob-nav-pinned"><span class="mico">📌</span>PINNED<span class="pinned-badge"
-            id="pinned-badge-mob">NEW</span></div>
-        <div class="mn-item"><span class="mico">🗓</span>DATES</div>
-      </nav>
-
     </main>
+  </div>
+
+  <!-- ══ FLOATING UI (Direct children of body for reliable positioning) ══ -->
+
+  <!-- Add note modal -->
+  <div class="notes-modal" id="notes-modal" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+    <div class="notes-modal-box">
+      <div class="notes-modal-title" id="notes-modal-title">📌 PIN A NOTE</div>
+      <textarea class="notes-modal-textarea" id="notes-textarea" aria-label="Note text" placeholder="write something..."
+        maxlength="200"></textarea>
+      <div class="notes-modal-chars"><span id="notes-chars">200</span> CHARS LEFT</div>
+      <div class="notes-modal-btns">
+        <button class="notes-modal-pin" id="notes-modal-submit">📌 PIN IT</button>
+        <button class="notes-modal-cancel" id="notes-modal-cancel">✕</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══ MESSAGE CONTEXT MENU ══ -->
   <div class="msg-context-menu" id="msg-context-menu">
-    <div class="ctx-item" id="ctx-reply">↩ REPLY</div>
-    <div class="ctx-item" id="ctx-react">😊 REACT</div>
+    <button class="ctx-item" id="ctx-reply">↩ REPLY</button>
+    <button class="ctx-item" id="ctx-copy">📋 COPY</button>
+    <button class="ctx-item" id="ctx-react">😊 REACT</button>
   </div>
-
   <!-- ══ SETTINGS OVERLAY ══ -->
-  <div class="settings-overlay" id="settings-overlay" onclick="closeSettings()"></div>
-
+  <div class="settings-overlay" id="settings-overlay"></div>
   <!-- ══ SETTINGS PANEL ══ -->
-  <div class="settings-panel" id="settings-panel">
+  <div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-header">
-      <div class="settings-title">SETTINGS.EXE</div>
-      <div class="settings-close" onclick="closeSettings()">✕</div>
+      <h2 class="win-title" id="settings-title">SETTINGS</h2>
+      <button class="settings-close" aria-label="Close settings">✕</button>
     </div>
-
     <!-- Chat -->
     <div class="settings-section">
       <div class="settings-section-title">CHAT HISTORY</div>
-      <button class="settings-btn" onclick="clearChat();closeSettings()">
-        🗑 CLEAR CHAT FOR ME
-      </button>
-      <button class="settings-btn" id="btn-restore-chat" onclick="restoreChat()">
-        ↩ RESTORE CLEARED CHAT
-      </button>
+      <button class="settings-btn" id="btn-clear-chat-settings">🗑 CLEAR CHAT FOR ME</button>
+      <button class="settings-btn" id="btn-restore-chat">↩ RESTORE CLEARED CHAT</button>
     </div>
-
+    <!-- Notifications -->
+    <div class="settings-section">
+      <div class="settings-section-title">NOTIFICATIONS</div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="setting-sound-alerts" checked onchange="saveNotificationPrefs()">
+        <span class="toggle-label">🔔 Sound Alerts</span>
+      </label>
+      <label class="settings-toggle">
+        <input type="checkbox" id="setting-unread-badges" checked onchange="saveNotificationPrefs()">
+        <span class="toggle-label">🔴 Unread Badges</span>
+      </label>
+    </div>
     <!-- Theme (placeholder) -->
     <div class="settings-section">
       <div class="settings-section-title">APPEARANCE</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:6px;color:#c3c88c;margin-bottom:8px;">YOUR AVATAR
+      <div style="font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-primary);margin-bottom:8px;">
+        YOUR AVATAR
       </div>
       <div class="avatar-upload-area">
         <div class="avatar-preview" id="avatar-preview-me"></div>
         <div>
           <button class="avatar-upload-btn" id="avatar-upload-btn">📁 UPLOAD IMAGE<br><span
-              style="font-family:'VT323',monospace;font-size:13px;color:#638872;">PNG, JPG, GIF — max
+              style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);">PNG, JPG, GIF — max
               2MB</span></button>
           <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
         </div>
       </div>
       <button class="settings-btn" style="opacity:0.5;cursor:not-allowed;margin-top:8px;" disabled>
         🎨 CHANGE THEME
-        <span style="font-size:11px;color:#638872;margin-left:auto;">SOON</span>
+        <span style="font-size:var(--font-size-xsmall);color:var(--color-secondary);margin-left:auto;">SOON</span>
       </button>
     </div>
-
     <!-- Spotify -->
     <div class="settings-section" id="settings-spotify-section">
       <div class="settings-section-title">SPOTIFY</div>
-      <button class="settings-btn" id="btn-settings-spotify" onclick="connectSpotify()">
+<button class="settings-btn" id="btn-settings-spotify" style="display:none;">
         ♫ CONNECT SPOTIFY
       </button>
-      <button class="settings-btn danger" id="btn-settings-spotify-disconnect" style="display:none"
-        onclick="disconnectSpotify();closeSettings()">
-        ✕ DISCONNECT SPOTIFY
+<button class="settings-btn danger" id="btn-settings-spotify-disconnect" style="display:none;">
+        ♫ DISCONNECT SPOTIFY
       </button>
     </div>
-
     <!-- Account -->
     <div class="settings-section">
       <div class="settings-section-title">MY TIMEZONE</div>
-      <div style="font-family:'VT323',monospace;font-size:14px;color:#80b9b1;margin-bottom:8px;">
+      <div style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);margin-bottom:8px;">
         Enter your IANA timezone<br>e.g. Asia/Kolkata, Europe/London
       </div>
       <div class="tz-input-row">
-        <input id="settings-tz-input" placeholder="Asia/Kolkata" autocomplete="off" spellcheck="false" />
+        <input id="settings-tz-input" aria-label="Timezone" placeholder="Asia/Kolkata" autocomplete="off" spellcheck="false" />
         <button class="tz-save-btn" id="settings-tz-save">💾</button>
       </div>
-      <div id="settings-tz-current" style="font-family:'VT323',monospace;font-size:13px;color:#94c784;margin-top:6px;">
+      <div id="settings-tz-current"
+        style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-primary);margin-top:6px;">
       </div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">ACCOUNT</div>
-      <button class="settings-btn danger" onclick="logout()">
-        ⏻ LOGOUT
-      </button>
+      <button class="settings-btn danger" id="btn-logout">⏻ LOGOUT</button>
+    </div>
+    <div class="settings-section" id="settings-admin-section" style="display:none;">
+      <div class="settings-section-title">ADMIN</div>
+      <button class="settings-btn" id="btn-export-data">📤 EXPORT DATA</button>
     </div>
   </div>
-
   <!-- ══ STATS / MILESTONE MODAL ══ -->
-  <div class="stats-modal" id="stats-modal">
+  <div class="stats-modal" id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
     <div class="stats-modal-box">
       <div class="stats-modal-bar">
-        <div class="stats-modal-title">♥ IRON &amp; CUBBY</div>
+        <div class="stats-modal-title" id="stats-modal-title">♥ IRON &amp; CUBBY</div>
         <button class="stats-modal-close" id="stats-modal-close">✕</button>
       </div>
       <div class="stats-modal-body">
@@ -5272,8 +673,8 @@
           <div class="stats-section-label">MILESTONES</div>
           <div class="milestone-list" id="milestone-list"></div>
           <div class="milestone-add-row">
-            <input id="milestone-input-name" placeholder="milestone name..." autocomplete="off" />
-            <input id="milestone-input-date" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
+            <input id="milestone-input-name" aria-label="Milestone name" placeholder="milestone name..." autocomplete="off" />
+            <input id="milestone-input-date" aria-label="Milestone date" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
             <button class="milestone-add-btn" id="milestone-add-btn">+ ADD</button>
           </div>
         </div>
@@ -5281,21 +682,8 @@
     </div>
   </div>
 
-  <!-- ══ INCOMING CALL MODAL ══ -->
-  <div class="call-incoming" id="call-incoming">
-    <div class="call-incoming-box">
-      <div class="call-incoming-avatar" id="call-incoming-avatar">👾</div>
-      <div class="call-incoming-name" id="call-incoming-name">INCOMING CALL</div>
-      <div class="call-incoming-type" id="call-incoming-type">📞 voice call</div>
-      <div class="call-incoming-btns">
-        <button class="call-btn-accept" id="call-accept">✔ ACCEPT</button>
-        <button class="call-btn-decline" id="call-decline">✕ DECLINE</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ══ ACTIVE CALL OVERLAY ══ -->
-  <div class="call-overlay" id="call-overlay">
+  <div class="call-overlay" id="call-overlay" role="dialog" aria-modal="true" aria-labelledby="call-voice-name">
     <div class="call-videos" id="call-videos" style="display:none;">
       <video class="call-video-remote" id="call-video-remote" autoplay playsinline></video>
       <video class="call-video-local" id="call-video-local" autoplay playsinline muted></video>
@@ -5308,37 +696,35 @@
     </div>
     <div class="call-timer" id="call-timer">00:00</div>
     <div class="call-controls">
-      <div class="call-ctrl active" id="ctrl-mute">🎤<div class="call-ctrl-label">MUTE</div>
-      </div>
-      <div class="call-ctrl active" id="ctrl-cam" style="display:none;">📷<div class="call-ctrl-label">CAM</div>
-      </div>
-      <div class="call-ctrl" id="ctrl-screen" style="display:none;">🖥<div class="call-ctrl-label">SHARE</div>
-      </div>
-      <div class="call-ctrl" id="ctrl-fullscreen">⛶<div class="call-ctrl-label">FULL</div>
-      </div>
-      <div class="call-ctrl" id="ctrl-minimize">▼<div class="call-ctrl-label">MIN</div>
-      </div>
-      <div class="call-ctrl danger" id="ctrl-hangup">📞<div class="call-ctrl-label">END</div>
-      </div>
+      <button class="call-ctrl active" id="ctrl-mute" aria-label="Toggle mute"><span>🎤</span><div class="call-ctrl-label">MUTE</div></button>
+      <button class="call-ctrl active" id="ctrl-cam" style="display:none;" aria-label="Toggle camera"><span>📷</span><div class="call-ctrl-label">CAM</div></button>
+      <button class="call-ctrl" id="ctrl-screen" style="display:none;" aria-label="Share screen"><span>🖥</span><div class="call-ctrl-label">SHARE</div></button>
+      <button class="call-ctrl" id="ctrl-minimize" aria-label="Minimize call"><span>▼</span><div class="call-ctrl-label">MIN</div></button>
+      <button class="call-ctrl danger" id="ctrl-hangup" aria-label="End call"><span>📞</span><div class="call-ctrl-label">END</div></button>
     </div>
   </div>
-
   <!-- ══ MINI CALL BAR ══ -->
-  <div class="call-mini" id="call-mini" onclick="maximizeCall()">
+  <button class="call-mini" id="call-mini" aria-label="Return to call">
     <div class="call-mini-dot"></div>
     <span id="call-mini-timer">00:00</span>
     <span>▲ RETURN TO CALL</span>
-  </div>
-
+  </button>
   <!-- live script below -->
+  <!-- ══ ASSET MANAGER (must load before any UI scripts) ══ -->
+  <script src="js/AssetManager.js"></script>
   <!-- ══ CORE INFRASTRUCTURE ══ -->
   <script src="js/ws_events.js"></script>
   <script src="js/state.js"></script>
   <script src="js/utils.js"></script>
-  <script src="js/crypto.js"></script>
-
+  <!-- ══ HELPERS ══ -->
+  <script src="js/helpers/PresenceManager.js"></script>
+  <script src="js/helpers/TypingManager.js"></script>
+  <script src="js/helpers/BadgeManager.js"></script>
+  <script src="js/helpers/AudioManager.js"></script>
+  <script src="js/helpers/TabSync.js"></script>
   <!-- ══ FEATURES & UTILITIES ══ -->
   <script src="js/ws.js"></script>
+  <script src="js/ModalManager.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/search.js"></script>
@@ -5348,13 +734,12 @@
   <script src="js/gallery.js"></script>
   <script src="js/calls.js"></script>
   <script src="js/integrations.js"></script>
-  <script src="js/house.js"></script>
-  <script src="js/wallet.js"></script>
-
+  <!-- <script src="js/house.js"></script> DISABLED P22-A -->
+  <!-- <script src="js/wallet.js"></script> DISABLED P22-A -->
   <!-- ══ BOOT & IDENTITY LAYER ══ -->
   <script src="js/auth_ui.js"></script>
   <script src="js/avatars.js"></script>
   <script src="js/boot.js"></script>
-
 </body>
+
 </html>

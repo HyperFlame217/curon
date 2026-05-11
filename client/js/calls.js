@@ -1,14 +1,21 @@
     // ════════════════════════════════════════════════════════════
-    //  WEBRTC CALLS
+    //  WEBRTC CALLS — Persistent Room System
     // ════════════════════════════════════════════════════════════
 
     const STUN = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:openrelay.metered.ca:80' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
       ],
-      // Prefer local candidates for LAN calls — reduces latency significantly
-      iceCandidatePoolSize: 2,
+      iceCandidatePoolSize: 10,
     };
 
     // Force opus codec for Firefox/Chrome interop
@@ -16,14 +23,11 @@
       const lines = sdp.split('\r\n');
       const result = [];
       let opusPt = null;
-
       for (const line of lines) {
         const m = line.match(/a=rtpmap:(\d+) opus/i);
         if (m) { opusPt = m[1]; break; }
       }
-
       if (!opusPt) return sdp;
-
       for (const line of lines) {
         if (line.startsWith('m=audio')) {
           const parts = line.split(' ');
@@ -36,30 +40,100 @@
       return result.join('\r\n');
     }
 
+    // ── Local WebRTC peer state ───────────────────────────────────
     const CALL = {
-      pc: null,   // RTCPeerConnection
-      localStream: null,   // MediaStream (mic + optional camera)
+      pc:           null,   // RTCPeerConnection
+      localStream:  null,   // MediaStream (mic + optional camera)
       screenStream: null,   // MediaStream (screen share)
-      isVideo: false,
-      isCaller: false,
-      timerInterval: null,
-      timerSeconds: 0,
-      pendingOffer: null, // stored offer while waiting for user to accept
-      muted: false,
-      camOff: false,
-      sharing: false,
-      _iceBuffer: [],
-      _iceTimer: null,
+      isVideo:      false,
+      muted:        false,
+      camOff:       false,
+      sharing:      false,
+      _iceBuffer:   [],
+      _iceTimer:    null,
     };
 
-    // ── WS event handlers ─────────────────────────────────────────
+    // ── Persistent room state (mirrors server callRoom) ───────────
+    const CALL_ROOM = {
+      active:       false,
+      participants: [],     // array of user IDs in the room
+      isVideo:      false,
+      startedAt:    null,   // epoch ms (server-provided) for timer sync
+      timerInterval: null,
+    };
+
+    // ── Remote audio element ──────────────────────────────────────
+    let _remoteAudio = null;
+
+    // ════════════════════════════════════════════════════════════
+    //  WS EVENT HANDLERS — Room lifecycle
+    // ════════════════════════════════════════════════════════════
+
+    function onCallRoomStarted(msg) {
+      CALL_ROOM.active       = true;
+      CALL_ROOM.isVideo      = !!msg.isVideo;
+      CALL_ROOM.startedAt    = msg.startedAt;
+      CALL_ROOM.participants = msg.participants || [];
+      CALL.isVideo           = CALL_ROOM.isVideo;
+
+      renderCallBar();
+      startCallBarTimer();
+
+      // Initiator auto-joins WebRTC
+      if (msg.initiatorId === STATE.user?.id) {
+        _acquireMediaAndWait();
+      }
+    }
+
+    function onCallParticipantUpdate(msg) {
+      CALL_ROOM.participants = msg.participants || [];
+      renderCallBar();
+
+      // If server removed me from the room and I have an active PC, tear it down
+      if (!CALL_ROOM.participants.includes(STATE.user?.id) && CALL.pc) {
+        _teardownWebRTC();
+      }
+    }
+
+    function onCallRoomEnded() {
+      _teardownWebRTC();
+      CALL_ROOM.active       = false;
+      CALL_ROOM.participants = [];
+      CALL_ROOM.startedAt    = null;
+      clearInterval(CALL_ROOM.timerInterval);
+      CALL_ROOM.timerInterval = null;
+
+      document.getElementById('call-bar').classList.remove('show');
+      document.getElementById('call-overlay').classList.remove('show', 'fullscreen-mode');
+      document.getElementById('call-mini').classList.remove('show');
+      showToast('CALL ENDED');
+    }
+
+    // Server asks THIS client (already in room w/ media) to send offer to joiner
+    async function onCallSendOffer(msg) {
+      if (!CALL.pc) return;
+      try {
+        const offerRaw = await CALL.pc.createOffer();
+        const offer = { ...offerRaw, sdp: preferOpus(offerRaw.sdp) };
+        await CALL.pc.setLocalDescription(offer);
+        wsSend(WS_EV.C_CALL_OFFER, { offer, isVideo: CALL.isVideo });
+      } catch (e) { console.error('[CALL] onCallSendOffer failed:', e); }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  WS EVENT HANDLERS — WebRTC signaling (unchanged logic)
+    // ════════════════════════════════════════════════════════════
+
     function onCallOffer(msg) {
-      if (CALL.pc) return; // already in a call
-      CALL.pendingOffer = msg;
-      const type = msg.isVideo ? '🎥 video call' : '📞 voice call';
-      document.getElementById('call-incoming-type').textContent = type;
-      document.getElementById('call-incoming-name').textContent = STATE.otherName?.toUpperCase() || 'INCOMING CALL';
-      document.getElementById('call-incoming').classList.add('show');
+      if (!CALL.pc) return;
+      CALL.pc.setRemoteDescription(new RTCSessionDescription(msg.offer))
+        .then(() => CALL.pc.createAnswer())
+        .then(answerRaw => {
+          const answer = { ...answerRaw, sdp: preferOpus(answerRaw.sdp) };
+          return CALL.pc.setLocalDescription(answer).then(() => answer);
+        })
+        .then(answer => wsSend(WS_EV.C_CALL_ANSWER, { answer }))
+        .catch(console.error);
     }
 
     function onCallAnswer(msg) {
@@ -79,49 +153,42 @@
       }
     }
 
-    function onCallEnded() {
-      showToast('CALL ENDED');
-      endCall(false);
-    }
+    // ════════════════════════════════════════════════════════════
+    //  ROOM ACTIONS
+    // ════════════════════════════════════════════════════════════
 
-    // ── Start a call ──────────────────────────────────────────────
-    async function startCall(isVideo) {
-      if (CALL.pc) { showToast('ALREADY IN A CALL'); return; }
-      CALL.isVideo = isVideo;
-      CALL.isCaller = true;
-
-      try {
-        CALL.localStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            latency: 0,      // request minimum latency
-          },
-          video: isVideo ? { facingMode: 'user' } : false,
-        });
-      } catch {
-        showToast('MIC/CAM ACCESS DENIED'); return;
+    function startCallRoom(isVideo) {
+      if (CALL_ROOM.active) {
+        // Room exists — join it (or maximize if already in)
+        joinCall();
+        return;
       }
-
-      setupPeerConnection();
-      CALL.localStream.getTracks().forEach(t => CALL.pc.addTrack(t, CALL.localStream));
-
-      const offerRaw = await CALL.pc.createOffer();
-      const offer = { ...offerRaw, sdp: preferOpus(offerRaw.sdp) };
-      await CALL.pc.setLocalDescription(offer);
-
-      wsSend(WS_EV.C_CALL_OFFER, { offer, isVideo });
-      showCallOverlay(false); // show overlay in "calling" state
+      wsSend(WS_EV.C_CALL_ROOM_START, { isVideo: !!isVideo });
     }
 
-    // ── Accept incoming call ──────────────────────────────────────
-    async function acceptCall() {
-      document.getElementById('call-incoming').classList.remove('show');
-      const msg = CALL.pendingOffer;
-      CALL.isVideo = msg.isVideo;
-      CALL.isCaller = false;
+    async function joinCall() {
+      if (!CALL_ROOM.active) return;
+      if (CALL_ROOM.participants.includes(STATE.user?.id)) {
+        maximizeCall(); // already in — just show overlay
+        return;
+      }
+      await _acquireMediaAndWait();
+      wsSend(WS_EV.C_CALL_JOIN);
+    }
 
+    function leaveCall() {
+      wsSend(WS_EV.C_CALL_LEAVE);
+      _teardownWebRTC();
+      // Bar stays; onCallParticipantUpdate re-renders it
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  INTERNAL HELPERS
+    // ════════════════════════════════════════════════════════════
+
+    // Get mic/cam and set up PC. Don't send offer yet — wait for S_CALL_SEND_OFFER
+    async function _acquireMediaAndWait() {
+      if (CALL.pc) return; // already set up
       try {
         CALL.localStream = await navigator.mediaDevices.getUserMedia({
           audio: {
@@ -135,34 +202,56 @@
       } catch {
         showToast('MIC/CAM ACCESS DENIED'); return;
       }
-
       setupPeerConnection();
       CALL.localStream.getTracks().forEach(t => CALL.pc.addTrack(t, CALL.localStream));
-
-      await CALL.pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
-      const answerRaw = await CALL.pc.createAnswer();
-      const answer = { ...answerRaw, sdp: preferOpus(answerRaw.sdp) };
-      await CALL.pc.setLocalDescription(answer);
-
-      wsSend(WS_EV.C_CALL_ANSWER, { answer });
-      showCallOverlay(true);
+      if (CALL.isVideo && CALL.localStream) {
+        document.getElementById('call-video-local').srcObject = CALL.localStream;
+      }
+      showCallOverlay();
     }
 
-    // ── Decline ───────────────────────────────────────────────────
-    function declineCall() {
-      document.getElementById('call-incoming').classList.remove('show');
-      CALL.pendingOffer = null;
-      wsSend(WS_EV.C_CALL_END);
+    function _teardownWebRTC() {
+      CALL.localStream?.getTracks().forEach(t => t.stop());
+      CALL.screenStream?.getTracks().forEach(t => t.stop());
+      CALL.pc?.close();
+      CALL.pc           = null;
+      CALL.localStream  = null;
+      CALL.screenStream = null;
+      CALL.muted        = false;
+      CALL.camOff       = false;
+      CALL.sharing      = false;
+      if (CALL._iceTimer) clearTimeout(CALL._iceTimer);
+      CALL._iceTimer  = null;
+      CALL._iceBuffer = [];
+
+      if (_remoteAudio) {
+        _remoteAudio.srcObject = null;
+        _remoteAudio.remove();
+        _remoteAudio = null;
+      }
+      document.getElementById('tap-unmute')?.remove();
+
+      // Reset control UI
+      const ctrlMute = document.getElementById('ctrl-mute');
+      if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off'); ctrlMute.innerHTML = '🎤<div class="call-ctrl-label">MUTE</div>'; }
+      const ctrlCam = document.getElementById('ctrl-cam');
+      if (ctrlCam) { ctrlCam.classList.add('active'); ctrlCam.classList.remove('off'); ctrlCam.innerHTML = '📷<div class="call-ctrl-label">CAM</div>'; }
+      const ctrlScreen = document.getElementById('ctrl-screen');
+      if (ctrlScreen) { ctrlScreen.classList.remove('active'); ctrlScreen.innerHTML = '🖥<div class="call-ctrl-label">SHARE</div>'; }
+
+      document.getElementById('call-overlay').classList.remove('show', 'fullscreen-mode');
+      document.getElementById('call-mini').classList.remove('show');
     }
 
-    // ── RTCPeerConnection setup ───────────────────────────────────
+    // ════════════════════════════════════════════════════════════
+    //  WEBRTC PEER CONNECTION SETUP (internals unchanged)
+    // ════════════════════════════════════════════════════════════
+
     function setupPeerConnection() {
       CALL.pc = new RTCPeerConnection(STUN);
 
       CALL.pc.onicecandidate = (e) => {
         if (!e.candidate) return;
-        
-        // Bundle ICE candidates to reduce signaling overhead
         CALL._iceBuffer.push(e.candidate);
         if (!CALL._iceTimer) {
           CALL._iceTimer = setTimeout(() => {
@@ -178,16 +267,12 @@
       CALL.pc.ontrack = (e) => {
         if (!e.streams[0]) return;
         const stream = e.streams[0];
-
-        // Set video element for video track
         const remoteVideo = document.getElementById('call-video-remote');
         if (remoteVideo.srcObject !== stream) {
           remoteVideo.srcObject = stream;
-          remoteVideo.muted = true; // mute video element to avoid echo — audio handled separately
+          remoteVideo.muted = true;
           remoteVideo.play().catch(() => { });
         }
-
-        // Use dedicated audio element for audio — bypasses autoplay restrictions better
         ensureRemoteAudio(stream);
       };
 
@@ -195,16 +280,15 @@
         const state = CALL.pc?.connectionState;
         if (state === 'connected') {
           document.getElementById('call-voice-status').textContent = 'connected';
-          startCallTimer();
         } else if (state === 'disconnected' || state === 'failed') {
-          endCall(false);
+          leaveCall(); // graceful leave on peer drop
         }
       };
     }
 
-    // ── Show call overlay ─────────────────────────────────────────
-    // Dedicated audio element for remote audio — more reliable than video element audio
-    let _remoteAudio = null;
+    // ════════════════════════════════════════════════════════════
+    //  REMOTE AUDIO
+    // ════════════════════════════════════════════════════════════
 
     function ensureRemoteAudio(stream) {
       if (!_remoteAudio) {
@@ -214,15 +298,11 @@
         document.body.appendChild(_remoteAudio);
       }
       _remoteAudio.srcObject = stream;
-
-      // Resume audio context first if suspended, then play
       const tryPlay = () => {
         _remoteAudio.play().then(() => {
           document.getElementById('tap-unmute')?.remove();
         }).catch(() => showTapToUnmute());
       };
-
-      // If there's a suspended AudioContext, resume it first
       if (window._audioCtx && window._audioCtx.state === 'suspended') {
         window._audioCtx.resume().then(tryPlay);
       } else {
@@ -231,123 +311,111 @@
     }
 
     function showTapToUnmute() {
-      const existing = document.getElementById('tap-unmute');
-      if (existing) return;
+      if (document.getElementById('tap-unmute')) return;
       const el = document.createElement('div');
       el.id = 'tap-unmute';
-      el.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#30253e;color:#c3c88c;border:2px solid #c3c88c;font-family:"Press Start 2P",monospace;font-size:7px;padding:8px 14px;cursor:pointer;z-index:9999;';
+      el.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--color-dark);color:var(--color-accent);border:2px solid var(--color-accent);font-family:var(--font-header);font-size:var(--font-size-sidebar-label);padding:8px 14px;cursor:pointer;z-index:9999;';
       el.textContent = '▶ TAP TO ENABLE AUDIO';
-      el.addEventListener('click', () => {
-        _remoteAudio?.play();
-        el.remove();
-      });
+      el.addEventListener('click', () => { _remoteAudio?.play(); el.remove(); });
       document.getElementById('call-overlay')?.appendChild(el);
     }
 
-    function showCallOverlay(connected) {
+    // ════════════════════════════════════════════════════════════
+    //  CALL OVERLAY (full-screen in-call UI)
+    // ════════════════════════════════════════════════════════════
+
+    function showCallOverlay() {
       const overlay = document.getElementById('call-overlay');
       overlay.classList.add('show');
 
-      // Show/hide video vs voice UI
       const isVideo = CALL.isVideo;
-      document.getElementById('call-videos').style.display = isVideo ? 'flex' : 'none';
-      document.getElementById('call-voice-ui').style.display = isVideo ? 'none' : 'flex';
+      document.getElementById('call-videos').style.display    = isVideo ? 'flex' : 'none';
+      document.getElementById('call-voice-ui').style.display  = isVideo ? 'none' : 'flex';
+      document.getElementById('ctrl-cam').style.display       = isVideo ? 'flex' : 'none';
+      document.getElementById('ctrl-screen').style.display    = isVideo ? 'flex' : 'none';
 
-      // Show camera + screen share controls for video calls
-      document.getElementById('ctrl-cam').style.display = isVideo ? 'flex' : 'none';
-      document.getElementById('ctrl-screen').style.display = isVideo ? 'flex' : 'none';
-
-      // Set local video
       if (isVideo && CALL.localStream) {
         document.getElementById('call-video-local').srcObject = CALL.localStream;
       }
 
-      // Voice name + avatar
-      document.getElementById('call-voice-name').textContent = STATE.otherName?.toUpperCase() || 'CONNECTED';
-      document.getElementById('call-voice-status').textContent = connected ? 'connected' : 'calling...';
+      document.getElementById('call-voice-name').textContent   = STATE.otherName?.toUpperCase() || 'CONNECTED';
+      document.getElementById('call-voice-status').textContent = 'connecting...';
+
       const _vcAvatar = getOtherAvatar();
       const _vcEl = document.getElementById('call-voice-emoji');
       if (_vcEl) {
-        if (_vcAvatar) { _vcEl.innerHTML = `<img src="${_vcAvatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`; }
+        if (_vcAvatar) { _vcEl.innerHTML = `<img src="${_vcAvatar}" alt="${escAttr(STATE.otherName || 'THEM')} avatar" class="call-avatar-img">`; }
         else { _vcEl.textContent = '👾'; }
       }
-
-      if (connected) startCallTimer();
     }
 
-    // ── End call ──────────────────────────────────────────────────
-    function endCall(notifyOther = true) {
-      if (notifyOther) wsSend(WS_EV.C_CALL_END);
+    // ════════════════════════════════════════════════════════════
+    //  PERSISTENT CALL BAR
+    // ════════════════════════════════════════════════════════════
 
-      // Stop all tracks
-      CALL.localStream?.getTracks().forEach(t => t.stop());
-      CALL.screenStream?.getTracks().forEach(t => t.stop());
-      CALL.pc?.close();
+    function renderCallBar() {
+      const bar = document.getElementById('call-bar');
+      if (!bar) return;
 
-      CALL.pc = null;
-      CALL.localStream = null;
-      CALL.screenStream = null;
-      CALL.muted = false;
-      CALL.camOff = false;
-      CALL.sharing = false;
-      CALL.pendingOffer = null;
-      
-      if (CALL._iceTimer) clearTimeout(CALL._iceTimer);
-      CALL._iceTimer = null;
-      CALL._iceBuffer = [];
-
-      // Clean up remote audio element
-      if (_remoteAudio) {
-        _remoteAudio.srcObject = null;
-        _remoteAudio.remove();
-        _remoteAudio = null;
+      if (!CALL_ROOM.active) {
+        bar.classList.remove('show');
+        return;
       }
-      document.getElementById('tap-unmute')?.remove();
 
-      stopCallTimer();
+      bar.classList.add('show');
+      const myId      = STATE.user?.id;
+      const iAmIn     = CALL_ROOM.participants.includes(myId);
+      const otherName = (STATE.otherName || 'HER').toUpperCase();
 
-      document.getElementById('call-overlay').classList.remove('show', 'fullscreen-mode');
-      document.getElementById('call-mini').classList.remove('show');
-      document.getElementById('call-incoming').classList.remove('show');
+      const participantsEl = document.getElementById('call-bar-participants');
+      if (participantsEl) {
+        if (iAmIn && CALL_ROOM.participants.length >= 2) {
+          participantsEl.textContent = `YOU + ${otherName}`;
+        } else if (iAmIn) {
+          participantsEl.textContent = `WAITING FOR ${otherName}...`;
+        } else {
+          participantsEl.textContent = `${otherName} IS IN CALL`;
+        }
+      }
 
-      // Reset controls
-      document.getElementById('ctrl-mute').classList.add('active');
-      document.getElementById('ctrl-mute').textContent = '🎤';
-      document.getElementById('ctrl-cam').classList.add('active');
-      document.getElementById('ctrl-cam').textContent = '📷';
-      document.getElementById('ctrl-screen').classList.remove('active');
+      const joinBtn  = document.getElementById('call-bar-join');
+      const leaveBtn = document.getElementById('call-bar-leave');
+      if (joinBtn)  joinBtn.style.display  = iAmIn ? 'none' : 'inline-flex';
+      if (leaveBtn) leaveBtn.style.display = iAmIn ? 'inline-flex' : 'none';
     }
 
-    // ── Timer ─────────────────────────────────────────────────────
-    function startCallTimer() {
-      CALL.timerSeconds = 0;
-      clearInterval(CALL.timerInterval);
-      CALL.timerInterval = setInterval(() => {
-        CALL.timerSeconds++;
-        const m = String(Math.floor(CALL.timerSeconds / 60)).padStart(2, '0');
-        const s = String(CALL.timerSeconds % 60).padStart(2, '0');
+    // ════════════════════════════════════════════════════════════
+    //  CALL BAR TIMER (synced to server startedAt)
+    // ════════════════════════════════════════════════════════════
+
+    function startCallBarTimer() {
+      clearInterval(CALL_ROOM.timerInterval);
+      CALL_ROOM.timerInterval = setInterval(() => {
+        if (!CALL_ROOM.startedAt) return;
+        const elapsed = Math.floor((Date.now() - CALL_ROOM.startedAt) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
         const t = `${m}:${s}`;
-        document.getElementById('call-timer').textContent = t;
-        document.getElementById('call-mini-timer').textContent = t;
+        const timerEl = document.getElementById('call-bar-timer');
+        if (timerEl) timerEl.textContent = t;
+        const callTimer = document.getElementById('call-timer');
+        if (callTimer) callTimer.textContent = t;
+        const miniTimer = document.getElementById('call-mini-timer');
+        if (miniTimer) miniTimer.textContent = t;
       }, 1000);
     }
 
-    function stopCallTimer() {
-      clearInterval(CALL.timerInterval);
-      document.getElementById('call-timer').textContent = '00:00';
-      document.getElementById('call-mini-timer').textContent = '00:00';
-    }
+    // ════════════════════════════════════════════════════════════
+    //  IN-CALL CONTROLS
+    // ════════════════════════════════════════════════════════════
 
-    // ── Controls ──────────────────────────────────────────────────
     function toggleMute() {
       CALL.muted = !CALL.muted;
       CALL.localStream?.getAudioTracks().forEach(t => { t.enabled = !CALL.muted; });
       const btn = document.getElementById('ctrl-mute');
-      btn.textContent = CALL.muted ? '🔇' : '🎤';
+      btn.innerHTML = (CALL.muted ? '🔇' : '🎤') + '<div class="call-ctrl-label">MUTE</div>';
       btn.classList.toggle('active', !CALL.muted);
       btn.classList.toggle('off', CALL.muted);
-      // Re-add label
-      btn.innerHTML = (CALL.muted ? '🔇' : '🎤') + '<div class="call-ctrl-label">MUTE</div>';
     }
 
     function toggleCamera() {
@@ -364,48 +432,26 @@
         try {
           CALL.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
           const screenTrack = CALL.screenStream.getVideoTracks()[0];
-
-          // Replace camera track with screen track in peer connection
           const sender = CALL.pc?.getSenders().find(s => s.track?.kind === 'video');
           if (sender) sender.replaceTrack(screenTrack);
-
-          // Show screen in local video preview
           const localVid = document.getElementById('call-video-local');
-          const screenStream = new MediaStream([screenTrack]);
-          localVid.srcObject = screenStream;
-
-          // When user stops sharing via browser UI
+          localVid.srcObject = new MediaStream([screenTrack]);
           screenTrack.onended = () => { if (CALL.sharing) toggleScreenShare(); };
-
           CALL.sharing = true;
           document.getElementById('ctrl-screen').classList.add('active');
-          document.getElementById('ctrl-screen').innerHTML = '🖥<div class="call-ctrl-label">STOP</div>';
-        } catch {
-          showToast('SCREEN SHARE CANCELLED');
-        }
+          document.getElementById('ctrl-screen').innerHTML = '<span>🖥</span><div class="call-ctrl-label">STOP</div>';
+        } catch { showToast('SCREEN SHARE CANCELLED'); }
       } else {
-        // Switch back to camera
         CALL.screenStream?.getTracks().forEach(t => t.stop());
         CALL.screenStream = null;
-
         const camTrack = CALL.localStream?.getVideoTracks()[0];
-        const sender = CALL.pc?.getSenders().find(s => s.track?.kind === 'video');
+        const sender   = CALL.pc?.getSenders().find(s => s.track?.kind === 'video');
         if (sender && camTrack) sender.replaceTrack(camTrack);
-
         document.getElementById('call-video-local').srcObject = CALL.localStream;
         CALL.sharing = false;
         document.getElementById('ctrl-screen').classList.remove('active');
-        document.getElementById('ctrl-screen').innerHTML = '🖥<div class="call-ctrl-label">SHARE</div>';
+        document.getElementById('ctrl-screen').innerHTML = '<span>🖥</span><div class="call-ctrl-label">SHARE</div>';
       }
-    }
-
-    function toggleFullscreen() {
-      const overlay = document.getElementById('call-overlay');
-      overlay.classList.toggle('fullscreen-mode');
-      const btn = document.getElementById('ctrl-fullscreen');
-      btn.innerHTML = overlay.classList.contains('fullscreen-mode')
-        ? '⛶<div class="call-ctrl-label">EXIT</div>'
-        : '⛶<div class="call-ctrl-label">FULL</div>';
     }
 
     function minimizeCall() {
@@ -418,34 +464,36 @@
       document.getElementById('call-overlay').classList.add('show');
     }
 
-    // End call if user closes/refreshes the tab
+    // Graceful leave if tab closes
     window.addEventListener('beforeunload', () => {
-      if (CALL.pc) endCall(true);
+      if (CALL_ROOM.active && CALL_ROOM.participants.includes(STATE.user?.id)) {
+        wsSend(WS_EV.C_CALL_LEAVE);
+      }
     });
 
-    // ── Init call controls ────────────────────────────────────────
-    function initCalls() {
-      // Incoming call buttons
-      document.getElementById('call-accept').addEventListener('click', acceptCall);
-      document.getElementById('call-decline').addEventListener('click', declineCall);
+    // ════════════════════════════════════════════════════════════
+    //  INIT
+    // ════════════════════════════════════════════════════════════
 
-      // Control buttons
+    function initCalls() {
+      // Overlay controls
       document.getElementById('ctrl-mute').addEventListener('click', toggleMute);
       document.getElementById('ctrl-cam').addEventListener('click', toggleCamera);
       document.getElementById('ctrl-screen').addEventListener('click', toggleScreenShare);
-      document.getElementById('ctrl-fullscreen').addEventListener('click', toggleFullscreen);
       document.getElementById('ctrl-minimize').addEventListener('click', minimizeCall);
-      document.getElementById('ctrl-hangup').addEventListener('click', () => endCall(true));
+      document.getElementById('ctrl-hangup').addEventListener('click', leaveCall);
 
-      // Call buttons in sidebar and mobile header
+      // Persistent call bar buttons
+      document.getElementById('call-bar-join').addEventListener('click', joinCall);
+      document.getElementById('call-bar-leave').addEventListener('click', leaveCall);
+
+      // Sidebar / mobile header call buttons
       document.querySelectorAll('.sb-btn, .mh-btn, .act-btn').forEach(btn => {
         const text = btn.textContent.trim();
         if (text.includes('📞') || text.includes('CALL')) {
-          btn.addEventListener('click', () => startCall(false));
+          btn.addEventListener('click', () => startCallRoom(false));
         } else if (text.includes('🎥') || text.includes('VIDEO')) {
-          btn.addEventListener('click', () => startCall(true));
+          btn.addEventListener('click', () => startCallRoom(true));
         }
       });
-
-      // WS call events handled in handleWsEvent switch
     }

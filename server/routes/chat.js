@@ -9,19 +9,40 @@ function broadcast(type, payload) {
   }
 }
 
+function sanitizeText(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*on\w+\s*=[^>]*>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .substring(0, 500);
+}
+
 // ── MESSAGES ─────────────────────────────────────────────────
 router.get('/messages', requireAuth, async (req, res) => {
   const db    = await dbPromise;
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-  const before = parseInt(req.query.before) || null;
   const userARow = db.prepare('SELECT MIN(id) as min_id FROM users').get();
   const isUserA  = req.user.id === userARow?.min_id;
   const delCol   = isUserA ? 'deleted_by_a' : 'deleted_by_b';
-  const encContent = isUserA ? 'encrypted_content_a' : 'encrypted_content_b';
-  const encKey     = isUserA ? 'encrypted_key_a'     : 'encrypted_key_b';
-  const rows = before
-    ? db.prepare(`SELECT id, sender_id, ${encContent} AS encrypted_content, ${encKey} AS encrypted_key, iv, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 AND id < ? ORDER BY id DESC LIMIT ?`).all(before, limit)
-    : db.prepare(`SELECT id, sender_id, ${encContent} AS encrypted_content, ${encKey} AS encrypted_key, iv, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 ORDER BY id DESC LIMIT ?`).all(limit);
+
+  const around = parseInt(req.query.around) || null;
+  const before = parseInt(req.query.before) || null;
+
+  let rows = [];
+  if (around) {
+    const half = Math.floor(limit / 2);
+    // Fetch older
+    const older = db.prepare(`SELECT id, sender_id, content, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 AND id < ? ORDER BY id DESC LIMIT ?`).all(around, half);
+    // Fetch target + newer
+    const newer = db.prepare(`SELECT id, sender_id, content, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 AND id >= ? ORDER BY id ASC LIMIT ?`).all(around, half + 1);
+    rows = [...older, ...newer].sort((a, b) => b.id - a.id); // Sorted DESC for the map below
+  } else if (before) {
+    rows = db.prepare(`SELECT id, sender_id, content, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 AND id < ? ORDER BY id DESC LIMIT ?`).all(before, limit);
+  } else {
+    rows = db.prepare(`SELECT id, sender_id, content, media_id, created_at, read_at, reply_to_id FROM messages WHERE ${delCol} = 0 ORDER BY id DESC LIMIT ?`).all(limit);
+  }
   const withReactions = rows.map(row => ({ ...row, reactions: db.prepare('SELECT emoji, user_id FROM reactions WHERE message_id = ?').all(row.id) }));
   const unreadIds = db.prepare(`SELECT id FROM messages WHERE ${delCol} = 0 AND sender_id != ? AND read_at IS NULL`).all(req.user.id).map(r => r.id);
   if (unreadIds.length) {
@@ -30,6 +51,14 @@ router.get('/messages', requireAuth, async (req, res) => {
     if (senderWs && senderWs.readyState === 1) unreadIds.forEach(id => senderWs.send(JSON.stringify({ type: 'message_status', id, status: 'read' })));
   }
   res.json(withReactions.reverse());
+});
+
+router.post('/messages/migrate', requireAuth, async (req, res) => {
+  const { id, content } = req.body || {};
+  if (!id || content === undefined) return res.status(400).json({ error: 'Missing id or content' });
+  const db = await dbPromise;
+  db.prepare('UPDATE messages SET content = ? WHERE id = ?').run(content, id);
+  res.json({ ok: true });
 });
 
 // ── CLEAR / RESTORE ──────────────────────────────────────────
@@ -58,8 +87,10 @@ router.get('/notes', requireAuth, async (req, res) => {
 router.post('/notes', requireAuth, async (req, res) => {
   const { content } = req.body || {};
   if (!content) return res.status(400).json({ error: 'No content' });
+  const safeContent = sanitizeText(content);
+  if (!safeContent) return res.status(400).json({ error: 'Invalid content' });
   const db = await dbPromise;
-  const result = db.prepare('INSERT INTO notes (author_id, content) VALUES (?, ?)').run(req.user.id, content.trim().slice(0, 500));
+  const result = db.prepare('INSERT INTO notes (author_id, content) VALUES (?, ?)').run(req.user.id, safeContent);
   const note = db.prepare('SELECT n.*, u.username AS author_name FROM notes n JOIN users u ON u.id = n.author_id WHERE n.id = ?').get(result.lastInsertRowid);
   if (note) broadcast('note_add', { note });
   res.json(note);

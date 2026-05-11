@@ -19,7 +19,7 @@
     function initDrawer() {
       document.getElementById('drawerOverlay')?.addEventListener('click', closeDrawer);
       document.querySelector('.mh-menu')?.addEventListener('click', openDrawer);
-      document.querySelectorAll('.ni').forEach(el => el.addEventListener('click', () => {
+      document.querySelectorAll('button.ni').forEach(el => el.addEventListener('click', () => {
         closeDrawer();
         document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
         el.classList.add('on');
@@ -41,35 +41,60 @@
       // Clear chat buttons
       document.getElementById('btn-clear-chat')?.addEventListener('click', clearChat);
       document.getElementById('btn-clear-chat-mobile')?.addEventListener('click', clearChat);
-    }
-    function initMobileNav() {
-      document.querySelectorAll('.mn-item').forEach(item => {
-        item.addEventListener('click', () => {
-          document.querySelectorAll('.mn-item').forEach(i => i.classList.remove('on'));
-          item.classList.add('on');
-          const ico = item.querySelector('.mico')?.textContent?.trim() || '';
-          if (ico === '🏠') {
-            openHouse();
-          } else if (ico === '🖼') {
-            openGallery();
-          } else if (ico === '📌') {
-            openNotes();
-          } else if (ico === '🗓') {
-            openDates();
-          } else {
-            _closeAllViews();
-            _showChat();
-          }
-        });
+
+      // Mobile menu button
+      document.getElementById('mh-menu')?.addEventListener('click', openDrawer);
+
+      // Drawer overlay click to close
+      document.getElementById('drawerOverlay')?.addEventListener('click', closeDrawer);
+
+      // Settings close button
+      document.getElementById('settings-close')?.addEventListener('click', closeSettings);
+
+      // Escape key closes drawer or settings
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar?.classList.contains('open')) {
+          closeDrawer();
+        } else if (document.getElementById('settings-panel')?.classList.contains('show')) {
+          closeSettings();
+        }
       });
+
+      // Settings action buttons
+      document.getElementById('btn-clear-chat-settings')?.addEventListener('click', async () => { await clearChat(); closeSettings(); });
+      document.getElementById('btn-restore-chat')?.addEventListener('click', restoreChat);
+      document.getElementById('btn-settings-spotify')?.addEventListener('click', () => { connectSpotify(); closeSettings(); });
+      document.getElementById('btn-settings-spotify-disconnect')?.addEventListener('click', () => { disconnectSpotify(); closeSettings(); });
+      document.getElementById('btn-logout')?.addEventListener('click', logout);
+      document.getElementById('btn-export-data')?.addEventListener('click', exportData);
+
+      // Call mini bar
+      document.getElementById('call-mini')?.addEventListener('click', maximizeCall);
     }
+
+    let _toastTimeout = null;
     function showToast(msg, ms = 2500) {
-      const ex = document.getElementById('curon-toast'); if (ex) ex.remove();
-      const el = document.createElement('div'); el.id = 'curon-toast';
+      let el = document.getElementById('curon-toast');
+      if (el) {
+        clearTimeout(_toastTimeout);
+      } else {
+        el = document.createElement('div');
+        el.id = 'curon-toast';
+        el.setAttribute('role', 'alert');
+        el.setAttribute('aria-live', 'assertive');
+        el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--color-dark);color:var(--color-accent);border:2px solid var(--color-accent);font-family:var(--font-header);font-size:var(--font-size-sidebar-label);padding:8px 14px;z-index:9999;box-shadow:3px 3px 0 var(--color-accent);pointer-events:none;transition:opacity 0.2s;';
+        document.body.appendChild(el);
+      }
+      
       el.textContent = msg;
-      el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#30253e;color:#c3c88c;border:2px solid #c3c88c;font-family:"Press Start 2P",monospace;font-size:7px;padding:8px 14px;z-index:9999;box-shadow:3px 3px 0 #c3c88c;pointer-events:none;';
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), ms);
+      el.style.opacity = '1';
+      
+      _toastTimeout = setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 200);
+      }, ms);
     }
 
 
@@ -78,7 +103,7 @@
     // ════════════════════════════════════════════════════════════
 
     function openSettings() {
-      document.getElementById('settings-panel').classList.add('open');
+      document.getElementById('settings-panel').classList.add('show');
       document.getElementById('settings-overlay').classList.add('show');
       closeDrawer();
       // Update Spotify button state
@@ -89,7 +114,7 @@
     }
 
     function closeSettings() {
-      document.getElementById('settings-panel').classList.remove('open');
+      document.getElementById('settings-panel').classList.remove('show');
       document.getElementById('settings-overlay').classList.remove('show');
     }
 
@@ -116,9 +141,69 @@
       location.reload();
     }
 
+    async function exportData() {
+      showToast('EXPORTING...');
+      try {
+        const res = await fetch('/auth/export', {
+          headers: { Authorization: `Bearer ${STATE.token}` }
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const data = await res.json();
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `curon-export-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast(`EXPORTED: ${data.messages_count} msgs, ${data.media_count} files`);
+        closeSettings();
+      } catch (e) {
+        showToast('EXPORT FAILED');
+      }
+    }
+
     function initSettings() {
       document.getElementById('btn-settings')?.addEventListener('click', openSettings);
+      document.getElementById('settings-overlay')?.addEventListener('click', closeSettings);
+      document.querySelector('.settings-close')?.addEventListener('click', closeSettings);
+
+      // Show admin section for user 'iron'
+      if (STATE.user === 'iron') {
+        document.getElementById('settings-admin-section').style.display = 'block';
+      }
+
+      // Load saved notification preferences
+      loadNotificationPrefs();
     }
+
+    window.saveNotificationPrefs = function() {
+      if (!STATE.notificationPrefs) STATE.notificationPrefs = {};
+      STATE.notificationPrefs.soundAlerts = !!document.getElementById('setting-sound-alerts')?.checked;
+      STATE.notificationPrefs.unreadBadges = !!document.getElementById('setting-unread-badges')?.checked;
+      localStorage.setItem('curon_notification_prefs', JSON.stringify(STATE.notificationPrefs));
+    }
+
+    function loadNotificationPrefs() {
+      const saved = localStorage.getItem('curon_notification_prefs');
+      if (saved) {
+        try {
+          STATE.notificationPrefs = JSON.parse(saved);
+        } catch (e) {}
+      }
+      // Update UI checkboxes
+      if (document.getElementById('setting-sound-alerts')) {
+        document.getElementById('setting-sound-alerts').checked = STATE.notificationPrefs?.soundAlerts !== false;
+      }
+      if (document.getElementById('setting-unread-badges')) {
+        document.getElementById('setting-unread-badges').checked = STATE.notificationPrefs?.unreadBadges !== false;
+      }
+    }
+
+    // Expose for global access
+    window.loadNotificationPrefs = loadNotificationPrefs;
 
 
     // ════════════════════════════════════════════════════════════
@@ -127,12 +212,15 @@
 
     async function openStatsModal() {
       closeDrawer();
-      document.getElementById('stats-modal').classList.add('show');
-      await loadStats();
+      MODAL.open('stats-modal', {
+        onOpen: async () => {
+          await loadStats();
+        }
+      });
     }
 
     function closeStatsModal() {
-      document.getElementById('stats-modal').classList.remove('show');
+      MODAL.close('stats-modal');
     }
 
     async function loadStats() {
@@ -154,7 +242,7 @@
     function renderMilestones(list) {
       const el = document.getElementById('milestone-list');
       if (!list.length) {
-        el.innerHTML = `<div style="font-family:'Press Start 2P',monospace;font-size:6px;color:#80b9b1;padding:8px 0;text-align:center;">NO MILESTONES YET</div>`;
+        el.innerHTML = `<div style="font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-tertiary);padding:8px 0;text-align:center;">NO MILESTONES YET</div>`;
         return;
       }
       el.innerHTML = '';
@@ -224,11 +312,20 @@
         if (e.target === document.getElementById('stats-modal')) closeStatsModal();
       });
       document.getElementById('milestone-add-btn')?.addEventListener('click', addMilestone);
-      document.getElementById('milestone-input-date')?.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '').slice(0, 8);
-        if (v.length >= 5) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
-        else if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
-        e.target.value = v;
+      const msDateInput = document.getElementById('milestone-input-date');
+      const msFormatFn = (el) => {
+        let v = el.value.replace(/\D/g, '').slice(0, 8);
+        if (v.length >= 5) v = v.slice(0, 2) + ' / ' + v.slice(2, 4) + ' / ' + v.slice(4);
+        else if (v.length >= 3) v = v.slice(0, 2) + ' / ' + v.slice(2);
+        el.value = v;
+      };
+
+      msDateInput?.addEventListener('input', (e) => msFormatFn(e.target));
+      msDateInput?.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        e.target.value = text.replace(/\D/g, '').slice(0, 8);
+        msFormatFn(e.target);
       });
     }
 
@@ -279,14 +376,54 @@
         if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
       });
 
-      // TZ toggle button in timeline header
       document.getElementById('btn-tz-toggle')?.addEventListener('click', () => {
         _tzViewMode = _tzViewMode === 'my' ? 'their' : 'my';
         const btn = document.getElementById('btn-tz-toggle');
         if (btn) {
           btn.textContent = _tzViewMode === 'my' ? '🌐 MY TZ' : '🌐 THEIR TZ';
-          btn.style.background = _tzViewMode === 'my' ? '#80b9b1' : '#c3c88c';
+          btn.classList.toggle('their-tz', _tzViewMode === 'their');
         }
+        if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
+      });
+
+      // Mobile timezone toggle
+      document.getElementById('btn-tz-toggle-mobile')?.addEventListener('click', () => {
+        _tzViewMode = _tzViewMode === 'my' ? 'their' : 'my';
+        const btn = document.getElementById('btn-tz-toggle');
+        if (btn) {
+          btn.textContent = _tzViewMode === 'my' ? '🌐 MY TZ' : '🌐 THEIR TZ';
+          btn.classList.toggle('their-tz', _tzViewMode === 'their');
+        }
+        // Also sync mobile button state
+        const mobileBtn = document.getElementById('btn-tz-toggle-mobile');
+        if (mobileBtn) mobileBtn.classList.toggle('their-tz', _tzViewMode === 'their');
+        if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
+      });
+
+      // Free time toggle button
+      window._showFreeTime = false;
+      document.getElementById('btn-free-time')?.addEventListener('click', () => {
+        window._showFreeTime = !window._showFreeTime;
+        const btn = document.getElementById('btn-free-time');
+        if (btn) {
+          btn.classList.toggle('active', window._showFreeTime);
+          btn.textContent = window._showFreeTime ? 'CLOSE FREE TIME' : 'FIND FREE TIME';
+        }
+        if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
+      });
+
+      // Mobile free time toggle
+      document.getElementById('btn-free-time-mobile')?.addEventListener('click', () => {
+        window._showFreeTime = !window._showFreeTime;
+        // Sync desktop button state
+        const desktopBtn = document.getElementById('btn-free-time');
+        if (desktopBtn) {
+          desktopBtn.classList.toggle('active', window._showFreeTime);
+          desktopBtn.textContent = window._showFreeTime ? 'CLOSE FREE TIME' : 'FIND FREE TIME';
+        }
+        // Also sync mobile button state
+        const mobileBtn = document.getElementById('btn-free-time-mobile');
+        if (mobileBtn) mobileBtn.classList.toggle('active', window._showFreeTime);
         if (document.getElementById('dates-view').classList.contains('show')) renderTimeline();
       });
     }

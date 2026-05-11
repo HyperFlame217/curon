@@ -85,6 +85,11 @@ function getOtherWs(userId) {
   return null;
 }
 
+/** Returns the ws for a *specific* user by id */
+function getWsById(userId) {
+  return sessions.get(userId)?.ws ?? null;
+}
+
 module.exports = {
   sessions,
   connect,
@@ -93,5 +98,6 @@ module.exports = {
   setStatus,
   getStatus,
   getOtherWs,
+  getWsById,
   IDLE_TIMEOUT_MS,
 };

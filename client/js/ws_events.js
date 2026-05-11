@@ -29,19 +29,34 @@ const WS_EV = Object.freeze({
 
   // ── Presence ─────────────────────────────────────────────────
   C_PRESENCE_HEARTBEAT:      'presence_heartbeat',
-  C_PRESENCE_UPDATE:         'presence_update',
+  C_PRESENCE_STATE:         'presence_state',         // granular presence (active/idle/away)
+  C_PRESENCE_UPDATE:         'presence_update',     // sit/stand state (chair attachment)
 
   S_PRESENCE_UPDATE:         'presence_update',
+  S_PRESENCE_SYNC:           'presence_sync',
 
-  // ── Calls ────────────────────────────────────────────────────
+  // ── Calls — WebRTC signaling (passthrough, unchanged) ────────
   C_CALL_OFFER:              'call_offer',
   C_CALL_ANSWER:             'call_answer',
   C_CALL_ICE:                'call_ice_candidate',
-  C_CALL_END:                'call_end',
 
   S_CALL_OFFER:              'call_offer',
   S_CALL_ANSWER:             'call_answer',
   S_CALL_ICE:                'call_ice_candidate',
+
+  // ── Calls — Persistent room lifecycle ─────────────────────────
+  C_CALL_ROOM_START:         'call_room_start',
+  C_CALL_JOIN:               'call_room_join',
+  C_CALL_LEAVE:              'call_room_leave',
+  C_CALL_END_ALL:            'call_room_end_all',
+
+  S_CALL_ROOM_STARTED:       'call_room_started',
+  S_CALL_SEND_OFFER:         'call_send_offer',
+  S_CALL_PARTICIPANT_UPDATE: 'call_participant_update',
+  S_CALL_ROOM_ENDED:         'call_room_ended',
+
+  // ── Calls — Legacy (kept for rollback safety, not actively used) ─
+  C_CALL_END:                'call_end',
   S_CALL_ENDED:              'call_ended',
 
   // ── Avatar & Identity ─────────────────────────────────────────
@@ -101,10 +116,11 @@ const WS_EV = Object.freeze({
   S_GAME_CANCEL:             'game_cancel',
 
   // ── Cats ──────────────────────────────────────────────────────
-  S_CAT_HAPPINESS_UPDATE:    'cat_happiness_update',
-  S_CAT_RENAME_PROPOSAL:     'cat_rename_proposal',
-  C_CAT_RENAME_ACCEPT:       'cat_rename_accept',
-  C_CAT_RENAME_DECLINE:      'cat_rename_decline',
+  // DISABLED P22-A (Cats feature removed)
+  // S_CAT_HAPPINESS_UPDATE:    'cat_happiness_update',
+  // S_CAT_RENAME_PROPOSAL:     'cat_rename_proposal',
+  // C_CAT_RENAME_ACCEPT:       'cat_rename_accept',
+  // C_CAT_RENAME_DECLINE:      'cat_rename_decline',
 
   // ── Outfits ───────────────────────────────────────────────────
   S_OUTFIT_GIFT:             'outfit_gift',

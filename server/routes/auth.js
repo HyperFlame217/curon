@@ -67,4 +67,35 @@ router.post('/auth/char-pos', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── DATA EXPORT (Admin only) ─────────────────────────────────────
+router.get('/auth/export', requireAuth, async (req, res) => {
+  if (req.user.username !== 'iron') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  const db = await dbPromise;
+
+  const messages = db.prepare(`
+    SELECT m.id, m.sender_id, m.content,
+           m.media_id, m.created_at, m.read_at, m.reply_to_id,
+           u.username as sender_username
+    FROM messages m
+    JOIN users u ON m.sender_id = u.id
+    ORDER BY m.created_at DESC
+  `).all();
+
+  const media = db.prepare(`
+    SELECT id, uploader_id, filename, mime_type, size_bytes, created_at
+    FROM media
+    ORDER BY created_at DESC
+  `).all();
+
+  res.json({
+    exported_at: new Date().toISOString(),
+    messages_count: messages.length,
+    media_count: media.length,
+    messages,
+    media
+  });
+});
+
 module.exports = router;

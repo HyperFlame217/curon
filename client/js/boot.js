@@ -5,17 +5,17 @@
 
 window.loadConfig = async function() {
   try {
-    const [themes, furniture, rooms, cats] = await Promise.all([
-      fetch('/config/themes.json').then(r => r.json()),
-      fetch('/config/furniture.json').then(r => r.json()),
-      fetch('/config/rooms.json').then(r => r.json()),
-      fetch('/config/cats.json').then(r => r.json())
+    const [themes] = await Promise.all([
+      fetch('/config/themes.json').then(r => r.json())
+      // fetch('/config/furniture.json').then(r => r.json()),
+      // fetch('/config/rooms.json').then(r => r.json()),
+      // fetch('/config/cats.json').then(r => r.json())
     ]);
 
     CONFIG.THEMES = themes;
-    CONFIG.FURNITURE = furniture;
-    CONFIG.ROOMS = rooms;
-    CONFIG.CATS = cats;
+    // CONFIG.FURNITURE = furniture;
+    // CONFIG.ROOMS = rooms;
+    // CONFIG.CATS = cats;
     CONFIG.isLoaded = true;
     console.log('[CONFIG] All data registries loaded successfully.');
   } catch (err) {
@@ -46,7 +46,13 @@ window.bootApp = async function(password) {
   // 0. Load Data Configs
   await loadConfig();
 
-  // 1. Fetch key bundle from server
+  // 0b. Preload icon spritesheet (graceful fallback on error)
+  await new Promise(resolve => AssetManager.preload(resolve));
+
+  // Theme system disabled for now - uncomment after themes are updated with all CSS variables
+  // if (window.applySavedTheme) applySavedTheme();
+
+  // 1. Fetch metadata & key bundle from server
   const res = await fetch('/auth/keys', {
     headers: { Authorization: `Bearer ${STATE.token}` },
   });
@@ -69,46 +75,7 @@ window.bootApp = async function(password) {
 
   setTimeout(() => window.applyAvatars && applyAvatars(), 100);
 
-  const wrappingKey = await deriveWrappingKey(password, STATE.user.username);
-
-  if (!keys.my_encrypted_private_key || !keys.my_public_key) {
-    // Generate new keypair
-    const kp = await generateKeyPair();
-    STATE.privateKey = kp.privateKey;
-    STATE.publicKey = kp.publicKey;
-
-    const pubB64 = await exportPublicKey(kp.publicKey);
-    const wrappedPrv = await wrapPrivateKey(kp.privateKey, wrappingKey);
-
-    await fetch('/auth/keys', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${STATE.token}` },
-      body: JSON.stringify({ public_key: pubB64, encrypted_private_key: wrappedPrv }),
-    });
-  } else {
-    STATE.privateKey = await unwrapPrivateKey(keys.my_encrypted_private_key, wrappingKey);
-    STATE.publicKey = await importPublicKey(keys.my_public_key);
-    // Key-matching validation logic omitted here for brevity as in original code snippet
-  }
-
-  // Import other user's key
-  if (keys.other_public_key) {
-    STATE.otherPubKey = await importPublicKey(keys.other_public_key);
-  } else {
-    STATE._keyPoller = setInterval(async () => {
-      try {
-        const r = await fetch('/auth/keys', { headers: { Authorization: `Bearer ${STATE.token}` } });
-        if (!r.ok) return;
-        const k = await r.json();
-        if (k.other_public_key) {
-          STATE.otherPubKey = await importPublicKey(k.other_public_key);
-          clearInterval(STATE._keyPoller);
-          if (window.resetHistoryState) resetHistoryState(); // abstracted helper if needed
-          await loadHistory();
-        }
-      } catch { }
-    }, 5000);
-  }
+  setTimeout(() => window.applyAvatars && applyAvatars(), 100);
 
   STATE.password = null;
 
@@ -127,7 +94,7 @@ window.bootApp = async function(password) {
   if (window.initCalls) initCalls();
   if (window.initEmojis) await initEmojis();
   if (window.initDrawer) initDrawer();
-  if (window.initMobileNav) initMobileNav();
+
   if (window.initSettings) initSettings();
   if (window.initSearch) initSearch();
   if (window.initReplies) initReplies();
@@ -138,8 +105,9 @@ window.bootApp = async function(password) {
   if (window.initTzSettings) initTzSettings();
   if (window.initAvatars) initAvatars();
   if (window.initStats) initStats();
-  if (window.initHouseSystem) await initHouseSystem();
-  if (window.WalletManager) window.WalletManager.load(); // Economy (P2-A)
+  if (window.BadgeManager) BadgeManager.init(); // Unread badges
+  // if (window.initHouseSystem) await initHouseSystem(); // Disabled for MVP
+  // if (window.WalletManager) window.WalletManager.load(); // Economy (P2-A) DISABLED P22-A
 
   if (window._showChat) _showChat();
   if (window.initScrollPagination) initScrollPagination();

@@ -2,7 +2,12 @@ node_modules/
 server/curon.db
 server/storage/media/*
 !server/storage/media/.gitkeep
+server/storage/thumbnails/
+server/storage/emojis/
 .env
 Notes/
 tmp/
+archive/
+.agents/
 .agent/
+backups/

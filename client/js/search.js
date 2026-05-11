@@ -96,7 +96,7 @@
           // Flash highlight
           const row = target.closest('.row');
           if (row) {
-            row.style.outline = '2px solid #c3c88c';
+            row.style.outline = '2px solid var(--color-accent)';
             setTimeout(() => { row.style.outline = ''; }, 1200);
           }
         } else {
@@ -137,6 +137,19 @@
         }
       });
 
+      document.getElementById('ctx-copy').addEventListener('click', () => {
+        const msgId = _ctxMsgId;
+        const bw = msgId ? document.querySelector(`[data-msg-id="${msgId}"]`) : null;
+        const bubble = bw?.querySelector('.b');
+        if (bubble) {
+          const clone = bubble.cloneNode(true);
+          clone.querySelectorAll('.ts', '.reply-quote', '.rxns').forEach(el => el.remove());
+          const text = clone.textContent.trim();
+          if (text) navigator.clipboard.writeText(text);
+        }
+        closeContextMenu();
+      });
+
       // Reply preview close
       document.getElementById('reply-preview-close').addEventListener('click', cancelReply);
     }
@@ -159,6 +172,7 @@
     function closeSearch() {
       _searchActive = false;
       document.getElementById('search-bar').classList.remove('show');
+      document.getElementById('search-results-panel').classList.remove('show');
       document.getElementById('search-input').value = '';
       clearSearchHighlights();
       _searchResults = [];
@@ -172,83 +186,96 @@
         parent.replaceChild(document.createTextNode(el.textContent), el);
         parent.normalize();
       });
+      document.querySelectorAll('.row.teleported').forEach(row => row.classList.remove('teleported'));
     }
 
-    function runSearch(query) {
-      clearSearchHighlights();
-      _searchResults = [];
-      _searchIndex = -1;
-
+    async function runSearch(query) {
       if (!query.trim()) {
-        document.getElementById('search-count').textContent = '';
+        document.getElementById('search-results-panel').classList.remove('show');
         return;
       }
+      document.getElementById('search-results-panel').classList.add('show');
+      document.getElementById('search-results-list').innerHTML = `<div class="loading-container"><div class="pixel-loader"></div> SCANNING DATABASE...</div>`;
 
-      const q = query.toLowerCase();
-
-      // Search through all message bubbles
-      document.querySelectorAll('.b').forEach(bubble => {
-        // Get text nodes inside bubble (skip timestamps and custom emoji)
-        const walker = document.createTreeWalker(bubble, NodeFilter.SHOW_TEXT);
-        const nodes = [];
-        while (walker.nextNode()) nodes.push(walker.currentNode);
-
-        nodes.forEach(node => {
-          const text = node.textContent;
-          const lower = text.toLowerCase();
-          let idx = lower.indexOf(q);
-          if (idx === -1) return;
-
-          // Split text node and wrap matches in <mark>
-          const frag = document.createDocumentFragment();
-          let last = 0;
-          while (idx !== -1) {
-            if (idx > last) frag.appendChild(document.createTextNode(text.slice(last, idx)));
-            const mark = document.createElement('mark');
-            mark.className = 'search-highlight';
-            mark.textContent = text.slice(idx, idx + q.length);
-            frag.appendChild(mark);
-            _searchResults.push(mark);
-            last = idx + q.length;
-            idx = lower.indexOf(q, last);
-          }
-          if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
-          node.parentNode.replaceChild(frag, node);
+      try {
+        const res = await fetch(`/chat/search?q=${encodeURIComponent(query)}`, {
+          headers: { Authorization: `Bearer ${STATE.token}` }
         });
-      });
+        const results = await res.json();
+        renderSearchResults(results);
+      } catch (e) {
+        console.error('[Search] Error:', e);
+      }
+    }
 
+    function renderSearchResults(results) {
+      const panel = document.getElementById('search-results-panel');
+      const list = document.getElementById('search-results-list');
       const count = document.getElementById('search-count');
-      if (_searchResults.length === 0) {
-        count.textContent = 'NO RESULTS';
-        return;
+      
+      list.innerHTML = '';
+      count.textContent = `${results.length} RESULTS`;
+
+      if (results.length === 0) {
+        list.innerHTML = `
+          <div class="search-no-results">
+            No messages found.<br>
+            <span style="text-decoration:underline; cursor:pointer; font-size:6px; display:block; margin-top:10px;" id="search-clear-hint">CLEAR SEARCH</span>
+          </div>
+        `;
+        document.getElementById('search-clear-hint').addEventListener('click', closeSearch);
+      } else {
+        results.forEach(res => {
+          const item = document.createElement('div');
+          item.className = 'search-item';
+          const date = new Date(res.created_at * 1000).toLocaleDateString();
+          item.innerHTML = `
+            <div class="search-item-meta">
+              <span class="search-item-user">${escHtml(res.username)}</span>
+              <span class="search-item-date">${date}</span>
+            </div>
+            <div class="search-item-snippet">${res.snippet}</div>
+          `;
+          item.addEventListener('click', () => teleportToMessage(res.id));
+          list.appendChild(item);
+        });
       }
-
-      _searchIndex = 0;
-      highlightCurrent();
-      count.textContent = `1 / ${_searchResults.length}`;
+      panel.classList.add('show');
     }
 
-    function highlightCurrent() {
-      _searchResults.forEach((el, i) => {
-        el.classList.toggle('current', i === _searchIndex);
-      });
-      if (_searchResults[_searchIndex]) {
-        _searchResults[_searchIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
-        const count = document.getElementById('search-count');
-        count.textContent = `${_searchIndex + 1} / ${_searchResults.length}`;
-      }
+    async function teleportToMessage(msgId) {
+      closeSearch();
+      showToast('TELEPORTING...');
+      
+      // Clear current history state
+      const container = document.getElementById('msgs');
+      container.innerHTML = '';
+      _oldestMsgId = null;
+      _allLoaded = false;
+      
+      // Load history around this message
+      await loadHistory(null, msgId);
+      
+      // Show "Jump to Present" button
+      document.getElementById('jump-to-present').classList.add('show');
+      
+      setTimeout(() => {
+        const wrapper = document.querySelector(`[data-msg-id="${msgId}"]`);
+        const target = wrapper?.closest('.row');
+        if (target) {
+          target.classList.add('teleported');
+          target.scrollIntoView({ behavior: 'instant', block: 'center' });
+        }
+      }, 500);
     }
 
-    function searchNext() {
-      if (!_searchResults.length) return;
-      _searchIndex = (_searchIndex + 1) % _searchResults.length;
-      highlightCurrent();
-    }
-
-    function searchPrev() {
-      if (!_searchResults.length) return;
-      _searchIndex = (_searchIndex - 1 + _searchResults.length) % _searchResults.length;
-      highlightCurrent();
+    async function jumpToPresent() {
+      document.getElementById('jump-to-present').classList.remove('show');
+      const container = document.getElementById('msgs');
+      container.innerHTML = '';
+      _oldestMsgId = null;
+      _allLoaded = false;
+      await loadHistory();
     }
 
     function initSearch() {
@@ -269,6 +296,17 @@
       document.getElementById('search-next')?.addEventListener('click', searchNext);
       document.getElementById('search-prev')?.addEventListener('click', searchPrev);
       document.getElementById('search-close')?.addEventListener('click', closeSearch);
+      document.getElementById('jump-to-present')?.addEventListener('click', jumpToPresent);
+
+      // Close search results if clicking outside
+      document.addEventListener('mousedown', (e) => {
+        const panel = document.getElementById('search-results-panel');
+        const bar = document.getElementById('search-bar');
+        const searchBtn = document.getElementById('btn-search');
+        if (_searchActive && !panel.contains(e.target) && !bar.contains(e.target) && !searchBtn.contains(e.target)) {
+          closeSearch();
+        }
+      });
     }
 
     // ════════════════════════════════════════════════════════════

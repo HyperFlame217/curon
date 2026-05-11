@@ -2,7 +2,7 @@
     // ════════════════════════════════════════════════════════════
 
     const NOTE_COLORS = ['color-0', 'color-1', 'color-2', 'color-3', 'color-4'];
-    const NOTES_PER_BOARD = 5;
+    const NOTES_PER_BOARD = 6;
 
     let _notesOpen = false;
     let _allNotes = [];  // all notes from server
@@ -14,17 +14,22 @@
       return min + (x - Math.floor(x)) * (max - min);
     }
 
-    // 5 fixed zones on the board — notes go in zones, no overlap
+    // 6 organic zones on the board — notes are scattered but avoid major overlap
     function getZonePosition(zoneIndex, noteId, boardW, boardH) {
-      // Divide board into a 2x3 grid (but only use 5 slots)
-      const cols = 2, rows = 3;
+      // Dynamic grid based on aspect ratio: 3x2 for desktop/landscape, 2x3 for mobile/portrait
+      const isPortrait = boardH > boardW;
+      const cols = isPortrait ? 2 : 3;
+      const rows = isPortrait ? 3 : 2;
+      
       const zoneW = (boardW - 60) / cols;
       const zoneH = (boardH - 60) / rows;
       const col = zoneIndex % cols;
       const row = Math.floor(zoneIndex / cols);
-      // Random offset within zone
-      const offX = seededRand(noteId * 1.7, 10, zoneW - 200);
-      const offY = seededRand(noteId * 2.3, 10, zoneH - 180);
+      
+      // More relaxed, organic offsets so it feels less like a rigid grid
+      const offX = seededRand(noteId * 1.7, 5, Math.max(5, zoneW - 150));
+      const offY = seededRand(noteId * 2.3, 5, Math.max(5, zoneH - 150));
+      
       return {
         left: Math.round(30 + col * zoneW + offX),
         top: Math.round(30 + row * zoneH + offY),
@@ -37,7 +42,7 @@
       const d = new Date(note.created_at * 1000);
       const dateStr = d.toLocaleDateString('default', { month: 'short', day: 'numeric' });
       const timeStr = d.toLocaleTimeString('default', { hour: '2-digit', minute: '2-digit' });
-      const rotation = seededRand(note.id * 3.7, -8, 8).toFixed(1);
+      const rotation = seededRand(note.id * 3.7, -14, 14).toFixed(1);
 
       const board = document.getElementById('notes-board');
       const boardW = board?.clientWidth || 600;
@@ -159,14 +164,21 @@
     // ── WS handlers ───────────────────────────────────────────────
     function onNoteAdd(msg) {
       _allNotes.push(msg.note);
-      // Jump to newest board
-      const total = Math.ceil(_allNotes.length / NOTES_PER_BOARD);
-      _currentBoard = total - 1;
+      // Jump to newest board (index 0)
+      _currentBoard = 0;
       if (_notesOpen) renderBoard();
 
       if (!_notesOpen) {
         document.getElementById('pinned-badge')?.classList.add('show');
         document.getElementById('pinned-badge-mob')?.classList.add('show');
+        
+        // Play note chime and update badge
+        if (typeof AudioManager !== 'undefined' && AudioManager.playNoteChime) {
+          AudioManager.playNoteChime();
+        }
+        if (typeof BadgeManager !== 'undefined') {
+          BadgeManager.handleIncoming('notes');
+        }
       }
     }
 
@@ -180,9 +192,12 @@
       _closeAllViews();
       _notesOpen = true;
       document.getElementById('notes-view').classList.add('show');
-      document.getElementById('notes-add-btn').classList.remove('show'); // keep hidden until board ready
-      document.getElementById('notes-add-btn').style.display = '';       // clear force-hide
-      document.getElementById('notes-add-btn').classList.add('show');
+      const nab = document.getElementById('notes-add-btn');
+      if (nab) {
+        nab.classList.remove('show');
+        nab.style.display = 'flex'; // Ensure flex display immediately
+        nab.classList.add('show');
+      }
       document.getElementById('board-nav').style.display = 'flex';
       document.getElementById('pinned-badge')?.classList.remove('show');
       document.getElementById('pinned-badge-mob')?.classList.remove('show');
@@ -198,12 +213,15 @@
     }
 
     function openNoteModal() {
-      document.getElementById('notes-modal').classList.add('show');
-      document.getElementById('notes-textarea').focus();
+      MODAL.open('notes-modal', {
+        onOpen: () => {
+          document.getElementById('notes-textarea').focus();
+        }
+      });
     }
 
     function closeNoteModal() {
-      document.getElementById('notes-modal').classList.remove('show');
+      MODAL.close('notes-modal');
     }
 
     // ── Init ──────────────────────────────────────────────────────
@@ -211,6 +229,7 @@
       document.getElementById('notes-add-btn').addEventListener('click', openNoteModal);
       document.getElementById('notes-modal-submit').addEventListener('click', submitNote);
       document.getElementById('notes-modal-cancel').addEventListener('click', closeNoteModal);
+      document.getElementById('btn-house-close')?.addEventListener('click', closeHouse);
 
       document.getElementById('board-prev')?.addEventListener('click', () => {
         // OLDER = higher board index
@@ -284,12 +303,12 @@
       console.log("[House] Exiting view...");
       // RESET NAVIGATION CLASSES: highlight 'CHAT'
       document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
-      document.querySelectorAll('.mn-item').forEach(m => m.classList.remove('on'));
+
 
       const chatDesk = document.querySelectorAll('.ni')[0];
-      const chatMob = document.querySelectorAll('.mn-item')[0];
+
       if (chatDesk) chatDesk.classList.add('on');
-      if (chatMob) chatMob.classList.add('on');
+
 
       // 2. Clear house view and restore chat
       _closeAllViews();

@@ -20,7 +20,18 @@ window.STATE = {
   otherName: null,
   reconnTimer: null,
   typingTimer: null,
-  wasDisconnected: false, // For reconnection sync
+  wasDisconnected: false,
+  // Theme
+  theme: localStorage.getItem('curon_theme') || 'curon_classic',
+  // Presence
+  presenceState: 'active',
+  partnerPresenceState: 'offline',
+  unreadCounts: { chat: 0, notes: 0, calendar: 0 },
+  // Notification preferences
+  notificationPrefs: {
+    soundAlerts: true,
+    unreadBadges: true
+  },
   // Crypto
   privateKey: null,   // RSA-OAEP CryptoKey (in memory only)
   publicKey: null,    // own RSA-OAEP public CryptoKey
@@ -35,3 +46,51 @@ window.STATE = {
     isLoaded: false
   }
 };
+
+// Theme switching with TabSync integration
+window.setTheme = function(themeId, skipSync = false) {
+  STATE.theme = themeId;
+  localStorage.setItem('curon_theme', themeId);
+
+  // Apply theme CSS variables to body
+  const theme = CONFIG.THEMES.find(t => t.id === themeId);
+  if (theme && theme.palette) {
+    const root = document.documentElement;
+    Object.entries(theme.palette).forEach(([key, value]) => {
+      root.style.setProperty(`--color-${key}`, value);
+    });
+    document.body.classList.add(`theme-${themeId}`);
+  }
+
+  // Sync to other tabs (skip if this is a sync event from another tab)
+  if (!skipSync && window.TabSync) {
+    TabSync.syncTheme(themeId);
+  }
+};
+
+// Apply saved theme on load
+window.applySavedTheme = function() {
+  const savedTheme = localStorage.getItem('curon_theme') || 'curon_classic';
+  if (CONFIG.THEMES.length > 0) {
+    setTheme(savedTheme, true);
+  }
+};
+
+// Listen for tab sync events
+if (typeof window !== 'undefined') {
+  window.addEventListener('tabSync', (e) => {
+    const { key, value } = e.detail;
+    if (key === 'theme') {
+      STATE.theme = value;
+      localStorage.setItem('curon_theme', value);
+      const theme = CONFIG.THEMES.find(t => t.id === value);
+      if (theme && theme.palette) {
+        const root = document.documentElement;
+        Object.entries(theme.palette).forEach(([paletteKey, paletteVal]) => {
+          root.style.setProperty(`--color-${paletteKey}`, paletteVal);
+        });
+        document.body.classList.add(`theme-${value}`);
+      }
+    }
+  });
+}
