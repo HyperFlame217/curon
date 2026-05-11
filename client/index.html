@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js"></script>
   <link rel="stylesheet" href="css/main.css?v=5">
   <link rel="stylesheet" href="css/icons.css?v=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@latest/font/lucide.css">
 </head>
 
 <body>
@@ -28,7 +29,7 @@
         <h1 class="app-title">CURON</h1>
         <div style="display:flex;align-items:center;gap:6px;">
           <div class="app-dot"></div>
-          <button class="app-settings-btn" id="btn-settings" title="Settings"><span class="ico ico-settings"></span></button>
+          <button class="app-settings-btn" id="btn-settings" title="Settings"><i class="lucide-settings"></i></button>
         </div>
       </div>
       <!-- Wallet Status (P2-A) DISABLED P22-A -->
@@ -59,12 +60,12 @@
           <div class="win-title">MENU</div>
         </div>
         <div class="nav-body">
-          <button class="ni on"><span class="ico ico-chat"></span>CHAT</button>
+          <button class="ni on"><i class="lucide-message-square"></i>CHAT</button>
           <!-- <button class="ni"><span class="ico">🏠</span>HOUSE</button> DISABLED P22-A (server-side gated) -->
-          <button class="ni"><span class="ico ico-gallery"></span>GALLERY</button>
+          <button class="ni"><i class="lucide-images"></i>GALLERY</button>
           <button class="ni" style="display: none !important;"><span class="ico">🎮</span>GAMES<span class="bdg">NEW</span></button>
-          <button class="ni" id="nav-pinned"><span class="ico ico-pinned"></span>PINNED<span class="pinned-badge" id="pinned-badge">NEW</span></button>
-          <button class="ni"><span class="ico ico-dates"></span>DATES</button>
+          <button class="ni" id="nav-pinned"><i class="lucide-pin"></i>PINNED<span class="pinned-badge" id="pinned-badge">NEW</span></button>
+          <button class="ni"><i class="lucide-calendar-days"></i>DATES</button>
         </div>
       </div>
       <div class="win" id="spotify-win">
@@ -119,19 +120,19 @@
         </div>
         <!-- Connect button (shown if not connected) -->
         <div style="padding:4px 8px 6px;" id="spot-connect-row">
-          <button id="spot-connect-btn" style="width:100%;background:var(--color-primary);border:2px solid var(--color-dark);box-shadow:2px 2px 0 var(--color-dark);font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-dark);padding:4px;cursor:pointer;"><span class="ico ico-spotify"></span> CONNECT SPOTIFY</button>
+          <button id="spot-connect-btn" style="width:100%;background:var(--color-primary);border:2px solid var(--color-dark);box-shadow:2px 2px 0 var(--color-dark);font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-dark);padding:4px;cursor:pointer;"><i class="lucide-headphones"></i> CONNECT SPOTIFY</button>
         </div>
       </div>
       <div class="sb-btm">
-        <button class="sb-btn"><span class="ico ico-call"></span> CALL</button>
-        <button class="sb-btn"><span class="ico ico-video"></span> VIDEO</button>
+        <button class="sb-btn"><i class="lucide-phone"></i> CALL</button>
+        <button class="sb-btn"><i class="lucide-video"></i> VIDEO</button>
       </div>
     </aside>
     <!-- ══ CHAT ══ -->
     <main class="chat">
       <!-- mobile only top bar -->
       <div class="mobile-header">
-        <button class="mh-menu" id="mh-menu" aria-label="Open menu"><span class="ico ico-menu"></span></button>
+        <button class="mh-menu" id="mh-menu" aria-label="Open menu"><i class="lucide-menu"></i></button>
         <div class="mh-ava">👧</div>
         <div class="mh-info">
           <div class="mh-name" id="mh-name">User</div>
@@ -140,10 +141,10 @@
           </div>
         </div>
         <div class="mh-actions">
-          <button class="mh-btn" aria-label="Start voice call"><span class="ico ico-call"></span></button>
-          <button class="mh-btn" aria-label="Start video call"><span class="ico ico-video"></span></button>
-          <button class="mh-btn" id="btn-search-mobile" aria-label="Search messages" title="Search"><span class="ico ico-search"></span></button>
-          <button class="mh-btn" id="btn-clear-chat-mobile" aria-label="Clear chat" title="Clear chat for me"><span class="ico ico-delete"></span></button>
+          <button class="mh-btn" aria-label="Start voice call"><i class="lucide-phone"></i></button>
+          <button class="mh-btn" aria-label="Start video call"><i class="lucide-video"></i></button>
+          <button class="mh-btn" id="btn-search-mobile" aria-label="Search messages" title="Search"><i class="lucide-search"></i></button>
+          <button class="mh-btn" id="btn-clear-chat-mobile" aria-label="Clear chat" title="Clear chat for me"><i class="lucide-trash-2"></i></button>
         </div>
       </div>
       <!-- chat window -->
@@ -159,10 +160,10 @@
             <div class="status-name" id="status-name">User</div>
             <div class="status-sub">...</div>
             <div class="status-actions">
-              <button class="act-btn" aria-label="Start voice call"><span class="ico ico-call"></span></button>
-              <button class="act-btn" aria-label="Start video call"><span class="ico ico-video"></span></button>
-              <button class="act-btn" id="btn-search" aria-label="Search messages" title="Search"><span class="ico ico-search"></span></button>
-              <button class="act-btn" id="btn-clear-chat" aria-label="Clear chat" title="Clear chat for me"><span class="ico ico-delete"></span></button>
+              <button class="act-btn" aria-label="Start voice call"><i class="lucide-phone"></i></button>
+              <button class="act-btn" aria-label="Start video call"><i class="lucide-video"></i></button>
+              <button class="act-btn" id="btn-search" aria-label="Search messages" title="Search"><i class="lucide-search"></i></button>
+              <button class="act-btn" id="btn-clear-chat" aria-label="Clear chat" title="Clear chat for me"><i class="lucide-trash-2"></i></button>
             </div>
           </div>
           <!-- Search bar (hidden by default) -->
@@ -170,7 +171,7 @@
             <label for="search-input" class="sr-only">Search messages</label>
             <input class="search-input" id="search-input" placeholder="search messages..." autocomplete="off" />
             <div class="search-count" id="search-count"></div>
-            <button class="search-close" id="search-close" aria-label="Close search"><span class="ico ico-close"></span></button>
+            <button class="search-close" id="search-close" aria-label="Close search"><i class="lucide-x"></i></button>
             <div class="search-results-panel" id="search-results-panel">
               <div class="search-results-list" id="search-results-list"></div>
             </div>
@@ -188,8 +189,8 @@
           <div class="call-bar-timer" id="call-bar-timer">00:00</div>
         </div>
         <div class="call-bar-actions">
-          <button class="call-bar-join" id="call-bar-join"><span class="ico ico-call"></span> JOIN</button>
-          <button class="call-bar-leave" id="call-bar-leave" style="display:none"><span class="ico ico-call"></span> LEAVE</button>
+          <button class="call-bar-join" id="call-bar-join"><i class="lucide-phone"></i> JOIN</button>
+          <button class="call-bar-leave" id="call-bar-leave" style="display:none"><i class="lucide-phone"></i> LEAVE</button>
         </div>
       </div>
 
@@ -213,7 +214,7 @@
             flex:1;background:#ffffff;border:2px solid var(--color-secondary);padding:4px 7px;
             font-family:var(--font-main);font-size:var(--font-size-input);color:var(--color-dark);outline:none;
           " />
-            <button id="gif-close" aria-label="Close GIF panel" style="color:var(--color-primary);background:none;border:none;cursor:pointer;font-family:var(--font-header);font-size:var(--font-size-small);padding:2px 4px;"><span class="ico ico-close"></span></button>
+            <button id="gif-close" aria-label="Close GIF panel" style="color:var(--color-primary);background:none;border:none;cursor:pointer;font-family:var(--font-header);font-size:var(--font-size-small);padding:2px 4px;"><i class="lucide-x"></i></button>
           </div>
           <div id="gif-grid" style="
           display:flex;flex-wrap:wrap;gap:4px;
@@ -256,20 +257,20 @@
             <div class="reply-preview-name" id="reply-preview-name"></div>
             <div class="reply-preview-text" id="reply-preview-text"></div>
           </div>
-          <button class="reply-preview-close" id="reply-preview-close" aria-label="Cancel reply"><span class="ico ico-close"></span></button>
+          <button class="reply-preview-close" id="reply-preview-close" aria-label="Cancel reply"><i class="lucide-x"></i></button>
         </div>
         <div class="input-body">
           <div class="ibox">
-            <button class="ia" id="btn-attach" aria-label="Attach file" title="Attach file"><span class="ico ico-attach"></span></button>
+            <button class="ia" id="btn-attach" aria-label="Attach file" title="Attach file"><i class="lucide-paperclip"></i></button>
             <button class="ia" id="btn-gif" aria-label="Search GIFs" title="Search GIFs">GIF</button>
-            <button class="ia" id="btn-mic" aria-label="Record voice message" title="Hold to record voice message"><span class="ico ico-mic"></span></button>
+            <button class="ia" id="btn-mic" aria-label="Record voice message" title="Hold to record voice message"><i class="lucide-mic"></i></button>
             <div class="rec-indicator" id="rec-indicator">
               <div class="rec-dot"></div>REC
             </div>
             <label for="ifield" class="sr-only">Type a message</label>
             <textarea class="ifield" id="ifield" placeholder="type here_" rows="1"></textarea>
-            <button class="ia" id="btn-emoji" aria-label="Open emoji picker" title="Emoji picker"><span class="ico ico-emoji"></span></button>
-            <button class="sendbtn" id="sb"><span class="ico ico-send"></span></button>
+            <button class="ia" id="btn-emoji" aria-label="Open emoji picker" title="Emoji picker"><i class="lucide-smile-plus"></i></button>
+            <button class="sendbtn" id="sb"><i class="lucide-send"></i></button>
           </div>
         </div>
       </div>
@@ -289,7 +290,7 @@
           <div class="house-actions">
             <button class="pixel-btn" id="btn-architect">🏡 BLUEPRINT</button>
             <button class="pixel-btn" id="btn-inventory">📦 ITEMS</button>
-            <button class="pixel-btn" id="btn-house-close"><span class="ico ico-close"></span> EXIT</button>
+            <button class="pixel-btn" id="btn-house-close"><i class="lucide-x"></i> EXIT</button>
           </div>
         </div>
       </div>
@@ -324,7 +325,7 @@
       <div class="notes-view" id="notes-view">
         <div class="win notes-win">
           <div class="win-bar">
-            <h2 class="win-title"><span class="ico ico-pinned"></span> PINNED</h2>
+            <h2 class="win-title"><i class="lucide-pin"></i> PINNED</h2>
           </div>
           <div class="win-body" id="notes-board">
             <!-- Notes rendered here -->
@@ -332,11 +333,11 @@
         </div>
       </div>
       <div class="board-nav" id="board-nav" style="display:none;">
-        <button class="board-nav-btn" id="board-next"><span class="ico ico-arrow-prev"></span> NEWER</button>
+        <button class="board-nav-btn" id="board-next"><i class="lucide-chevron-left"></i> NEWER</button>
         <div class="board-nav-label" id="board-label">BOARD 1 / 1</div>
-        <button class="board-nav-btn" id="board-prev">OLDER <span class="ico ico-arrow-next"></span></button>
+        <button class="board-nav-btn" id="board-prev">OLDER <i class="lucide-chevron-right"></i></button>
         <button class="board-nav-btn" id="notes-add-btn"
-          style="background:var(--color-highlight);color:var(--color-deep);aspect-ratio:1/1;padding:8px;font-size:var(--font-size-input);"><span class="ico ico-pinned"></span></button>
+          style="background:var(--color-highlight);color:var(--color-deep);aspect-ratio:1/1;padding:8px;font-size:var(--font-size-input);"><i class="lucide-pin"></i></button>
       </div>
       <!-- ══ DATES / CALENDAR VIEW ══ -->
       <div class="dates-view" id="dates-view">
@@ -348,13 +349,13 @@
           <div class="win-body">
             <!-- Nav bar -->
             <div class="cal-nav">
-              <button class="cal-nav-btn" id="cal-prev"><span class="ico ico-arrow-prev"></span></button>
+              <button class="cal-nav-btn" id="cal-prev"><i class="lucide-chevron-left"></i></button>
               <div class="cal-nav-title" id="cal-title">MARCH 2026</div>
               <div class="cal-view-tabs" role="tablist">
                 <div class="cal-view-tab pixel-btn on" role="tab" aria-selected="true" tabindex="0" data-view="month">MON</div>
                 <div class="cal-view-tab pixel-btn" role="tab" aria-selected="false" tabindex="-1" data-view="day">DAY</div>
               </div>
-              <button class="cal-nav-btn" id="cal-next"><span class="ico ico-arrow-next"></span></button>
+              <button class="cal-nav-btn" id="cal-next"><i class="lucide-chevron-right"></i></button>
             </div>
             <!-- Calendar body — rendered by JS -->
             <div id="cal-body" style="flex:1;overflow:auto;"></div>
@@ -368,9 +369,9 @@
               <button id="btn-free-time" class="pixel-btn">
                 FIND FREE TIME
               </button>
-              <button id="btn-tz-toggle" class="pixel-btn"><span class="ico ico-globe"></span>
+              <button id="btn-tz-toggle" class="pixel-btn"><i class="lucide-globe"></i>
                 MY TZ</button>
-              <button id="btn-manage-schedule" class="pixel-btn"><span class="ico ico-routine"></span>
+              <button id="btn-manage-schedule" class="pixel-btn"><i class="lucide-repeat"></i>
                 ROUTINE</button>
             </div>
           </div>
@@ -383,9 +384,9 @@
                   <button id="btn-free-time-mobile"
                     style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;">⏰</button>
                   <button id="btn-tz-toggle-mobile"
-                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><span class="ico ico-globe"></span></button>
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><i class="lucide-globe"></i></button>
                   <button id="btn-manage-schedule-mobile"
-                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><span class="ico ico-routine"></span>
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><i class="lucide-repeat"></i>
                     ROUTINE</button>
                 </div>
               </div>
@@ -451,22 +452,22 @@
         <div class="event-popup-bar">
           <div class="event-popup-color" id="event-popup-color"></div>
           <div class="event-popup-title" id="event-popup-title">EVENT</div>
-          <button class="event-popup-close" id="event-popup-close" aria-label="Close event"><span class="ico ico-close"></span></button>
+          <button class="event-popup-close" id="event-popup-close" aria-label="Close event"><i class="lucide-x"></i></button>
         </div>
         <div class="event-popup-body">
           <div class="event-popup-time" id="event-popup-time"></div>
           <div class="event-popup-notes" id="event-popup-notes"></div>
         </div>
         <div class="event-popup-btns">
-          <button class="event-popup-btn" id="event-popup-edit"><span class="ico ico-edit"></span> EDIT</button>
-          <button class="event-popup-btn danger" id="event-popup-delete"><span class="ico ico-delete"></span> DELETE</button>
+          <button class="event-popup-btn" id="event-popup-edit"><i class="lucide-pencil"></i> EDIT</button>
+          <button class="event-popup-btn danger" id="event-popup-delete"><i class="lucide-trash-2"></i> DELETE</button>
         </div>
       </div>
       <div class="event-modal" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
         <div class="event-modal-box">
           <div class="event-modal-bar">
             <div class="event-modal-bar-title" id="event-modal-title">ADD EVENT</div>
-            <button class="event-popup-close" id="event-modal-close" aria-label="Close event modal" style="color:var(--color-primary);"><span class="ico ico-close"></span></button>
+            <button class="event-popup-close" id="event-modal-close" aria-label="Close event modal" style="color:var(--color-primary);"><i class="lucide-x"></i></button>
           </div>
           <div class="event-modal-body">
             <div>
@@ -478,17 +479,17 @@
               <div style="display:flex;align-items:center;gap:6px;">
                 <input class="event-input" id="event-input-date" aria-label="Event date" placeholder="DD / MM / YYYY" maxlength="14"
                   style="flex:1;" autocomplete="off" />
-                <button id="event-cal-toggle" aria-label="Toggle calendar" style="width:32px;height:32px;background:var(--color-dark);border:2px solid var(--color-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--font-size-muted);flex-shrink:0;"><span class="ico ico-calendar"></span></button>
+                <button id="event-cal-toggle" aria-label="Toggle calendar" style="width:32px;height:32px;background:var(--color-dark);border:2px solid var(--color-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--font-size-muted);flex-shrink:0;"><i class="lucide-calendar"></i></button>
               </div>
               <!-- Mini calendar picker -->
               <div id="event-mini-cal"
                 style="display:none;border:2px solid var(--color-dark);background:#ffffff;box-shadow:4px 4px 0 var(--color-dark);margin-top:4px;padding:6px;z-index:100;position:relative;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                  <button class="mini-cal-prev" id="mini-cal-prev" aria-label="Previous month"><span class="ico ico-arrow-prev"></span></button>
+                  <button class="mini-cal-prev" id="mini-cal-prev" aria-label="Previous month"><i class="lucide-chevron-left"></i></button>
                   <div id="mini-cal-title"
                     style="font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-dark);">
                   </div>
-                  <button class="mini-cal-next" id="mini-cal-next" aria-label="Next month"><span class="ico ico-arrow-next"></span></button>
+                  <button class="mini-cal-next" id="mini-cal-next" aria-label="Next month"><i class="lucide-chevron-right"></i></button>
                 </div>
                 <div id="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;"></div>
               </div>
@@ -531,8 +532,8 @@
             </div>
           </div>
           <div class="event-modal-btns">
-            <button class="event-modal-btn primary" id="event-modal-save"><span class="ico ico-pinned"></span> SAVE</button>
-            <button class="event-modal-btn" id="event-modal-cancel"><span class="ico ico-close"></span></button>
+            <button class="event-modal-btn primary" id="event-modal-save"><i class="lucide-pin"></i> SAVE</button>
+            <button class="event-modal-btn" id="event-modal-cancel"><i class="lucide-x"></i></button>
           </div>
         </div>
       </div>
@@ -544,22 +545,22 @@
   <!-- Add note modal -->
   <div class="notes-modal" id="notes-modal" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
     <div class="notes-modal-box">
-      <div class="notes-modal-title" id="notes-modal-title"><span class="ico ico-pinned"></span> PIN A NOTE</div>
+      <div class="notes-modal-title" id="notes-modal-title"><i class="lucide-pin"></i> PIN A NOTE</div>
       <textarea class="notes-modal-textarea" id="notes-textarea" aria-label="Note text" placeholder="write something..."
         maxlength="200"></textarea>
       <div class="notes-modal-chars"><span id="notes-chars">200</span> CHARS LEFT</div>
       <div class="notes-modal-btns">
-        <button class="notes-modal-pin" id="notes-modal-submit"><span class="ico ico-pinned"></span> PIN IT</button>
-        <button class="notes-modal-cancel" id="notes-modal-cancel"><span class="ico ico-close"></span></button>
+        <button class="notes-modal-pin" id="notes-modal-submit"><i class="lucide-pin"></i> PIN IT</button>
+        <button class="notes-modal-cancel" id="notes-modal-cancel"><i class="lucide-x"></i></button>
       </div>
     </div>
   </div>
 
   <!-- ══ MESSAGE CONTEXT MENU ══ -->
   <div class="msg-context-menu" id="msg-context-menu">
-    <button class="ctx-item" id="ctx-reply"><span class="ico ico-reply"></span> REPLY</button>
-    <button class="ctx-item" id="ctx-copy"><span class="ico ico-copy"></span> COPY</button>
-    <button class="ctx-item" id="ctx-react"><span class="ico ico-react"></span> REACT</button>
+    <button class="ctx-item" id="ctx-reply"><i class="lucide-reply"></i> REPLY</button>
+    <button class="ctx-item" id="ctx-copy"><i class="lucide-copy"></i> COPY</button>
+    <button class="ctx-item" id="ctx-react"><i class="lucide-heart"></i> REACT</button>
   </div>
   <!-- ══ SETTINGS OVERLAY ══ -->
   <div class="settings-overlay" id="settings-overlay"></div>
@@ -567,20 +568,20 @@
   <div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-header">
       <h2 class="win-title" id="settings-title">SETTINGS</h2>
-      <button class="settings-close" aria-label="Close settings"><span class="ico ico-close"></span></button>
+      <button class="settings-close" aria-label="Close settings"><i class="lucide-x"></i></button>
     </div>
     <!-- Chat -->
     <div class="settings-section">
       <div class="settings-section-title">CHAT HISTORY</div>
-      <button class="settings-btn" id="btn-clear-chat-settings"><span class="ico ico-delete"></span> CLEAR CHAT FOR ME</button>
-      <button class="settings-btn" id="btn-restore-chat"><span class="ico ico-reply"></span> RESTORE CLEARED CHAT</button>
+      <button class="settings-btn" id="btn-clear-chat-settings"><i class="lucide-trash-2"></i> CLEAR CHAT FOR ME</button>
+      <button class="settings-btn" id="btn-restore-chat"><i class="lucide-reply"></i> RESTORE CLEARED CHAT</button>
     </div>
     <!-- Notifications -->
     <div class="settings-section">
       <div class="settings-section-title">NOTIFICATIONS</div>
       <label class="settings-toggle">
         <input type="checkbox" id="setting-sound-alerts" checked onchange="saveNotificationPrefs()">
-        <span class="toggle-label"><span class="ico ico-bell"></span> Sound Alerts</span>
+        <span class="toggle-label"><i class="lucide-bell"></i> Sound Alerts</span>
       </label>
       <label class="settings-toggle">
         <input type="checkbox" id="setting-unread-badges" checked onchange="saveNotificationPrefs()">
@@ -596,7 +597,7 @@
       <div class="avatar-upload-area">
         <div class="avatar-preview" id="avatar-preview-me"></div>
         <div>
-          <button class="avatar-upload-btn" id="avatar-upload-btn"><span class="ico ico-upload"></span> UPLOAD IMAGE<br><span
+          <button class="avatar-upload-btn" id="avatar-upload-btn"><i class="lucide-upload"></i> UPLOAD IMAGE<br><span
               style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);">PNG, JPG, GIF — max
               2MB</span></button>
           <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
@@ -611,10 +612,10 @@
     <div class="settings-section" id="settings-spotify-section">
       <div class="settings-section-title">SPOTIFY</div>
 <button class="settings-btn" id="btn-settings-spotify" style="display:none;">
-        <span class="ico ico-spotify"></span> CONNECT SPOTIFY
+        <i class="lucide-headphones"></i> CONNECT SPOTIFY
       </button>
 <button class="settings-btn danger" id="btn-settings-spotify-disconnect" style="display:none;">
-        <span class="ico ico-spotify"></span> DISCONNECT SPOTIFY
+        <i class="lucide-headphones"></i> DISCONNECT SPOTIFY
       </button>
     </div>
     <!-- Account -->
@@ -625,7 +626,7 @@
       </div>
       <div class="tz-input-row">
         <input id="settings-tz-input" aria-label="Timezone" placeholder="Asia/Kolkata" autocomplete="off" spellcheck="false" />
-        <button class="tz-save-btn" id="settings-tz-save"><span class="ico ico-save"></span></button>
+        <button class="tz-save-btn" id="settings-tz-save"><i class="lucide-save"></i></button>
       </div>
       <div id="settings-tz-current"
         style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-primary);margin-top:6px;">
@@ -633,11 +634,11 @@
     </div>
     <div class="settings-section">
       <div class="settings-section-title">ACCOUNT</div>
-      <button class="settings-btn danger" id="btn-logout"><span class="ico ico-logout"></span> LOGOUT</button>
+      <button class="settings-btn danger" id="btn-logout"><i class="lucide-log-out"></i> LOGOUT</button>
     </div>
     <div class="settings-section" id="settings-admin-section" style="display:none;">
       <div class="settings-section-title">ADMIN</div>
-      <button class="settings-btn" id="btn-export-data"><span class="ico ico-export"></span> EXPORT DATA</button>
+      <button class="settings-btn" id="btn-export-data"><i class="lucide-download"></i> EXPORT DATA</button>
     </div>
   </div>
   <!-- ══ STATS / MILESTONE MODAL ══ -->
@@ -645,7 +646,7 @@
     <div class="stats-modal-box">
       <div class="stats-modal-bar">
         <div class="stats-modal-title" id="stats-modal-title">♥ IRON &amp; CUBBY</div>
-        <button class="stats-modal-close" id="stats-modal-close"><span class="ico ico-close"></span></button>
+        <button class="stats-modal-close" id="stats-modal-close"><i class="lucide-x"></i></button>
       </div>
       <div class="stats-modal-body">
         <div>
@@ -696,11 +697,11 @@
     </div>
     <div class="call-timer" id="call-timer">00:00</div>
     <div class="call-controls">
-      <button class="call-ctrl active" id="ctrl-mute" aria-label="Toggle mute"><span class="ico ico-mute-on"></span><div class="call-ctrl-label">MUTE</div></button>
-      <button class="call-ctrl active" id="ctrl-cam" style="display:none;" aria-label="Toggle camera"><span class="ico ico-cam-on"></span><div class="call-ctrl-label">CAM</div></button>
-      <button class="call-ctrl" id="ctrl-screen" style="display:none;" aria-label="Share screen"><span class="ico ico-screen"></span><div class="call-ctrl-label">SHARE</div></button>
-      <button class="call-ctrl" id="ctrl-minimize" aria-label="Minimize call"><span class="ico ico-minimize"></span><div class="call-ctrl-label">MIN</div></button>
-      <button class="call-ctrl danger" id="ctrl-hangup" aria-label="End call"><span class="ico ico-hangup"></span><div class="call-ctrl-label">END</div></button>
+      <button class="call-ctrl active" id="ctrl-mute" aria-label="Toggle mute"><i class="lucide-volume-2"></i><div class="call-ctrl-label">MUTE</div></button>
+      <button class="call-ctrl active" id="ctrl-cam" style="display:none;" aria-label="Toggle camera"><i class="lucide-camera"></i><div class="call-ctrl-label">CAM</div></button>
+      <button class="call-ctrl" id="ctrl-screen" style="display:none;" aria-label="Share screen"><i class="lucide-monitor"></i><div class="call-ctrl-label">SHARE</div></button>
+      <button class="call-ctrl" id="ctrl-minimize" aria-label="Minimize call"><i class="lucide-minus"></i><div class="call-ctrl-label">MIN</div></button>
+      <button class="call-ctrl danger" id="ctrl-hangup" aria-label="End call"><i class="lucide-phone-off"></i><div class="call-ctrl-label">END</div></button>
     </div>
   </div>
   <!-- ══ MINI CALL BAR ══ -->

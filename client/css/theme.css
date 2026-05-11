@@ -268,14 +268,7 @@
    --color-peach: var(--color-primary);
 
 
-   /* ── 10. SPRITE SHEETS ────────────────────────────────────────────────
-      Path to pixel art spritesheets — only icons for now.
-   ──────────────────────────────────────────────────────────────────────── */
-
-   --sprite-icons: url('../assets/themes/classic/icons.png');
-
-
-   /* ── 11. BUTTON SURFACES ──────────────────────────────────────────────
+/* ── 10. BUTTON SURFACES ──────────────────────────────────────────────
       All button chrome is pure CSS (box-shadow + hard borders).
       Recolor via these tokens — no button sprites needed.
    ──────────────────────────────────────────────────────────────────────── */

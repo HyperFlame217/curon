@@ -1,68 +1,15 @@
-.ico {
+.lucide {
   display: inline-block;
-  background-image: var(--sprite-icons);
-  background-size: 180px 100px;
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
   vertical-align: middle;
-  width: 16px;
-  height: 16px;
-  transform: scale(1.5);
-  transform-origin: center;
+  flex-shrink: 0;
 }
 
-/* Icons are 16x16 drawn centered in 20x20 cells - offset by 2px */
-.ico-chat    { background-position:  -2px  -2px; }
-.ico-gallery { background-position: -22px  -2px; }
-.ico-pinned  { background-position: -42px  -2px; }
-.ico-dates   { background-position: -62px  -2px; }
-.ico-call    { background-position: -82px  -2px; }
-.ico-video   { background-position: -102px  -2px; }
-.ico-search  { background-position: -122px  -2px; }
-.ico-delete  { background-position: -142px  -2px; }
-.ico-close   { background-position: -162px  -2px; }
-
-/* Row 1 */
-.ico-settings { background-position:  -2px -22px; }
-.ico-menu     { background-position: -22px -22px; }
-.ico-spotify  { background-position: -42px -22px; }
-.ico-connect  { background-position: -62px -22px; }
-.ico-attach   { background-position: -82px -22px; }
-.ico-gif      { background-position: -102px -22px; }
-.ico-mic      { background-position: -122px -22px; }
-.ico-emoji    { background-position: -142px -22px; }
-.ico-send     { background-position: -162px -22px; }
-
-/* Row 2 */
-.ico-reply    { background-position:  -2px -42px; }
-.ico-copy     { background-position: -22px -42px; }
-.ico-react    { background-position: -42px -42px; }
-.ico-edit     { background-position: -62px -42px; }
-.ico-calendar { background-position: -82px -42px; }
-.ico-routine  { background-position: -102px -42px; }
-.ico-mute-on  { background-position: -122px -42px; }
-.ico-mute-off { background-position: -142px -42px; }
-.ico-cam-on   { background-position: -162px -42px; }
-
-/* Row 3 */
-.ico-cam-off   { background-position:  -2px -62px; }
-.ico-screen    { background-position: -22px -62px; }
-.ico-minimize  { background-position: -42px -62px; }
-.ico-hangup    { background-position: -62px -62px; }
-.ico-logout    { background-position: -82px -62px; }
-.ico-export    { background-position: -102px -62px; }
-.ico-bell      { background-position: -122px -62px; }
-.ico-upload    { background-position: -142px -62px; }
-.ico-save      { background-position: -162px -62px; }
-
-/* Row 4 */
-.ico-globe      { background-position:  -2px -82px; }
-.ico-arrow-prev { background-position: -22px -82px; }
-.ico-arrow-next { background-position: -42px -82px; }
-.ico-file       { background-position: -62px -82px; }
-.ico-image      { background-position: -82px -82px; }
-.ico-file-video { background-position: -102px -82px; }
-.ico-audio      { background-position: -122px -82px; }
+.ico {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}

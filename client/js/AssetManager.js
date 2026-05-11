@@ -1,24 +1,65 @@
 const AssetManager = {
-  loaded: false,
+  loaded: true,
+
+  _iconMap: {
+    chat: 'message-square',
+    gallery: 'images',
+    pinned: 'pin',
+    dates: 'calendar-days',
+    call: 'phone',
+    video: 'video',
+    search: 'search',
+    delete: 'trash-2',
+    close: 'x',
+    settings: 'settings',
+    menu: 'menu',
+    spotify: 'headphones',
+    connect: 'link',
+    attach: 'paperclip',
+    gif: 'file-image',
+    mic: 'mic',
+    emoji: 'smile-plus',
+    send: 'send',
+    reply: 'reply',
+    copy: 'copy',
+    react: 'heart',
+    edit: 'pencil',
+    calendar: 'calendar',
+    routine: 'repeat',
+    'mute-on': 'volume-2',
+    'mute-off': 'volume-x',
+    'cam-on': 'camera',
+    'cam-off': 'camera-off',
+    screen: 'monitor',
+    minimize: 'minus',
+    hangup: 'phone-off',
+    logout: 'log-out',
+    export: 'download',
+    bell: 'bell',
+    upload: 'upload',
+    save: 'save',
+    globe: 'globe',
+    'arrow-prev': 'chevron-left',
+    'arrow-next': 'chevron-right',
+    file: 'file',
+    image: 'image',
+    'file-video': 'film',
+    audio: 'file-audio'
+  },
 
   preload(callback) {
-    const img = new Image();
-    img.onload = () => { this.loaded = true; if (callback) callback(); };
-    img.onerror = () => { this.loaded = true; if (callback) callback(); };
-    img.src = getComputedStyle(document.documentElement)
-      .getPropertyValue('--sprite-icons')
-      .trim()
-      .replace(/^url\(["']?|["']?\)$/g, '');
-    setTimeout(() => { if (!this.loaded) { this.loaded = true; if (callback) callback(); } }, 3000);
+    if (callback) callback();
   },
 
   icon(name) {
-    return `<span class="ico ico-${name}" aria-hidden="true"></span>`;
+    const lucideName = this._iconMap[name] || name;
+    return `<i class="lucide-${lucideName}" aria-hidden="true"></i>`;
   },
 
   iconEl(name) {
-    const el = document.createElement('span');
-    el.className = `ico ico-${name}`;
+    const lucideName = this._iconMap[name] || name;
+    const el = document.createElement('i');
+    el.className = `lucide-${lucideName}`;
     el.setAttribute('aria-hidden', 'true');
     return el;
   }

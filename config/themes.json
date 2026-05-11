@@ -16,8 +16,7 @@
       "display": "Press Start 2P",
       "body": "VT323"
     },
-    "chrome": "assets/themes/classic/chrome.png",
-    "icons": "assets/themes/classic/icons.png"
+    "chrome": "assets/themes/classic/chrome.png"
   },
   {
     "id": "cherry_blossom",
@@ -36,7 +35,6 @@
       "display": "Orbitron",
       "body": "VT323"
     },
-    "chrome": "assets/themes/cherry/chrome.png",
-    "icons": "assets/themes/cherry/icons.png"
+    "chrome": "assets/themes/cherry/chrome.png"
   }
 ]

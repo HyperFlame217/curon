@@ -82,7 +82,7 @@
 
       if (!blocks.length) {
         list.innerHTML = `<div class="schedule-empty-state">
-          <div class="schedule-empty-state-icon"><span class="ico ico-calendar"></span></div>
+          <div class="schedule-empty-state-icon"><i class="lucide-calendar"></i></div>
           <div class="schedule-empty-state-text">NO BLOCKS YET</div>
         </div>`;
         return;
@@ -96,7 +96,7 @@
           <div class="schedule-block-chip" style="background:${b.color};"></div>
           <div class="schedule-block-label">${escHtml(b.label)}</div>
           <div class="schedule-block-time">${minutesToTime(b.start_minute)} – ${minutesToTime(b.end_minute)}</div>
-          <div class="schedule-block-del" data-id="${b.id}"><span class="ico ico-close"></span></div>
+          <div class="schedule-block-del" data-id="${b.id}"><i class="lucide-x"></i></div>
         `;
         item.querySelector('.schedule-block-del').addEventListener('click', async () => {
           await fetch(`/calendar/schedule/${b.id}`, {
