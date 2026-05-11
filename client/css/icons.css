@@ -8,69 +8,57 @@
   image-rendering: crisp-edges;
   flex-shrink: 0;
   vertical-align: middle;
-  width: 16px;
-  height: 16px;
-  transform: scale(1.5);
-  transform-origin: center;
-}
-
-/* Fix for buttons - ensure proper spacing with scaled icons */
-button.ni .ico,
-button.sb-btn .ico,
-button.mh-btn .ico,
-button.act-btn .ico {
-  margin-right: 4px;
 }
 
 /* ── Row 0 ── */
-.ico-chat    { background-position:   0px   0px; }
-.ico-gallery { background-position: -20px   0px; }
-.ico-pinned  { background-position: -40px   0px; }
-.ico-dates   { background-position: -60px   0px; }
-.ico-call    { background-position: -80px   0px; }
-.ico-video   { background-position: -100px   0px; }
-.ico-search  { background-position: -120px   0px; }
-.ico-delete  { background-position: -140px   0px; }
-.ico-close   { background-position: -160px   0px; }
+.ico-chat    { width: 16px; height: 16px; background-position:   0px   0px; }
+.ico-gallery { width: 16px; height: 16px; background-position: -20px   0px; }
+.ico-pinned  { width: 16px; height: 16px; background-position: -40px   0px; }
+.ico-dates   { width: 16px; height: 16px; background-position: -60px   0px; }
+.ico-call    { width: 16px; height: 16px; background-position: -80px   0px; }
+.ico-video   { width: 16px; height: 16px; background-position: -100px   0px; }
+.ico-search  { width: 16px; height: 16px; background-position: -120px   0px; }
+.ico-delete  { width: 16px; height: 16px; background-position: -140px   0px; }
+.ico-close   { width: 16px; height: 16px; background-position: -160px   0px; }
 
 /* ── Row 1 ── */
-.ico-settings { background-position:   0px -20px; }
-.ico-menu     { background-position: -20px -20px; }
-.ico-spotify  { background-position: -40px -20px; }
-.ico-connect  { background-position: -60px -20px; }
-.ico-attach   { background-position: -80px -20px; }
-.ico-gif      { background-position: -100px -20px; }
-.ico-mic      { background-position: -120px -20px; }
-.ico-emoji    { background-position: -140px -20px; }
-.ico-send     { background-position: -160px -20px; }
+.ico-settings { width: 16px; height: 16px; background-position:   0px -20px; }
+.ico-menu     { width: 16px; height: 16px; background-position: -20px -20px; }
+.ico-spotify  { width: 16px; height: 16px; background-position: -40px -20px; }
+.ico-connect  { width: 16px; height: 16px; background-position: -60px -20px; }
+.ico-attach   { width: 16px; height: 16px; background-position: -80px -20px; }
+.ico-gif      { width: 16px; height: 16px; background-position: -100px -20px; }
+.ico-mic      { width: 16px; height: 16px; background-position: -120px -20px; }
+.ico-emoji    { width: 16px; height: 16px; background-position: -140px -20px; }
+.ico-send     { width: 16px; height: 16px; background-position: -160px -20px; }
 
 /* ── Row 2 ── */
-.ico-reply    { background-position:   0px -40px; }
-.ico-copy     { background-position: -20px -40px; }
-.ico-react    { background-position: -40px -40px; }
-.ico-edit     { background-position: -60px -40px; }
-.ico-calendar { background-position: -80px -40px; }
-.ico-routine  { background-position: -100px -40px; }
-.ico-mute-on  { background-position: -120px -40px; }
-.ico-mute-off { background-position: -140px -40px; }
-.ico-cam-on   { background-position: -160px -40px; }
+.ico-reply    { width: 16px; height: 16px; background-position:   0px -40px; }
+.ico-copy     { width: 16px; height: 16px; background-position: -20px -40px; }
+.ico-react    { width: 16px; height: 16px; background-position: -40px -40px; }
+.ico-edit     { width: 16px; height: 16px; background-position: -60px -40px; }
+.ico-calendar { width: 16px; height: 16px; background-position: -80px -40px; }
+.ico-routine  { width: 16px; height: 16px; background-position: -100px -40px; }
+.ico-mute-on  { width: 16px; height: 16px; background-position: -120px -40px; }
+.ico-mute-off { width: 16px; height: 16px; background-position: -140px -40px; }
+.ico-cam-on   { width: 16px; height: 16px; background-position: -160px -40px; }
 
 /* ── Row 3 ── */
-.ico-cam-off   { background-position:   0px -60px; }
-.ico-screen    { background-position: -20px -60px; }
-.ico-minimize  { background-position: -40px -60px; }
-.ico-hangup    { background-position: -60px -60px; }
-.ico-logout    { background-position: -80px -60px; }
-.ico-export    { background-position: -100px -60px; }
-.ico-bell      { background-position: -120px -60px; }
-.ico-upload    { background-position: -140px -60px; }
-.ico-save      { background-position: -160px -60px; }
+.ico-cam-off   { width: 16px; height: 16px; background-position:   0px -60px; }
+.ico-screen    { width: 16px; height: 16px; background-position: -20px -60px; }
+.ico-minimize  { width: 16px; height: 16px; background-position: -40px -60px; }
+.ico-hangup    { width: 16px; height: 16px; background-position: -60px -60px; }
+.ico-logout    { width: 16px; height: 16px; background-position: -80px -60px; }
+.ico-export    { width: 16px; height: 16px; background-position: -100px -60px; }
+.ico-bell      { width: 16px; height: 16px; background-position: -120px -60px; }
+.ico-upload    { width: 16px; height: 16px; background-position: -140px -60px; }
+.ico-save      { width: 16px; height: 16px; background-position: -160px -60px; }
 
 /* ── Row 4 ── */
-.ico-globe      { background-position:   0px -80px; }
-.ico-arrow-prev { background-position: -20px -80px; }
-.ico-arrow-next { background-position: -40px -80px; }
-.ico-file       { background-position: -60px -80px; }
-.ico-image      { background-position: -80px -80px; }
-.ico-file-video { background-position: -100px -80px; }
-.ico-audio      { background-position: -120px -80px; }
+.ico-globe      { width: 16px; height: 16px; background-position:   0px -80px; }
+.ico-arrow-prev { width: 16px; height: 16px; background-position: -20px -80px; }
+.ico-arrow-next { width: 16px; height: 16px; background-position: -40px -80px; }
+.ico-file       { width: 16px; height: 16px; background-position: -60px -80px; }
+.ico-image      { width: 16px; height: 16px; background-position: -80px -80px; }
+.ico-file-video { width: 16px; height: 16px; background-position: -100px -80px; }
+.ico-audio      { width: 16px; height: 16px; background-position: -120px -80px; }
