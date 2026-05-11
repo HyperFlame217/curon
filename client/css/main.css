@@ -3785,9 +3785,14 @@ textarea::placeholder {
 
 .timeline-date-label {
   font-family: var(--font-header);
-  font-size: var(--font-size-tiny);
-  color: var(--color-deep);
-  padding: 0 10px 4px;
+  font-size: var(--font-size-xsmall);
+  color: var(--color-base);
+  background-color: var(--color-dark);
+  padding: 6px 14px;
+  margin: 4px 0 8px 10px;
+  display: inline-block;
+  border: 1px solid var(--color-deep);
+  box-shadow: 2px 2px 0 var(--color-deep);
   flex-shrink: 0;
 }
 
@@ -3840,12 +3845,12 @@ textarea::placeholder {
 
 .timeline-user-label {
   font-family: var(--font-header);
-  font-size: var(--font-size-tiny);
+  font-size: var(--font-size-timeline-user);
   color: var(--color-deep);
   width: 80px;
   text-align: right;
   padding-right: 8px;
-  line-height: 1.8;
+  line-height: 1.1;
   background: var(--color-base);
   border-right: 2px solid var(--color-border-light);
   position: sticky;
@@ -3855,6 +3860,11 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.timeline-user-sub {
+  font-size: var(--font-size-timeline-sub);
+  opacity: 0.9;
 }
 
 .timeline-track {
@@ -4502,7 +4512,7 @@ textarea::placeholder {
 .schedule-block-time {
   font-family: var(--font-header);
   font-size: var(--font-size-micro);
-  color: var(--color-forest);
+  color: var(--color-deep);
 }
 
 .schedule-block-del {
