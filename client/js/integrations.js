@@ -71,7 +71,7 @@
         if (bars) bars.style.display = 'none';
         if (progress) progress.style.display = 'none';
         if (art) {
-          art.innerHTML = '🎵';
+          art.innerHTML = '<i class="icon-music" style="font-size:14px;"></i>';
           art.style.backgroundImage = '';
         }
         return;

@@ -1,4 +1,4 @@
-.icon- {
+[class^="icon-"] {
   display: inline-block;
   font-size: 32px !important;
   line-height: 1;
