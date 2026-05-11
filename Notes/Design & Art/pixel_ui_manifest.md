@@ -249,7 +249,7 @@ The only pixel art you need to create: **47 icons** (reduced from 61 after audit
 | 10 | `ico-settings` | ⚙ | 18×18 | App header |
 | 11 | `ico-menu` | ☰ | 18×18 | Mobile header |
 | 12 | `ico-spotify` | 🎵 | 18×18 | Spotify widget |
-| 13 | `ico-connect` | ♫ | 16×16 | Spotify connect |
+| 13 | `ico-connect` | ♫ | 18×18 | Spotify connect |
 
 ### Message Input (5 icons)
 | # | Name | Replaces | Size | Used In |
@@ -263,16 +263,16 @@ The only pixel art you need to create: **47 icons** (reduced from 61 after audit
 ### Context Menu (3 icons)
 | # | Name | Replaces | Size | Used In |
 |---|---|---|---|---|
-| 19 | `ico-reply` | ↩ | 16×16 | Context menu |
-| 20 | `ico-copy` | 📋 | 16×16 | Context menu |
-| 21 | `ico-react` | 😊 | 16×16 | Context menu |
+| 19 | `ico-reply` | ↩ | 18×18 | Context menu |
+| 20 | `ico-copy` | 📋 | 18×18 | Context menu |
+| 21 | `ico-react` | 😊 | 18×18 | Context menu |
 
 ### Event / Calendar (3 icons — clock removed)
 | # | Name | Replaces | Size | Used In |
 |---|---|---|---|---|
-| 22 | `ico-edit` | ✏ | 16×16 | Event popup |
-| 23 | `ico-calendar` | 📅 | 16×16 | Event modal |
-| 24 | `ico-routine` | ⚙ | 16×16 | Schedule bar |
+| 22 | `ico-edit` | ✏ | 18×18 | Event popup |
+| 23 | `ico-calendar` | 📅 | 18×18 | Event modal |
+| 24 | `ico-routine` | ⚙ | 18×18 | Schedule bar |
 
 ### Call Controls (8 icons — expanded from 6)
 | # | Name | Replaces | Size | Used In |
@@ -289,24 +289,24 @@ The only pixel art you need to create: **47 icons** (reduced from 61 after audit
 ### Settings (6 icons — palette removed)
 | # | Name | Replaces | Size | Used In |
 |---|---|---|---|---|
-| 33 | `ico-logout` | ⏻ | 16×16 | Settings |
-| 34 | `ico-export` | 📤 | 16×16 | Settings (admin) |
-| 35 | `ico-bell` | 🔔 | 16×16 | Notification toggle |
+| 33 | `ico-logout` | ⏻ | 18×18 | Settings |
+| 34 | `ico-export` | 📤 | 18×18 | Settings (admin) |
+| 35 | `ico-bell` | 🔔 | 18×18 | Notification toggle |
 | 36 | `ico-upload` | 📁 | 18×18 | Avatar upload |
-| 37 | `ico-save` | 💾 | 16×16 | Timezone save |
-| 38 | `ico-globe` | 🌐 | 16×16 | Timezone |
+| 37 | `ico-save` | 💾 | 18×18 | Timezone save |
+| 38 | `ico-globe` | 🌐 | 18×18 | Timezone |
 
 ### Special (3 icons — star/check removed)
 | # | Name | Replaces | Size | Used In |
 |---|---|---|---|---|
-| 39 | `ico-heart` | ♥ | 16×16 | Stats modal |
-| 40 | `ico-plus` | + | 16×16 | Add buttons |
+| 39 | `ico-heart` | ♥ | 18×18 | Stats modal |
+| 40 | `ico-plus` | + | 18×18 | Add buttons |
 
 ### Navigation Arrows (2 icons — up/down removed)
 | # | Name | Replaces | Size | Used In |
 |---|---|---|---|---|
-| 41 | `ico-arrow-prev` | ◀ | 12×12 | Calendar, board nav |
-| 42 | `ico-arrow-next` | ▶ | 12×12 | Calendar, board nav |
+| 41 | `ico-arrow-prev` | ◀ | 18×18 | Calendar, board nav |
+| 42 | `ico-arrow-next` | ▶ | 18×18 | Calendar, board nav |
 
 ### File Type Icons (4 icons)
 | # | Name | Replaces | Size | Used In |

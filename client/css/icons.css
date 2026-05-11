@@ -26,7 +26,7 @@
 .ico-settings { width: 18px; height: 18px; background-position:   0px -20px; }
 .ico-menu     { width: 18px; height: 18px; background-position: -20px -20px; }
 .ico-spotify  { width: 18px; height: 18px; background-position: -40px -20px; }
-.ico-connect  { width: 16px; height: 16px; background-position: -60px -20px; }
+.ico-connect  { width: 18px; height: 18px; background-position: -60px -20px; }
 
 /* ── Message input ── */
 .ico-attach { width: 18px; height: 18px; background-position:   0px -40px; }
@@ -36,14 +36,14 @@
 .ico-send   { width: 18px; height: 18px; background-position: -80px -40px; }
 
 /* ── Context menu ── */
-.ico-reply { width: 16px; height: 16px; background-position:   0px -60px; }
-.ico-copy  { width: 16px; height: 16px; background-position: -20px -60px; }
-.ico-react { width: 16px; height: 16px; background-position: -40px -60px; }
+.ico-reply { width: 18px; height: 18px; background-position:   0px -60px; }
+.ico-copy  { width: 18px; height: 18px; background-position: -20px -60px; }
+.ico-react { width: 18px; height: 18px; background-position: -40px -60px; }
 
 /* ── Event / Calendar ── */
-.ico-edit     { width: 16px; height: 16px; background-position:   0px -80px; }
-.ico-calendar { width: 16px; height: 16px; background-position: -20px -80px; }
-.ico-routine  { width: 16px; height: 16px; background-position: -40px -80px; }
+.ico-edit     { width: 18px; height: 18px; background-position:   0px -80px; }
+.ico-calendar { width: 18px; height: 18px; background-position: -20px -80px; }
+.ico-routine  { width: 18px; height: 18px; background-position: -40px -80px; }
 
 /* ── Call controls ── */
 .ico-mute-on    { width: 18px; height: 18px; background-position:   0px -100px; }
@@ -58,20 +58,20 @@
 .ico-call-avatar { width: 48px; height: 48px; background-position:   0px -120px; }
 
 /* ── Settings ── */
-.ico-logout { width: 16px; height: 16px; background-position:   0px -180px; }
-.ico-export { width: 16px; height: 16px; background-position: -20px -180px; }
-.ico-bell   { width: 16px; height: 16px; background-position: -40px -180px; }
+.ico-logout { width: 18px; height: 18px; background-position:   0px -180px; }
+.ico-export { width: 18px; height: 18px; background-position: -20px -180px; }
+.ico-bell   { width: 18px; height: 18px; background-position: -40px -180px; }
 .ico-upload { width: 18px; height: 18px; background-position: -60px -180px; }
-.ico-save   { width: 16px; height: 16px; background-position: -80px -180px; }
-.ico-globe  { width: 16px; height: 16px; background-position: -100px -180px; }
+.ico-save   { width: 18px; height: 18px; background-position: -80px -180px; }
+.ico-globe  { width: 18px; height: 18px; background-position: -100px -180px; }
 
 /* ── Special ── */
-.ico-heart { width: 16px; height: 16px; background-position:   0px -200px; }
-.ico-plus  { width: 16px; height: 16px; background-position: -20px -200px; }
+.ico-heart { width: 18px; height: 18px; background-position:   0px -200px; }
+.ico-plus  { width: 18px; height: 18px; background-position: -20px -200px; }
 
 /* ── Navigation arrows ── */
-.ico-arrow-prev { width: 12px; height: 12px; background-position:   0px -220px; }
-.ico-arrow-next { width: 12px; height: 12px; background-position: -20px -220px; }
+.ico-arrow-prev { width: 18px; height: 18px; background-position:   0px -220px; }
+.ico-arrow-next { width: 18px; height: 18px; background-position: -20px -220px; }
 
 /* ── File types ── */
 .ico-file       { width: 18px; height: 18px; background-position:   0px -240px; }
