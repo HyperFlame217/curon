@@ -182,6 +182,17 @@
       // Bar stays; onCallParticipantUpdate re-renders it
     }
 
+    // Global alias for legacy calls in ui.js and ws.js
+    window.endCall = function(force = false) {
+      console.log('[CALL] endCall triggered, force:', force);
+      leaveCall();
+      if (force) {
+        document.getElementById('call-bar')?.classList.remove('show');
+        document.getElementById('call-overlay')?.classList.remove('show', 'fullscreen-mode');
+        document.getElementById('call-mini')?.classList.remove('show');
+      }
+    };
+
     // ════════════════════════════════════════════════════════════
     //  INTERNAL HELPERS
     // ════════════════════════════════════════════════════════════
@@ -477,15 +488,15 @@
 
     function initCalls() {
       // Overlay controls
-      document.getElementById('ctrl-mute').addEventListener('click', toggleMute);
-      document.getElementById('ctrl-cam').addEventListener('click', toggleCamera);
-      document.getElementById('ctrl-screen').addEventListener('click', toggleScreenShare);
-      document.getElementById('ctrl-minimize').addEventListener('click', minimizeCall);
-      document.getElementById('ctrl-hangup').addEventListener('click', leaveCall);
+      document.getElementById('ctrl-mute')?.addEventListener('click', toggleMute);
+      document.getElementById('ctrl-cam')?.addEventListener('click', toggleCamera);
+      document.getElementById('ctrl-screen')?.addEventListener('click', toggleScreenShare);
+      document.getElementById('ctrl-minimize')?.addEventListener('click', minimizeCall);
+      document.getElementById('ctrl-hangup')?.addEventListener('click', leaveCall);
 
       // Persistent call bar buttons
-      document.getElementById('call-bar-join').addEventListener('click', joinCall);
-      document.getElementById('call-bar-leave').addEventListener('click', leaveCall);
+      document.getElementById('call-bar-join')?.addEventListener('click', joinCall);
+      document.getElementById('call-bar-leave')?.addEventListener('click', leaveCall);
 
       // Sidebar / mobile header call buttons
       document.querySelectorAll('.sb-btn, .mh-btn, .act-btn').forEach(btn => {

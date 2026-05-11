@@ -470,11 +470,14 @@
       const myScheduleShifted = getShiftedSchedule(myId, getMyTz());
       const otherScheduleShifted = getShiftedSchedule(otherId, getOtherTz());
 
+      const myEvents = dayEvents.filter(e => e.user_id === myId);
+      const otherEvents = dayEvents.filter(e => e.user_id === otherId);
+
       scroll.innerHTML =
         `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(myScheduleShifted, true)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(dayEvents, false)}</div>` +
+        `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(myEvents, false)}</div>` +
         `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(otherScheduleShifted, true)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(dayEvents, false)}</div>`;
+        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(otherEvents, false)}</div>`;
 
       if (window._showFreeTime) {
         scroll.classList.add('freetime-active');
@@ -938,7 +941,9 @@
       // Close popup on outside click
       document.addEventListener('click', (e) => {
         const popup = document.getElementById('event-popup');
-        if (popup.classList.contains('show') && !popup.contains(e.target)) closeEventPopup();
+        if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.timeline-block')) {
+          closeEventPopup();
+        }
       });
 
       // Event modal

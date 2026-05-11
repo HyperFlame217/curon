@@ -4,6 +4,9 @@ let _historyLoading = false;
 let _oldestMsgId = null;
 let _allLoaded = false;
 
+// P1-H: E2EE shim to prevent crashes during key exchange
+async function importPublicKey(key) { return key; }
+
 async function renderHistory(msgs, before = null, isTeleport = false) {
   const container = document.getElementById('msgs');
 

@@ -226,9 +226,9 @@
 
     // ── Init ──────────────────────────────────────────────────────
     function initNotes() {
-      document.getElementById('notes-add-btn').addEventListener('click', openNoteModal);
-      document.getElementById('notes-modal-submit').addEventListener('click', submitNote);
-      document.getElementById('notes-modal-cancel').addEventListener('click', closeNoteModal);
+      document.getElementById('notes-add-btn')?.addEventListener('click', openNoteModal);
+      document.getElementById('notes-modal-submit')?.addEventListener('click', submitNote);
+      document.getElementById('notes-modal-cancel')?.addEventListener('click', closeNoteModal);
       document.getElementById('btn-house-close')?.addEventListener('click', closeHouse);
 
       document.getElementById('board-prev')?.addEventListener('click', () => {
@@ -241,16 +241,20 @@
         if (_currentBoard > 0) { _currentBoard--; renderBoard(); }
       });
 
-      document.getElementById('notes-textarea').addEventListener('input', (e) => {
-        document.getElementById('notes-chars').textContent = 200 - e.target.value.length;
-      });
+      const textarea = document.getElementById('notes-textarea');
+      if (textarea) {
+        textarea.addEventListener('input', (e) => {
+          const charCount = document.getElementById('notes-chars');
+          if (charCount) charCount.textContent = 200 - e.target.value.length;
+        });
 
-      document.getElementById('notes-textarea').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) submitNote();
-        if (e.key === 'Escape') closeNoteModal();
-      });
+        textarea.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && e.ctrlKey) submitNote();
+          if (e.key === 'Escape') closeNoteModal();
+        });
+      }
 
-      document.getElementById('notes-modal').addEventListener('click', (e) => {
+      document.getElementById('notes-modal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('notes-modal')) closeNoteModal();
       });
     }
@@ -260,7 +264,7 @@
     // ════════════════════════════════════════════════════════════
 
     function _closeAllViews() {
-      if (_searchActive) closeSearch();
+      if (typeof _searchActive !== 'undefined' && _searchActive && typeof closeSearch === 'function') closeSearch();
       const cw = document.querySelector('.chat-win');
       const iw = document.querySelector('.input-win');
       if (cw) cw.style.display = 'none';

@@ -138,7 +138,7 @@
         case WS_EV.S_CALL_PARTICIPANT_UPDATE:   return onCallParticipantUpdate(msg);
         case WS_EV.S_CALL_ROOM_ENDED:           return onCallRoomEnded();
         case WS_EV.S_CALL_ENDED:                return onCallRoomEnded(); // legacy fallback
-        case WS_EV.S_AVATAR_UPDATE:             return onAvatarUpdate(msg);
+        case WS_EV.S_AVATAR_UPDATE:             return typeof onAvatarUpdate === 'function' && onAvatarUpdate(msg);
         case WS_EV.S_TZ_UPDATE:                return onTzUpdate(msg);
         case WS_EV.S_HOUSE_UPDATE:             return typeof onHouseUpdate === 'function' && onHouseUpdate(msg);
         case WS_EV.S_ROOM_UPDATE:              return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
