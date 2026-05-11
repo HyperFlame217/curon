@@ -49,9 +49,9 @@
     "image":         { "col": 1, "row": 11, "w": 18, "h": 18 },
     "file-video":    { "col": 2, "row": 11, "w": 18, "h": 18 },
     "audio":         { "col": 3, "row": 11, "w": 18, "h": 18 },
-    "empty-gallery": { "col": 0, "row": 12, "w": 48, "h": 48 },
-    "avatar-you":    { "col": 0, "row": 14, "w": 32, "h": 32 },
-    "avatar-her":    { "col": 1, "row": 14, "w": 32, "h": 32 },
-    "avatar-mobile": { "col": 2, "row": 14, "w": 36, "h": 36 }
+    "empty-gallery": { "col": 0, "row": 13, "w": 48, "h": 48 },
+    "avatar-you":    { "col": 0, "row": 16, "w": 32, "h": 32 },
+    "avatar-her":    { "col": 1, "row": 16, "w": 32, "h": 32 },
+    "avatar-mobile": { "col": 2, "row": 16, "w": 36, "h": 36 }
   }
 }

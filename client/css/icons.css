@@ -82,7 +82,7 @@
 /* ── Empty / States ── */
 .ico-empty-gallery { width: 48px; height: 48px; background-position:   0px -260px; }
 
-/* ── Avatars ── */
-.ico-avatar-you    { width: 32px; height: 32px; background-position:   0px -300px; }
-.ico-avatar-her     { width: 32px; height: 32px; background-position: -34px -300px; }
-.ico-avatar-mobile  { width: 36px; height: 36px; background-position: -68px -300px; }
+/* ── Avatars (row 16, y=-320) ── */
+.ico-avatar-you    { width: 32px; height: 32px; background-position:   0px -320px; }
+.ico-avatar-her    { width: 32px; height: 32px; background-position: -34px -320px; }
+.ico-avatar-mobile { width: 36px; height: 36px; background-position: -68px -320px; }
