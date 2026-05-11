@@ -610,9 +610,9 @@ function markAllVisibleAsRead() {
 
 function isEmojiOnlyMsg(text) {
   if (!text) return false;
-  // Remove custom emojis like :heart:, standard emojis, zero width joiners, variations, and whitespace
+  // Remove custom emojis like :heart:, standard emojis, modifiers, variation selectors, ZWJ, keycap, and whitespace
   const stripped = text.replace(/:[a-zA-Z0-9_]+:/g, '')
-                       .replace(/[\p{Emoji}\uFE0F\u200D]/gu, '')
+                       .replace(/[\p{Emoji}\p{Emoji_Modifier}\uFE0F\u200D\u20E3\uFE0E]/gu, '')
                        .replace(/\s+/g, '');
   return text.trim().length > 0 && stripped.length === 0;
 }
