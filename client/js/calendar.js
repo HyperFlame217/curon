@@ -476,7 +476,7 @@
       scroll.innerHTML =
         `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(myScheduleShifted, true)}</div>` +
         `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(myEvents, false)}</div>` +
-        `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(otherScheduleShifted, true)}</div>` +
+        `<div class="timeline-row user-divider"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(otherScheduleShifted, true)}</div>` +
         `<div class="timeline-row"><div class="timeline-user-label">${otherName}<div class="timeline-user-sub">EVENTS</div></div>${buildTrack(otherEvents, false)}</div>`;
 
       if (window._showFreeTime) {

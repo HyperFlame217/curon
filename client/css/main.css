@@ -3785,7 +3785,7 @@ textarea::placeholder {
 
 .timeline-date-label {
   font-family: var(--font-header);
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-small);
   color: var(--color-base);
   background-color: var(--color-dark);
   padding: 6px 14px;
@@ -3800,7 +3800,7 @@ textarea::placeholder {
 .timeline-header-scroll {
   overflow-x: hidden;
   flex-shrink: 0;
-  padding-left: 80px;
+  padding-left: 96px;
   border-bottom: 2px solid var(--color-deep);
 }
 
@@ -3836,18 +3836,19 @@ textarea::placeholder {
 
 .timeline-row {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: 96px 1fr;
   align-items: center;
   height: 38px;
   flex-shrink: 0;
   min-width: max-content;
 }
 
+
 .timeline-user-label {
   font-family: var(--font-header);
   font-size: var(--font-size-title);
   color: var(--color-deep);
-  width: 80px;
+  width: 96px;
   text-align: right;
   padding-right: 8px;
   line-height: 1.1;
@@ -3875,6 +3876,11 @@ textarea::placeholder {
   border: 1px solid var(--color-border-light);
 }
 
+/* Events rows get a slightly lighter / distinct background */
+.timeline-track[data-type="event"] {
+  background: var(--color-base);
+}
+
 .timeline-hour-tick {
   position: absolute;
   top: 0;
@@ -3884,7 +3890,9 @@ textarea::placeholder {
 }
 
 .timeline-hour-tick.major {
-  background: var(--color-muted);
+  width: 2px;
+  background: rgba(57, 63, 69, 0.35);
+  top: 0;
 }
 
 .timeline-block {
@@ -3900,7 +3908,7 @@ textarea::placeholder {
   font-family: var(--font-main);
   font-size: var(--font-size-timeline-time);
   color: var(--color-dark);
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.35);
   white-space: nowrap;
 }
 
@@ -3928,6 +3936,18 @@ textarea::placeholder {
   width: 2px;
   background: var(--color-danger);
   z-index: var(--z-sticky);
+}
+
+.timeline-now-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-danger);
 }
 
 /* .timeline-hours-row replaced by .timeline-header-scroll */

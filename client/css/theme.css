@@ -168,7 +168,7 @@
       Font sizes for communication and text entry.
    ──────────────────────────────────────────────────────────────────────── */
 
-   --font-size-status-name: 18px;
+   --font-size-status-name: 15px;
    /* Chat header: Partner name */
    --font-size-status-sub: 14px;
    /* Chat header: Online status */
@@ -268,7 +268,7 @@
    --color-peach: var(--color-primary);
 
 
-/* ── 10. BUTTON SURFACES ──────────────────────────────────────────────
+   /* ── 10. BUTTON SURFACES ──────────────────────────────────────────────
       All button chrome is pure CSS (box-shadow + hard borders).
       Recolor via these tokens — no button sprites needed.
    ──────────────────────────────────────────────────────────────────────── */
