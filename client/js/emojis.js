@@ -523,16 +523,21 @@ function renderEmojiText(text) {
 // Replace escHtml in bubble with renderEmojiText
 function renderMessageText(text) {
   // escHtml the plain parts, but allow our <img> tags through
-  if (!_customEmojis.length) return escHtml(text);
-  const map = {};
-  _customEmojis.forEach(e => { map[e.name] = e.filename; });
+  if (!_customEmojis.length && typeof EMOJI_MAP === 'undefined') return escHtml(text);
+  const customMap = {};
+  _customEmojis.forEach(e => { customMap[e.name] = e.filename; });
 
   const parts = text.split(/(:[a-z0-9_]+:)/g);
   return parts.map(part => {
     if (/^:[a-z0-9_]+:$/.test(part)) {
       const name = part.slice(1, -1);
-      if (map[name]) {
-        return `<img class="custom-emoji" src="${emojiImgUrl(map[name])}" alt=":${name}:" title=":${name}:">`;
+      // Check custom emojis first
+      if (customMap[name]) {
+        return `<img class="custom-emoji" src="${emojiImgUrl(customMap[name])}" alt=":${name}:" title=":${name}:">`;
+      }
+      // Check standard emojis
+      if (typeof EMOJI_MAP !== 'undefined' && EMOJI_MAP[name]) {
+        return EMOJI_MAP[name];
       }
     }
     return escHtml(part);
@@ -716,7 +721,9 @@ function initEmojiAutocomplete() {
   const ac = document.getElementById('emoji-autocomplete');
 
   field.addEventListener('input', () => {
-    if (_customEmojis.length === 0) { closeAutocomplete(); return; }
+    const hasCustom = _customEmojis.length > 0;
+    const hasStd = typeof EMOJI_MAP !== 'undefined';
+    if (!hasCustom && !hasStd) { closeAutocomplete(); return; }
 
     const val = field.value;
     const cursor = field.selectionStart;
@@ -728,20 +735,46 @@ function initEmojiAutocomplete() {
     if (!match) { closeAutocomplete(); return; }
 
     _acQuery = match[1];
-    // Show all if no query yet, otherwise filter
-    _acResults = _acQuery
-      ? _customEmojis.filter(e => e.name.startsWith(_acQuery))
-      : _customEmojis.slice(0, 8);
+    let results = [];
 
+    // Add matching custom emojis
+    if (hasCustom) {
+      const customMatches = _acQuery
+        ? _customEmojis.filter(e => e.name.startsWith(_acQuery))
+        : _customEmojis.slice(0, 8);
+      customMatches.forEach(e => results.push({ ...e, type: 'custom' }));
+    }
+
+    // Add matching standard emojis
+    if (hasStd) {
+      const stdMatches = _acQuery
+        ? Object.keys(EMOJI_MAP).filter(name => name.startsWith(_acQuery)).slice(0, 8)
+        : Object.keys(EMOJI_MAP).slice(0, 8);
+      stdMatches.forEach(name => results.push({ name, char: EMOJI_MAP[name], type: 'standard' }));
+    }
+
+    // Dedupe by name and limit to 8
+    const seen = new Set();
+    results = results.filter(r => {
+      if (seen.has(r.name)) return false;
+      seen.add(r.name);
+      return true;
+    }).slice(0, 8);
+
+    _acResults = results;
     if (!_acResults.length) { closeAutocomplete(); return; }
 
     ac.innerHTML = '';
     _acIndex = -1;
-    _acResults.slice(0, 8).forEach((emoji, i) => {
+    _acResults.forEach((emo, i) => {
       const item = document.createElement('div');
       item.className = 'emoji-ac-item';
       item.dataset.idx = i;
-      item.innerHTML = `<img src="${emojiImgUrl(emoji.filename)}" alt=":${emoji.name}:" class="emoji-ac-img"> :${emoji.name}:`;
+      if (emo.type === 'custom') {
+        item.innerHTML = `<img src="${emojiImgUrl(emo.filename)}" alt=":${emo.name}:" class="emoji-ac-img"> :${emo.name}:`;
+      } else {
+        item.innerHTML = `<span class="emoji-ac-std">${emo.char}</span> :${emo.name}:`;
+      }
       item.addEventListener('mousedown', (e) => {
         e.preventDefault();
         applyAutocomplete(_acResults[i]);
@@ -792,8 +825,17 @@ function applyAutocomplete(emoji) {
   const cursor = field.selectionStart;
   const before = val.slice(0, cursor);
   const after = val.slice(cursor);
-  // Replace the :partial with :name:
-  const newBefore = before.replace(/:([a-z0-9_]*)$/, `:${emoji.name}:`);
+
+  let replacement;
+  if (emoji.type === 'standard') {
+    // For standard emojis, insert the Unicode character directly
+    replacement = emoji.char;
+  } else {
+    // For custom emojis, insert :name: syntax
+    replacement = `:${emoji.name}:`;
+  }
+
+  const newBefore = before.replace(/:([a-z0-9_]*)$/, replacement);
   field.value = newBefore + after;
   field.selectionStart = field.selectionEnd = newBefore.length;
   closeAutocomplete();

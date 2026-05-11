@@ -33,6 +33,10 @@
         const name = emoji.slice(1, -1);
         const ce = _customEmojis.find(e => e.name === name);
         if (ce) return `<img src="${emojiImgUrl(ce.filename)}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;" alt="${emoji}">`;
+        // Check standard emojis
+        if (typeof EMOJI_MAP !== 'undefined' && EMOJI_MAP[name]) {
+          return EMOJI_MAP[name];
+        }
       }
       return escHtml(emoji || '');
     }
