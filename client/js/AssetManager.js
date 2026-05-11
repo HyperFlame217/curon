@@ -53,13 +53,13 @@ const AssetManager = {
 
   icon(name) {
     const lucideName = this._iconMap[name] || name;
-    return `<i class="lucide-${lucideName}" aria-hidden="true"></i>`;
+    return `<i class="icon-${lucideName}" aria-hidden="true"></i>`;
   },
 
   iconEl(name) {
     const lucideName = this._iconMap[name] || name;
     const el = document.createElement('i');
-    el.className = `lucide-${lucideName}`;
+    el.className = `icon-${lucideName}`;
     el.setAttribute('aria-hidden', 'true');
     return el;
   }
