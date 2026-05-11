@@ -162,6 +162,7 @@ const SCHEMA = `
 // ── Persistence Throttling ───────────────────────────────────
 let _persistTimeout = null;
 let _isDirty = false;
+let _lastSnapshotDate = '';
 
 function persist(rawDb, force = false) {
   _isDirty = true;
@@ -188,12 +189,22 @@ function _writeToDisk(rawDb) {
     const dur = Date.now() - start;
     if (dur > 30) console.log(`[db] Persisted to disk (${dur}ms)`);
 
-    // Also upload to Supabase (async, fire-and-forget)
+    // Upload to Supabase (async, fire-and-forget)
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
       const buffer = Buffer.from(data);
+
+      // Hot-sync — always overwrites (ensures cold start gets latest)
       supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream')
-        .then(() => console.log('[db] Uploaded backup to Supabase'))
-        .catch(err => console.warn('[db] Supabase backup failed:', err.message));
+        .catch(err => console.warn('[db] Hot-sync failed:', err.message));
+
+      // Daily snapshot — date-stamped, uploaded at most once per day
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== _lastSnapshotDate) {
+        _lastSnapshotDate = today;
+        supabaseStorage.upload(supabaseStorage.DB_BUCKET, `backups/curon-${today}.db`, buffer, 'application/octet-stream')
+          .then(() => console.log(`[db] Daily snapshot: curon-${today}.db`))
+          .catch(err => console.warn('[db] Daily snapshot failed:', err.message));
+      }
     }
   } catch (e) {
     console.error('[db] Disk write failed:', e.message);

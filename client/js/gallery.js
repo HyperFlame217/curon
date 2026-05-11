@@ -18,6 +18,7 @@ let _fileTotal = 0;
 let _isLoadingMore = false;
 let _byMonthCache = null;
 let _galleryScrollTimer = null;
+let _renderedFileIds = null;
 let _filesScrollTimer = null;
 
 async function openGallery() {
@@ -239,16 +240,18 @@ function renderMediaTab(body, reset = true) {
   const months = Object.keys(_byMonthCache).reverse();
 
   for (const month of months) {
-    let monthSep = body.querySelector(`.gallery-month:last-of-type`);
-    let grid = body.querySelector(`.gallery-grid:last-of-type`);
+    let monthSep = body.querySelector(`.gallery-month[data-month="${month}"]`);
+    let grid = body.querySelector(`.gallery-grid[data-month="${month}"]`);
 
     if (!monthSep) {
       monthSep = document.createElement('div');
       monthSep.className = 'gallery-month';
+      monthSep.dataset.month = month;
       monthSep.textContent = month;
       body.appendChild(monthSep);
       grid = document.createElement('div');
       grid.className = 'gallery-grid';
+      grid.dataset.month = month;
       body.appendChild(grid);
     }
 
@@ -351,8 +354,13 @@ function renderFilesTab(body, reset = true) {
   const sortedFiles = [..._fileList].sort((a, b) => b.created_at - a.created_at);
   let rendered = 0;
 
-  for (let i = _filesRendered; i < sortedFiles.length; i++) {
-    const msg = sortedFiles[i];
+  // Use a Set to track rendered IDs to prevent duplicates/skips when list shifts
+  if (!_renderedFileIds) _renderedFileIds = new Set();
+  if (reset) _renderedFileIds.clear();
+
+  for (const msg of sortedFiles) {
+    if (_renderedFileIds.has(msg.id)) continue;
+    
     const src = `/media/${msg.id}?token=${encodeURIComponent(STATE.token)}`;
     const mime = (msg.mime_type || '').toLowerCase();
     const ext = mime.split('/')[1] || 'file';
@@ -382,6 +390,7 @@ function renderFilesTab(body, reset = true) {
     });
 
     list.appendChild(item);
+    _renderedFileIds.add(msg.id);
     _filesRendered++;
     rendered++;
   }

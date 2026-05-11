@@ -105,7 +105,7 @@
 
     // P1-I: Wake up and reconnect if mobile OS killed WS while in background
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN)) {
+      if (document.visibilityState === 'visible' && (!STATE.ws || (STATE.ws.readyState !== WebSocket.OPEN && STATE.ws.readyState !== WebSocket.CONNECTING))) {
         console.log("[WS] Woke up, reconnecting...");
         connectWS();
       }

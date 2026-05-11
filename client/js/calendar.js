@@ -82,7 +82,7 @@
 
       if (!blocks.length) {
         list.innerHTML = `<div class="schedule-empty-state">
-          <div class="schedule-empty-state-icon">🗓</div>
+          <div class="schedule-empty-state-icon"><span class="ico ico-calendar"></span></div>
           <div class="schedule-empty-state-text">NO BLOCKS YET</div>
         </div>`;
         return;
@@ -96,7 +96,7 @@
           <div class="schedule-block-chip" style="background:${b.color};"></div>
           <div class="schedule-block-label">${escHtml(b.label)}</div>
           <div class="schedule-block-time">${minutesToTime(b.start_minute)} – ${minutesToTime(b.end_minute)}</div>
-          <div class="schedule-block-del" data-id="${b.id}">✕</div>
+          <div class="schedule-block-del" data-id="${b.id}"><span class="ico ico-close"></span></div>
         `;
         item.querySelector('.schedule-block-del').addEventListener('click', async () => {
           await fetch(`/calendar/schedule/${b.id}`, {
@@ -470,8 +470,8 @@
       const myScheduleShifted = getShiftedSchedule(myId, getMyTz());
       const otherScheduleShifted = getShiftedSchedule(otherId, getOtherTz());
 
-      const myEvents = dayEvents.filter(e => e.user_id === myId);
-      const otherEvents = dayEvents.filter(e => e.user_id === otherId);
+      const myEvents = dayEvents.filter(e => e.created_by == myId);
+      const otherEvents = dayEvents.filter(e => e.created_by == otherId);
 
       scroll.innerHTML =
         `<div class="timeline-row"><div class="timeline-user-label">${myName}<div class="timeline-user-sub">ROUTINE</div></div>${buildTrack(myScheduleShifted, true)}</div>` +
@@ -941,7 +941,9 @@
       // Close popup on outside click
       document.addEventListener('click', (e) => {
         const popup = document.getElementById('event-popup');
-        if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.timeline-block')) {
+        // Check if target is valid and has closest method (Document/Window don't)
+        const isBlockClick = e.target && typeof e.target.closest === 'function' && e.target.closest('.timeline-block');
+        if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !isBlockClick) {
           closeEventPopup();
         }
       });

@@ -16,7 +16,7 @@
       _ctxMsgId = msgId;
 
       const menu = document.getElementById('msg-context-menu');
-      menu.classList.add('show');
+      if (menu) menu.classList.add('show');
 
       // Position near tap/click
       let x = e.clientX || (e.touches?.[0]?.clientX) || 0;
@@ -31,7 +31,7 @@
     }
 
     function closeContextMenu() {
-      document.getElementById('msg-context-menu').classList.remove('show');
+      document.getElementById('msg-context-menu')?.classList.remove('show');
       _ctxMsgId = null;
     }
 
@@ -63,9 +63,12 @@
       REPLY_STATE.previewText = text;
 
       // Show preview bar
-      document.getElementById('reply-preview-name').textContent = senderName;
-      document.getElementById('reply-preview-text').textContent = text;
-      document.getElementById('reply-preview').classList.add('show');
+      const previewName = document.getElementById('reply-preview-name');
+      const previewText = document.getElementById('reply-preview-text');
+      const previewBar = document.getElementById('reply-preview');
+      if (previewName) previewName.textContent = senderName;
+      if (previewText) previewText.textContent = text;
+      if (previewBar) previewBar.classList.add('show');
 
       // Focus input
       document.getElementById('ifield')?.focus();
@@ -76,7 +79,7 @@
       REPLY_STATE.msgId = null;
       REPLY_STATE.senderName = null;
       REPLY_STATE.previewText = null;
-      document.getElementById('reply-preview').classList.remove('show');
+      document.getElementById('reply-preview')?.classList.remove('show');
     }
 
     // ── Build reply quote block ───────────────────────────────────
@@ -111,7 +114,7 @@
       // Close context menu on click outside
       document.addEventListener('click', (e) => {
         const menu = document.getElementById('msg-context-menu');
-        if (menu.classList.contains('show') && !menu.contains(e.target)) {
+        if (menu && menu.classList.contains('show') && !menu.contains(e.target)) {
           closeContextMenu();
         }
       });
@@ -171,13 +174,15 @@
 
     function closeSearch() {
       _searchActive = false;
-      document.getElementById('search-bar').classList.remove('show');
-      document.getElementById('search-results-panel').classList.remove('show');
-      document.getElementById('search-input').value = '';
+      document.getElementById('search-bar')?.classList.remove('show');
+      document.getElementById('search-results-panel')?.classList.remove('show');
+      const input = document.getElementById('search-input');
+      if (input) input.value = '';
       clearSearchHighlights();
       _searchResults = [];
       _searchIndex = -1;
-      document.getElementById('search-count').textContent = '';
+      const count = document.getElementById('search-count');
+      if (count) count.textContent = '';
     }
 
     function clearSearchHighlights() {
@@ -191,11 +196,13 @@
 
     async function runSearch(query) {
       if (!query.trim()) {
-        document.getElementById('search-results-panel').classList.remove('show');
+        document.getElementById('search-results-panel')?.classList.remove('show');
         return;
       }
-      document.getElementById('search-results-panel').classList.add('show');
-      document.getElementById('search-results-list').innerHTML = `<div class="loading-container"><div class="pixel-loader"></div> SCANNING DATABASE...</div>`;
+      const panel = document.getElementById('search-results-panel');
+      const list = document.getElementById('search-results-list');
+      if (panel) panel.classList.add('show');
+      if (list) list.innerHTML = `<div class="loading-container"><div class="pixel-loader"></div> SCANNING DATABASE...</div>`;
 
       try {
         const res = await fetch(`/chat/search?q=${encodeURIComponent(query)}`, {
@@ -213,8 +220,8 @@
       const list = document.getElementById('search-results-list');
       const count = document.getElementById('search-count');
       
-      list.innerHTML = '';
-      count.textContent = `${results.length} RESULTS`;
+      if (list) list.innerHTML = '';
+      if (count) count.textContent = `${results.length} RESULTS`;
 
       if (results.length === 0) {
         list.innerHTML = `

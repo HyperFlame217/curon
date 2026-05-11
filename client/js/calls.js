@@ -244,11 +244,11 @@
 
       // Reset control UI
       const ctrlMute = document.getElementById('ctrl-mute');
-      if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off'); ctrlMute.innerHTML = '🎤<div class="call-ctrl-label">MUTE</div>'; }
-      const ctrlCam = document.getElementById('ctrl-cam');
-      if (ctrlCam) { ctrlCam.classList.add('active'); ctrlCam.classList.remove('off'); ctrlCam.innerHTML = '📷<div class="call-ctrl-label">CAM</div>'; }
-      const ctrlScreen = document.getElementById('ctrl-screen');
-      if (ctrlScreen) { ctrlScreen.classList.remove('active'); ctrlScreen.innerHTML = '🖥<div class="call-ctrl-label">SHARE</div>'; }
+if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off'); ctrlMute.innerHTML = '<span class="ico ico-mute-on"></span><div class="call-ctrl-label">MUTE</div>'; }
+
+      if (ctrlCam) { ctrlCam.classList.add('active'); ctrlCam.classList.remove('off'); ctrlCam.innerHTML = '<span class="ico ico-cam-on"></span><div class="call-ctrl-label">CAM</div>'; }
+
+      if (ctrlScreen) { ctrlScreen.classList.remove('active'); ctrlScreen.innerHTML = '<span class="ico ico-screen"></span><div class="call-ctrl-label">SHARE</div>'; }
 
       document.getElementById('call-overlay').classList.remove('show', 'fullscreen-mode');
       document.getElementById('call-mini').classList.remove('show');
@@ -326,7 +326,7 @@
       const el = document.createElement('div');
       el.id = 'tap-unmute';
       el.style.cssText = 'position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--color-dark);color:var(--color-accent);border:2px solid var(--color-accent);font-family:var(--font-header);font-size:var(--font-size-sidebar-label);padding:8px 14px;cursor:pointer;z-index:9999;';
-      el.textContent = '▶ TAP TO ENABLE AUDIO';
+      el.innerHTML = '<span class="ico ico-send"></span> TAP TO ENABLE AUDIO';
       el.addEventListener('click', () => { _remoteAudio?.play(); el.remove(); });
       document.getElementById('call-overlay')?.appendChild(el);
     }
@@ -424,7 +424,7 @@
       CALL.muted = !CALL.muted;
       CALL.localStream?.getAudioTracks().forEach(t => { t.enabled = !CALL.muted; });
       const btn = document.getElementById('ctrl-mute');
-      btn.innerHTML = (CALL.muted ? '🔇' : '🎤') + '<div class="call-ctrl-label">MUTE</div>';
+      btn.innerHTML = (CALL.muted ? '<span class="ico ico-mute-off"></span>' : '<span class="ico ico-mute-on"></span>') + '<div class="call-ctrl-label">MUTE</div>';
       btn.classList.toggle('active', !CALL.muted);
       btn.classList.toggle('off', CALL.muted);
     }
@@ -433,7 +433,7 @@
       CALL.camOff = !CALL.camOff;
       CALL.localStream?.getVideoTracks().forEach(t => { t.enabled = !CALL.camOff; });
       const btn = document.getElementById('ctrl-cam');
-      btn.innerHTML = (CALL.camOff ? '🚫' : '📷') + '<div class="call-ctrl-label">CAM</div>';
+      btn.innerHTML = (CALL.camOff ? '<span class="ico ico-cam-off"></span>' : '<span class="ico ico-cam-on"></span>') + '<div class="call-ctrl-label">CAM</div>';
       btn.classList.toggle('active', !CALL.camOff);
       btn.classList.toggle('off', CALL.camOff);
     }
@@ -450,7 +450,7 @@
           screenTrack.onended = () => { if (CALL.sharing) toggleScreenShare(); };
           CALL.sharing = true;
           document.getElementById('ctrl-screen').classList.add('active');
-          document.getElementById('ctrl-screen').innerHTML = '<span>🖥</span><div class="call-ctrl-label">STOP</div>';
+          document.getElementById('ctrl-screen').innerHTML = '<span class="ico ico-screen"></span><div class="call-ctrl-label">STOP</div>';
         } catch { showToast('SCREEN SHARE CANCELLED'); }
       } else {
         CALL.screenStream?.getTracks().forEach(t => t.stop());
@@ -461,7 +461,7 @@
         document.getElementById('call-video-local').srcObject = CALL.localStream;
         CALL.sharing = false;
         document.getElementById('ctrl-screen').classList.remove('active');
-        document.getElementById('ctrl-screen').innerHTML = '<span>🖥</span><div class="call-ctrl-label">SHARE</div>';
+        document.getElementById('ctrl-screen').innerHTML = '<span class="ico ico-screen"></span><div class="call-ctrl-label">SHARE</div>';
       }
     }
 
