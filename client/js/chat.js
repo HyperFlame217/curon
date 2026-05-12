@@ -517,7 +517,7 @@ function initInput() {
     if (!rxn) return;
     const bw = rxn.closest('[data-msg-id]');
     if (!bw) return;
-    const message_id = parseInt(bw.dataset.msgId);
+    const message_id = parseInt(bw.dataset.msgId, 10);
     const emoji = rxn.dataset.emoji;
     if (!emoji) return;
 

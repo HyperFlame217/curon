@@ -8,6 +8,23 @@ const rateLimit = require('express-rate-limit');
 async function main() {
   await require('./db');
 
+  // Auto-seed if database is fresh
+  const bcrypt = require('bcryptjs');
+  const db = require('./db');
+  const database = await db;
+  const userCount = database.prepare('SELECT COUNT(*) as c FROM users').get();
+  if (userCount.c === 0) {
+    const seedUsers = [
+      { username: 'iron', password: '1' },
+      { username: 'cubby', password: '2' },
+    ];
+    for (const u of seedUsers) {
+      const hash = await bcrypt.hash(u.password, 12);
+      database.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(u.username, hash);
+      console.log(`  auto-seeded ${u.username}`);
+    }
+  }
+
   const app = express();
   const server = http.createServer(app);
 
