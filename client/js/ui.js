@@ -171,7 +171,7 @@
       document.querySelector('.settings-close')?.addEventListener('click', closeSettings);
 
       // Show admin section for user 'iron'
-      if (STATE.user === 'iron') {
+      if (STATE.user?.username === 'iron') {
         document.getElementById('settings-admin-section').style.display = 'block';
       }
 

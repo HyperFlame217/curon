@@ -46,9 +46,6 @@ window.bootApp = async function(password) {
   // 0. Load Data Configs
   await loadConfig();
 
-  // 0b. Preload icon spritesheet (graceful fallback on error)
-  await new Promise(resolve => AssetManager.preload(resolve));
-
   // Theme system disabled for now - uncomment after themes are updated with all CSS variables
   // if (window.applySavedTheme) applySavedTheme();
 

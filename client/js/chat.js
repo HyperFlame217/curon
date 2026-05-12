@@ -585,6 +585,8 @@ function initInput() {
 
   field.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      const ac = document.getElementById('emoji-autocomplete');
+      if (ac && ac.classList.contains('show')) return;
       e.preventDefault();
       btn.click();
     }
@@ -613,10 +615,10 @@ function markAllVisibleAsRead() {
 
 function isEmojiOnlyMsg(text) {
   if (!text) return false;
-  // Remove custom emojis like :heart:, standard emojis, modifiers, variation selectors, ZWJ, keycap, and whitespace
-  const stripped = text.replace(/:[a-zA-Z0-9_]+:/g, '')
-                       .replace(/[\p{Emoji}\p{Emoji_Modifier}\uFE0F\u200D\u20E3\uFE0E]/gu, '')
-                       .replace(/\s+/g, '');
+  const stripped = text
+    .replace(/:[a-zA-Z0-9_]+:/g, '')
+    .replace(/[\p{Emoji}\p{Emoji_Modifier}\p{Extended_Pictographic}\uFE0F\u200D\u20E3\uFE0E\u200B\u200C\uFEFF\u200E\u200F\u2060\u2061\u2062\u2063\u2064]/gu, '')
+    .replace(/\s+/g, '');
   return text.trim().length > 0 && stripped.length === 0;
 }
 
@@ -763,6 +765,7 @@ function scrollIfNearBottom() {
   const msgs = document.getElementById('msgs');
   if (!msgs) return;
   const distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+  if (distFromBottom < 200) msgs.scrollTop = msgs.scrollHeight;
 }
 
 // ════════════════════════════════════════════════════════════

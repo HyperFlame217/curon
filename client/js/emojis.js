@@ -9,8 +9,9 @@ let _layoutListenersInit = false;
  */
 function _syncPanelPosition(panelId, anchorId, panelW) {
   const panel = document.getElementById(panelId);
-  const anchor = document.getElementById(anchorId);
   const inputWin = document.querySelector('.input-win');
+  const isAuto = panelId === 'emoji-autocomplete';
+  const anchor = isAuto ? document.querySelector('.ibox') : document.getElementById(anchorId);
   if (!panel || !anchor || !inputWin) return;
 
   const isOpen = panel.classList.contains('open') || panel.classList.contains('show') || panel.style.display === 'flex';
@@ -20,13 +21,13 @@ function _syncPanelPosition(panelId, anchorId, panelW) {
   const aRect = anchor.getBoundingClientRect();
 
   let left = aRect.left - iRect.left;
-  const actualW = (panelId === 'emoji-autocomplete') ? Math.min(220, aRect.width) : panelW;
+  const actualW = isAuto ? aRect.width : panelW;
 
   if (left + actualW > iRect.width - 8) left = iRect.width - actualW - 8;
   if (left < 8) left = 8;
 
   panel.style.left = left + 'px';
-  panel.style.bottom = (iRect.bottom - aRect.top + (panelId === 'emoji-autocomplete' ? 4 : 6)) + 'px';
+  panel.style.bottom = (iRect.bottom - aRect.top + (isAuto ? 4 : 6)) + 'px';
   panel.style.top = 'auto';
   if (actualW) panel.style.width = actualW + 'px';
 }
@@ -459,14 +460,7 @@ function initMediaButtons() {
 //  CUSTOM EMOJIS
 // ════════════════════════════════════════════════════════════
 
-const STANDARD_EMOJIS = [
-  '😀', '😂', '🥹', '😍', '🥰', '😎', '🤔', '😴', '🤯', '😭', '😡', '🥳',
-  '👍', '👎', '❤️', '🔥', '✨', '💯', '🎉', '👀', '🙏', '💀', '🫡', '🤝',
-  '😤', '🫶', '💅', '🤌', '👏', '🤣', '😅', '😬', '🫠', '💔', '⭐', '🚀',
-];
-
 let _customEmojis = []; // { id, name, filename }
-let _emojiTab = 'std';
 let _acIndex = -1; // selected autocomplete index
 let _acResults = []; // current autocomplete results
 let _acQuery = ''; // the :word being completed
@@ -564,72 +558,71 @@ function closeEmojiPanel() {
   document.getElementById('emoji-panel')?.classList.remove('open');
 }
 
-function switchEmojiTab(tab) {
-  _emojiTab = tab;
-  const isStd = tab === 'std';
-  document.getElementById('etab-std').classList.toggle('on', isStd);
-  document.getElementById('etab-std').setAttribute('aria-selected', isStd);
-  document.getElementById('etab-custom').classList.toggle('on', !isStd);
-  document.getElementById('etab-custom').setAttribute('aria-selected', !isStd);
-  document.getElementById('emoji-std-panel').hidden = !isStd;
-  document.getElementById('emoji-custom-panel').hidden = isStd;
-  document.getElementById('emoji-search').value = '';
-  if (isStd) renderEmojiGrid();
-}
-
 function renderEmojiGrid(filter = '') {
-  const grid = document.getElementById('emoji-std-panel');
-  grid.innerHTML = '';
+  const panel = document.getElementById('emoji-std-panel');
+  panel.innerHTML = '';
 
-  if (_emojiTab === 'std') {
-    const items = filter
-      ? STANDARD_EMOJIS.filter(e => e.includes(filter))
-      : STANDARD_EMOJIS;
-    if (!items.length) { grid.innerHTML = '<div class="emoji-empty">NO RESULTS</div>'; return; }
-    items.forEach(emoji => {
+  const lowerFilter = filter.toLowerCase();
+  let hasResults = false;
+
+  // Custom emojis first
+  const filteredCustom = lowerFilter
+    ? _customEmojis.filter(e => e.name.includes(lowerFilter))
+    : _customEmojis;
+  if (filteredCustom.length) {
+    hasResults = true;
+    const header = document.createElement('div');
+    header.className = 'emoji-cat-header';
+    header.textContent = 'CUSTOM';
+    panel.appendChild(header);
+    const row = document.createElement('div');
+    row.className = 'emoji-grid';
+    filteredCustom.forEach(emoji => {
       const el = document.createElement('div');
       el.className = 'emoji-grid-item';
-      el.textContent = emoji;
-      el.addEventListener('click', () => insertEmojiText(emoji));
-      grid.appendChild(el);
-    });
-  } else {
-    const items = filter
-      ? _customEmojis.filter(e => e.name.includes(filter.toLowerCase()))
-      : _customEmojis;
-    const isAdmin = STATE.user?.username === (STATE.emojiAdmin || '');
-const customPanel = document.getElementById('emoji-custom-panel');
-      if (customPanel) {
-        customPanel.style.display = isAdmin ? 'flex' : 'none';
-      // Render custom emojis into a sub-container within the custom panel
-      const customGrid = document.createElement('div');
-      customGrid.className = 'emoji-grid';
-      customGrid.id = 'emoji-grid';
-      if (!items.length) {
-        customGrid.innerHTML = `<div class="emoji-empty">${_customEmojis.length ? 'NO RESULTS' : 'NO CUSTOM EMOJIS YET'}</div>`;
-      } else {
-        items.forEach(emoji => {
-          const el = document.createElement('div');
-          el.className = 'emoji-grid-item';
-          el.innerHTML = `
-        <img src="${emojiImgUrl(emoji.filename)}" alt=":${emoji.name}:">
-        <div class="emoji-tooltip">:${emoji.name}:</div>`;
-          el.addEventListener('click', (e) => {
-            if (!e.target.closest('.emoji-delete')) insertEmojiText(`:${emoji.name}:`);
-          });
-          if (isAdmin) {
-            el.title = 'Click to use • Right-click to delete';
-            el.addEventListener('contextmenu', async (e) => {
-              e.preventDefault();
-              if (!confirm(`Delete :${emoji.name}:?`)) return;
-              await deleteCustomEmoji(emoji.name);
-            });
-          }
-          customGrid.appendChild(el);
+      el.innerHTML = `<img src="${emojiImgUrl(emoji.filename)}" alt=":${emoji.name}:"><div class="emoji-tooltip">:${emoji.name}:</div>`;
+      el.addEventListener('click', () => insertEmojiText(`:${emoji.name}:`));
+      const isAdmin = STATE.user?.username === (STATE.emojiAdmin || '');
+      if (isAdmin) {
+        el.title = 'Click to use \u2022 Right-click to delete';
+        el.addEventListener('contextmenu', async (e) => {
+          e.preventDefault();
+          if (!confirm(`Delete :${emoji.name}:?`)) return;
+          await deleteCustomEmoji(emoji.name);
         });
       }
-      document.getElementById('emoji-custom-panel').appendChild(customGrid);
-    }
+      row.appendChild(el);
+    });
+    panel.appendChild(row);
+  }
+
+  // Standard emoji categories
+  for (const [cat, names] of Object.entries(EMOJI_CATEGORIES)) {
+    const matched = lowerFilter
+      ? names.filter(n => n.includes(lowerFilter))
+      : names;
+    if (!matched.length) continue;
+    hasResults = true;
+    const header = document.createElement('div');
+    header.className = 'emoji-cat-header';
+    header.textContent = cat;
+    panel.appendChild(header);
+    const row = document.createElement('div');
+    row.className = 'emoji-grid';
+    matched.forEach(name => {
+      const ch = EMOJI_MAP[name];
+      if (!ch) return;
+      const el = document.createElement('div');
+      el.className = 'emoji-grid-item';
+      el.textContent = ch;
+      el.addEventListener('click', () => insertEmojiText(ch));
+      row.appendChild(el);
+    });
+    panel.appendChild(row);
+  }
+
+  if (!hasResults) {
+    panel.innerHTML = '<div class="emoji-empty">NO RESULTS</div>';
   }
 }
 
@@ -798,12 +791,12 @@ function initEmojiAutocomplete() {
       _acIndex = Math.max(_acIndex - 1, -1);
       updateAcSelection();
     } else if (e.key === 'Enter' || e.key === 'Tab') {
-      if (_acIndex >= 0) {
-        e.preventDefault();
-        applyAutocomplete(_acResults[_acIndex]);
-      } else if (_acResults.length === 1) {
-        e.preventDefault();
-        applyAutocomplete(_acResults[0]);
+      e.preventDefault();
+      const target = _acIndex >= 0 ? _acResults[_acIndex] : _acResults[0];
+      applyAutocomplete(target);
+      if (e.key === 'Enter') {
+        const sb = document.getElementById('sb');
+        if (sb) sb.click();
       }
     } else if (e.key === 'Escape') {
       closeAutocomplete();
@@ -862,27 +855,6 @@ async function initEmojis() {
   document.getElementById('btn-emoji')?.addEventListener('click', () => {
     toggleEmojiPanel();
   });
-
-  // Wire emoji panel tabs
-  const emojiTablist = document.querySelector('.emoji-panel-tabs');
-  if (emojiTablist) {
-    emojiTablist.setAttribute('role', 'tablist');
-    emojiTablist.addEventListener('keydown', (e) => {
-      const tabs = Array.from(emojiTablist.querySelectorAll('[role="tab"]'));
-      const current = document.activeElement;
-      const idx = tabs.indexOf(current);
-      if (idx === -1) return;
-      let next = null;
-      if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
-      else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
-      else if (e.key === 'Home') next = tabs[0];
-      else if (e.key === 'End') next = tabs[tabs.length - 1];
-      if (next) { e.preventDefault(); next.focus(); }
-    });
-  }
-
-  document.getElementById('etab-std')?.addEventListener('click', () => switchEmojiTab('std'));
-  document.getElementById('etab-custom')?.addEventListener('click', () => switchEmojiTab('custom'));
 
   initEmojiSearch();
   initEmojiUpload();

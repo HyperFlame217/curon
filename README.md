@@ -7,8 +7,9 @@ A private two-user communication platform designed for intimacy, privacy, and de
 - **Runtime**: Node.js
 - **Server**: Express + `ws` (WebSockets)
 - **Database**: SQLite via `sql.js` (pure JS, no native deps)
+- **Storage**: Supabase Storage (media, avatars, thumbnails)
 - **Auth**: bcrypt passwords + JWT (7-day expiry)
-- **Calls**: WebRTC (Signaling via WebSocket, supports STUN/TURN)
+- **Calls**: WebRTC (signaling via WebSocket, supports STUN/TURN)
 - **UI**: Monolithic `index.html` (Vanilla CSS, custom pixel-art components)
 
 ---
@@ -28,6 +29,8 @@ Edit `.env`:
 ```
 PORT=3000
 JWT_SECRET=replace_with_a_long_random_string
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 # SPOTIFY_CLIENT_ID=... (optional)
 # SPOTIFY_CLIENT_SECRET=... (optional)
 ```
@@ -75,39 +78,42 @@ Open `http://localhost:3000` in your browser.
 ```
 ├── client/
 │   ├── js/
-│   │   ├── chat.js         # Messaging & chat UI
-│   │   ├── emojis.js       # Emoji picker & audio player
-│   │   ├── gallery.js      # Media gallery with pagination
-│   │   ├── calls.js        # WebRTC & signaling UI
-│   │   ├── calendar.js     # Calendar & schedule
-│   │   ├── notes.js        # Shared notes board
-│   │   ├── search.js       # Chat search
-│   │   ├── ui.js           # Shared layout & modals
-│   │   ├── ws.js           # Client-side WebSocket manager
-│   │   └── utils.js        # Helper functions
+│   │   ├── chat.js          # Messaging & chat UI
+│   │   ├── emojis.js        # Emoji picker, autocomplete & audio player
+│   │   ├── emoji-data.js    # Standard emoji map (1967 entries, 9 categories)
+│   │   ├── gallery.js       # Media gallery with pagination
+│   │   ├── calls.js         # WebRTC & signaling UI
+│   │   ├── calendar.js      # Calendar & schedule
+│   │   ├── notes.js         # Shared notes board
+│   │   ├── search.js        # Chat search
+│   │   ├── ui.js            # Shared layout, modals & settings
+│   │   ├── ws.js            # Client-side WebSocket manager
+│   │   └── utils.js         # Helper functions
 │   ├── css/
-│   │   └── main.css        # All styles
-│   └── index.html          # Main HTML5 entry point
+│   │   └── main.css         # All styles
+│   └── index.html           # Main HTML5 entry point
 ├── server/
 │   ├── routes/
-│   │   ├── auth.js         # JWT, login, user endpoints
-│   │   ├── chat.js         # Messages, notes, search
-│   │   ├── assets.js       # Media uploads, gallery, emojis
-│   │   ├── events.js       # Calendar, Spotify integration
-│   │   └── search.js       # Chat search
+│   │   ├── auth.js          # JWT, login, user endpoints
+│   │   ├── chat.js          # Messages, notes, search
+│   │   ├── assets.js        # Media uploads, gallery, emojis
+│   │   ├── events.js        # Calendar, Spotify integration
+│   │   └── search.js         # Chat search
 │   ├── ws/
-│   │   ├── handler.js      # WebSocket message dispatcher
-│   │   ├── events.js       # WS event constants
-│   │   └── presence.js     # Online presence tracking
+│   │   ├── handler.js       # WebSocket message dispatcher
+│   │   ├── events.js        # WS event constants
+│   │   ├── locks.js         # Cross-tab lock coordination
+│   │   └── presence.js      # Online presence tracking
 │   ├── helpers/
-│   │   └── PresenceSync.js # Cross-tab presence sync
-│   ├── db.js               # sql.js wrapper & schema
-│   ├── migrations/         # Database migrations
-│   ├── index.js            # Express app root
-│   └── seed.js             # One-time USERS setup
-├── config/
-│   └── themes.json         # UI color profiles
-└── storage/                # Media uploads, avatars, thumbnails
+│   │   └── PresenceSync.js  # Cross-tab presence sync
+│   ├── db.js                # sql.js wrapper & schema
+│   ├── migrations/          # Database migrations
+│   ├── supabase-storage.js  # Supabase Storage client
+│   ├── economy.js           # Economy/wallet (MVP disabled)
+│   ├── index.js             # Express app root
+│   └── seed.js              # One-time USERS setup
+├── config/                  # UI color profiles & static data
+└── storage/                 # Legacy local media uploads (deprecated)
 ```
 
 ---
@@ -116,7 +122,7 @@ Open `http://localhost:3000` in your browser.
 
 - **Password Hashing**: bcrypt with 12 rounds.
 - **Session Security**: JWT tokens with 7-day expiry.
-- **Server-Side Storage**: User data persisted in SQLite.
+- **Server-Side Storage**: User data persisted in SQLite; media in Supabase Storage.
 - **WebRTC Privacy**: Direct P2P calls with signaling over WebSocket.
 - **Rate Limiting**: 30 req/min on media uploads.
 - **Security Headers**: Helmet (X-Frame-Options, X-Content-Type-Options, HSTS).
@@ -126,39 +132,36 @@ Open `http://localhost:3000` in your browser.
 
 ## ✨ Core Features
 
-### ✅ Implemented (MVP)
+### ✅ Implemented
 - **Chat**: Real-time messaging with reactions, replies, search, and notes.
+- **Emoji Picker**: Full 1967-standard-emoji grid with `:name:` autocomplete, plus custom emoji uploads (admin).
 - **Shared Calendar & Schedule**: Relationship milestone tracking and routine sync.
 - **Spotify Sync**: Live playback visibility for partners.
 - **Voice & Video**: WebRTC calls for desktop and mobile.
 - **Notes Board**: Shared virtual sticky notes.
 - **Media Gallery**: Photo/video sharing with pagination and server-side thumbnails.
-- **Emoji Picker**: Custom emoji uploads and management.
 - **Search**: Full-text chat search.
 
-### 🟡 Future Features (Post-MVP)
-- **2.5D Isometric House**: Shared home with persistent furniture placement.
-- **Economy System**: Coin rewards and wallet.
-- **Cat Co-Parenting**: Shared AI pets.
+### 🔒 Disabled / Placeholder
+- **House**: 2.5D isometric house UI disabled for MVP.
+- **Economy**: Wallet system present in code but gated behind feature flag.
+- **Cats**: UI stub present but functionality not wired up.
 
 ---
 
-## 📊 Current Status
+## 🔧 Commands
 
-### ✅ MVP Complete
-- All core chat features implemented
-- Media gallery with thumbnail optimization
-- WebRTC calls (voice/video)
-- Calendar and schedule system
-- Notes and search
-- Security hardening (rate limiting, sanitization, helmet)
-- Feature gating (House, Economy, Cats disabled for MVP)
-
-### 🚀 Deployment
-Run `npm run seed` to create fresh database, then `npm start` to launch.
+```bash
+npm run dev              # Start dev server with auto-restart
+npm start                # Start production server
+npm run seed             # Seed or re-seed the database
+npm run backup           # Dry-run DB backup to Supabase
+npm run backup:confirm   # Execute DB backup to Supabase
+npm run backup:dry       # Alias for backup
+```
 
 ---
 
 ## 🐞 Known Issues
 
-- None currently identified.
+See `notes/audits/bugs.md` for the full issue tracker.
