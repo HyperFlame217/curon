@@ -18,8 +18,31 @@ let _fileTotal = 0;
 let _isLoadingMore = false;
 let _byMonthCache = null;
 let _galleryScrollTimer = null;
+let _renderedMediaIds = null;
 let _renderedFileIds = null;
 let _filesScrollTimer = null;
+let _filesRendered = 0;
+let _filesScrollHandler = null;
+
+async function downloadMedia(id) {
+  try {
+    const res = await fetch(`/media/${id}/download`, {
+      headers: { Authorization: `Bearer ${STATE.token}` }
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    showToast('DOWNLOAD FAILED');
+  }
+}
 
 async function openGallery() {
   _closeAllViews();
@@ -80,8 +103,8 @@ async function loadGallery() {
       _fileList = filesData.items;
       _mediaTotal = mediaData.total;
       _fileTotal = filesData.total;
-      _mediaOffset = 15;
-      _fileOffset = 20;
+      _mediaOffset = _mediaList.length;
+      _fileOffset = _fileList.length;
     }
 
     clearTimeout(timeoutId);
@@ -197,6 +220,19 @@ async function loadNextBatch(tab) {
 
 function renderGalleryTab() {
   const body = document.getElementById('gallery-body');
+  
+  // Clear all existing scroll handlers and timers before rendering new tab
+  if (_lazyScrollHandler) {
+    body.removeEventListener('scroll', _lazyScrollHandler);
+    _lazyScrollHandler = null;
+  }
+  if (_filesScrollHandler) {
+    body.removeEventListener('scroll', _filesScrollHandler);
+    _filesScrollHandler = null;
+  }
+  clearTimeout(_galleryScrollTimer);
+  clearTimeout(_filesScrollTimer);
+
   body.querySelectorAll('.gallery-month, .gallery-grid, .gallery-files-list').forEach(el => el.remove());
 
   if (_currentTab === 'media') {
@@ -209,13 +245,11 @@ function renderGalleryTab() {
 function renderMediaTab(body, reset = true) {
   const empty = document.getElementById('gallery-empty');
 
+  if (!_renderedMediaIds) _renderedMediaIds = new Set();
   if (reset) {
     body.querySelectorAll('.gallery-month, .gallery-grid, .gallery-files-list').forEach(el => el.remove());
     _renderedCount = 0;
-    if (_lazyScrollHandler) {
-      document.getElementById('gallery-body').removeEventListener('scroll', _lazyScrollHandler);
-      _lazyScrollHandler = null;
-    }
+    _renderedMediaIds.clear();
     _byMonthCache = null;
   }
 
@@ -256,6 +290,8 @@ function renderMediaTab(body, reset = true) {
     }
 
     for (const msg of _byMonthCache[month]) {
+      if (_renderedMediaIds.has(msg.id)) continue;
+
       const src = `/media/${msg.id}?token=${encodeURIComponent(STATE.token)}`;
       const thumbSrc = `/media/${msg.id}/thumb?token=${encodeURIComponent(STATE.token)}`;
       const mime = (msg.mime_type || '').toLowerCase();
@@ -274,6 +310,7 @@ function renderMediaTab(body, reset = true) {
         vid.preload = 'metadata';
         vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
         vid.setAttribute('aria-label', ariaLabel);
+        vid.onerror = () => item.remove();
         item.appendChild(vid);
 
         const badge = document.createElement('div');
@@ -290,6 +327,9 @@ function renderMediaTab(body, reset = true) {
           v.autoplay = true;
           v.setAttribute('aria-label', 'Fullscreen video');
           v.style.cssText = 'max-width:90vw;max-height:90vh;border:2px solid var(--color-accent);';
+          v.onerror = () => {
+            overlay.innerHTML = '<div style="color:var(--color-sky);padding:40px;text-align:center;font-family:var(--font-header);">Video unavailable</div>';
+          };
           overlay.appendChild(v);
           overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
           document.body.appendChild(overlay);
@@ -299,17 +339,63 @@ function renderMediaTab(body, reset = true) {
         img.src = thumbSrc;
         img.alt = ariaLabel;
         img.loading = 'lazy';
+        img.onerror = () => item.remove();
         item.appendChild(img);
         item.setAttribute('aria-label', ariaLabel);
         item.addEventListener('click', () => showLightbox(src));
       }
 
+      const starBtn = document.createElement('button');
+      starBtn.className = 'gallery-star';
+      starBtn.innerHTML = msg.is_starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+      starBtn.setAttribute('aria-label', msg.is_starred ? 'Unstar' : 'Star');
+      starBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const wasStarred = !!msg.is_starred;
+        msg.is_starred = !wasStarred;
+        starBtn.innerHTML = msg.is_starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+        starBtn.setAttribute('aria-label', msg.is_starred ? 'Unstar' : 'Star');
+        try {
+          const res = await fetch(`/media/${msg.id}/star`, {
+            method: wasStarred ? 'DELETE' : 'POST',
+            headers: { Authorization: `Bearer ${STATE.token}` }
+          });
+          if (!res.ok) throw new Error('Failed');
+        } catch {
+          msg.is_starred = wasStarred;
+          starBtn.innerHTML = wasStarred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+          starBtn.setAttribute('aria-label', wasStarred ? 'Unstar' : 'Star');
+        }
+      });
+      item.appendChild(starBtn);
+
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'gallery-dl';
+      dlBtn.innerHTML = '<i class="icon-download"></i>';
+      dlBtn.setAttribute('aria-label', 'Download');
+      dlBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadMedia(msg.id);
+      });
+      item.appendChild(dlBtn);
+
       grid.appendChild(item);
+      _renderedMediaIds.add(msg.id);
     }
   }
 
+  body.querySelectorAll('.gallery-grid').forEach(g => { if (!g.children.length) g.remove(); });
+  body.querySelectorAll('.gallery-month').forEach(m => {
+    const month = m.dataset.month;
+    const grid = body.querySelector(`.gallery-grid[data-month="${month}"]`);
+    if (!grid || !grid.children.length) m.remove();
+  });
+
   if (_mediaOffset < _mediaTotal) {
     const galleryBody = document.getElementById('gallery-body');
+    if (_lazyScrollHandler) {
+      galleryBody.removeEventListener('scroll', _lazyScrollHandler);
+    }
     _lazyScrollHandler = () => {
       clearTimeout(_galleryScrollTimer);
       _galleryScrollTimer = setTimeout(() => {
@@ -322,8 +408,6 @@ function renderMediaTab(body, reset = true) {
   }
 }
 
-let _filesRendered = 0;
-let _filesScrollHandler = null;
 
 function renderFilesTab(body, reset = true) {
   const empty = document.getElementById('gallery-empty');
@@ -385,6 +469,40 @@ function renderFilesTab(body, reset = true) {
       </div>
     `;
 
+    const dlBtn = document.createElement('button');
+    dlBtn.innerHTML = '<i class="icon-download"></i>';
+    dlBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;color:var(--color-sky);';
+    dlBtn.setAttribute('aria-label', 'Download');
+    dlBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadMedia(msg.id);
+    });
+    item.appendChild(dlBtn);
+
+    const starBtn = document.createElement('button');
+    starBtn.style.cssText = 'margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;color:#ffd700;';
+    starBtn.innerHTML = msg.is_starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+    starBtn.setAttribute('aria-label', msg.is_starred ? 'Unstar' : 'Star');
+    starBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const wasStarred = !!msg.is_starred;
+      msg.is_starred = !wasStarred;
+      starBtn.innerHTML = msg.is_starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+      starBtn.setAttribute('aria-label', msg.is_starred ? 'Unstar' : 'Star');
+      try {
+        const res = await fetch(`/media/${msg.id}/star`, {
+          method: wasStarred ? 'DELETE' : 'POST',
+          headers: { Authorization: `Bearer ${STATE.token}` }
+        });
+        if (!res.ok) throw new Error('Failed');
+      } catch {
+        msg.is_starred = wasStarred;
+        starBtn.innerHTML = wasStarred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+        starBtn.setAttribute('aria-label', wasStarred ? 'Unstar' : 'Star');
+      }
+    });
+    item.appendChild(starBtn);
+
     item.addEventListener('click', () => {
       window.open(src, '_blank');
     });
@@ -397,6 +515,9 @@ function renderFilesTab(body, reset = true) {
 
   if (_fileOffset < _fileTotal) {
     const galleryBody = document.getElementById('gallery-body');
+    if (_filesScrollHandler) {
+      galleryBody.removeEventListener('scroll', _filesScrollHandler);
+    }
     _filesScrollHandler = () => {
       clearTimeout(_filesScrollTimer);
       _filesScrollTimer = setTimeout(() => {

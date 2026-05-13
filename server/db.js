@@ -55,6 +55,12 @@ const SCHEMA = `
     storage_provider TEXT    NOT NULL DEFAULT 'local',
     created_at       INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
+  CREATE TABLE IF NOT EXISTS media_stars (
+    media_id   INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    PRIMARY KEY (media_id, user_id)
+  );
   CREATE TABLE IF NOT EXISTS custom_emojis (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT    NOT NULL UNIQUE,
@@ -287,6 +293,22 @@ async function getDb() {
 
     rawDb.run(SCHEMA);
 
+    // Migration: add storage_provider column if missing (for existing DBs)
+    try {
+      const stmt = rawDb.prepare("PRAGMA table_info(media)");
+      const cols = [];
+      while (stmt.step()) {
+        cols.push(stmt.getAsObject().name);
+      }
+      stmt.free();
+      if (!cols.includes('storage_provider')) {
+        rawDb.run("ALTER TABLE media ADD COLUMN storage_provider TEXT NOT NULL DEFAULT 'supabase'");
+        console.log('[db] Added storage_provider column to media table');
+      }
+    } catch (e) {
+      console.warn('[db] Migration check failed:', e.message);
+    }
+
     // Dynamic Migration Runner (P1-J) — tracks applied migrations to run each only once
     rawDb.run(`CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at INTEGER NOT NULL)`);
 
@@ -331,8 +353,7 @@ async function getDb() {
     }
 
 
-    // Persist once after schema setup (Force sync during boot)
-    persist(rawDb, true);
+    // Note: force persist removed — breaks --watch loop. Persist happens on mutations via wrapper.
 
     console.log('[db] Ready: ' + DB_PATH);
     return new Db(rawDb);

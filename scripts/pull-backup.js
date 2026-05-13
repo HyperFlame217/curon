@@ -17,6 +17,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const initSqlJs = require('sql.js');
 
 const MEDIA_BUCKET = process.env.SUPABASE_MEDIA_BUCKET || 'curon-media';
 const DB_BUCKET = process.env.SUPABASE_DB_BUCKET || 'curon-db';
@@ -76,6 +77,35 @@ async function downloadDB() {
 async function downloadAndCleanMedia() {
   log('[backup] Checking media files in Supabase...');
 
+  // Load local DB snapshot for accurate timestamps and star checks
+  let mediaLookup = new Map();   // filename → { id, created_at }
+  let starredIds = new Set();    // set of media_ids that are starred
+
+  const dbPath = path.join(__dirname, '..', 'server', 'curon.db');
+  const dbSnapshot = path.join(BACKUP_DIR, '.db-snapshot');
+  try {
+    fs.copyFileSync(dbPath, dbSnapshot);
+    const fileData = fs.readFileSync(dbSnapshot);
+    const SQL = await initSqlJs();
+    const rawDb = new SQL.Database(fileData);
+
+    const mediaRows = rawDb.prepare('SELECT id, filename, created_at FROM media');
+    while (mediaRows.step()) {
+      const r = mediaRows.getAsObject();
+      mediaLookup.set(r.filename, { id: r.id, created_at: r.created_at });
+    }
+    mediaRows.free();
+
+    const starRows = rawDb.prepare('SELECT media_id FROM media_stars');
+    while (starRows.step()) {
+      starredIds.add(starRows.getAsObject().media_id);
+    }
+    starRows.free();
+    rawDb.close();
+  } catch (_) {
+    warn('[backup] Cannot read local DB — using Supabase timestamps, skipping star check');
+  }
+
   const now = Date.now();
   const cutoffMs = MEDIA_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const cutoffDate = new Date(now - cutoffMs);
@@ -85,32 +115,70 @@ async function downloadAndCleanMedia() {
   let skipped = 0;
   let toDelete = [];
 
-  const prefixes = ['media/', 'thumbnails/', 'emojis/'];
+  const prefixes = ['media/', 'thumbnails/'];
 
   for (const prefix of prefixes) {
     try {
-      const { data: files, error } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .list(prefix, { limit: 1000 });
-
-      if (error) {
-        warn(`[backup] List ${prefix} failed:`, error.message);
-        continue;
+      // Paginated listing — handles >1000 files
+      let files = [];
+      let offset = 0;
+      while (true) {
+        const { data: batch, error } = await supabase.storage
+          .from(MEDIA_BUCKET)
+          .list(prefix, { limit: 1000, offset });
+        if (error) { warn(`[backup] List ${prefix} failed:`, error.message); break; }
+        if (!batch || batch.length === 0) break;
+        files = files.concat(batch);
+        offset += batch.length;
+        if (batch.length < 1000) break;
       }
 
-      if (!files || files.length === 0) continue;
+      if (files.length === 0) continue;
 
       const folderPrefix = prefix.replace('/', '-').replace('/', '');
       const mediaDir = path.join(BACKUP_DIR, `${folderPrefix}-${getDateStamp()}`);
 
       for (const file of files) {
         const key = `${prefix}${file.name}`;
-        const fileUpdatedAt = new Date(file.updated_at);
+
+        // Determine age and star status — use DB timestamps for media/thumbnails
+        let fileAgeDate;
+        let isStarred = false;
+
+        if (prefix === 'media/') {
+          const lookup = mediaLookup.get(file.name);
+          if (lookup) {
+            fileAgeDate = new Date(lookup.created_at * 1000);
+            isStarred = starredIds.has(lookup.id);
+          }
+        } else if (prefix === 'thumbnails/') {
+          // Thumbnail name: <base>.jpg — match against media filename base
+          for (const [, info] of mediaLookup) {
+            const base = path.basename(info.filename, path.extname(info.filename));
+            if (file.name.startsWith(base + '.jpg')) {
+              fileAgeDate = new Date(info.created_at * 1000);
+              isStarred = starredIds.has(info.id);
+              break;
+            }
+          }
+        }
+
+        // Fallback: use Supabase timestamp if DB info not available
+        if (!fileAgeDate) {
+          fileAgeDate = new Date(file.updated_at);
+        }
+
+        // Skip starred media items
+        if (isStarred) {
+          skipped++;
+          if (VERBOSE) log(`[backup] Skipping (starred): ${key}`);
+          continue;
+        }
 
         // Skip files newer than retention period
-        if (fileUpdatedAt > cutoffDate) {
+        if (fileAgeDate > cutoffDate) {
           skipped++;
-          if (VERBOSE) log(`[backup] Skipping (recent): ${key} (${file.updated_at})`);
+          if (VERBOSE) log(`[backup] Skipping (recent): ${key}`);
           continue;
         }
 
@@ -134,7 +202,6 @@ async function downloadAndCleanMedia() {
           fs.writeFileSync(filepath, Buffer.from(buffer));
           downloaded++;
 
-          // Track for deletion after confirmed
           toDelete.push(key);
           log(`[backup] Downloaded ${key}`);
         } catch (err) {
@@ -146,6 +213,9 @@ async function downloadAndCleanMedia() {
       warn(`[backup] Prefix ${prefix} error:`, err.message);
     }
   }
+
+  // Cleanup temp snapshot
+  try { fs.unlinkSync(dbSnapshot); } catch (_) {}
 
   // In dry-run mode, just report what would be deleted
   if (DRY_RUN) {
@@ -165,12 +235,30 @@ async function downloadAndCleanMedia() {
       } else {
         deleted = toDelete.length;
         log(`[backup] Deleted ${deleted} old media files from Supabase`);
+
+        // Purge corresponding DB records so gallery never shows broken entries
+        const SQL2 = await initSqlJs();
+        const db2 = new SQL.Database(fs.readFileSync(dbPath));
+        for (const key of toDelete) {
+          if (key.startsWith('media/')) {
+            const fname = key.slice('media/'.length);
+            const rec = mediaLookup.get(fname);
+            if (rec) {
+              db2.prepare('DELETE FROM media_stars WHERE media_id = ?').run(rec.id);
+              db2.prepare('DELETE FROM media WHERE id = ?').run(rec.id);
+              if (VERBOSE) log(`[backup] Purged DB record ${rec.id} (${fname})`);
+            }
+          }
+        }
+        fs.writeFileSync(dbPath, Buffer.from(db2.export()));
+        db2.close();
+        log(`[backup] Purged ${deleted} stale records from local DB`);
       }
     }
   }
 
   log(`[backup] Downloaded ${downloaded} media files`);
-  log(`[backup] Skipped ${skipped} recent files`);
+  log(`[backup] Skipped ${skipped} recent/starred files`);
   log(`[backup] Marked for deletion: ${toDelete.length} old files`);
 
   return { downloaded, deleted, skipped, toDelete: toDelete.length };

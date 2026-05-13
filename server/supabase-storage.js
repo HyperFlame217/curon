@@ -31,11 +31,11 @@ async function remove(bucket, key) {
   return data;
 }
 
-function getPublicUrl(bucket, key) {
+function getPublicUrl(bucket, key, options = {}) {
   if (!supabase) throw new Error('[Supabase] Client not initialized');
   const { data } = supabase.storage
     .from(bucket)
-    .getPublicUrl(key);
+    .getPublicUrl(key, options);
   return data.publicUrl;
 }
 

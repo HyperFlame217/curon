@@ -28,7 +28,7 @@
           openHouse();
         } else if (btnText.includes('GALLERY')) {
           openGallery();
-        } else if (btnText.includes('PINNED')) {
+        } else if (btnText.includes('NOTES')) {
           openNotes();
         } else if (btnText.includes('DATES')) {
           openDates();
@@ -96,6 +96,57 @@
         setTimeout(() => el.remove(), 200);
       }, ms);
     }
+
+    // Sunday backup reminder (admin only)
+    function checkBackupReminder() {
+      const d = new Date();
+      if (d.getDay() !== 0) return; // 0 = Sunday
+      if (STATE.user?.username !== 'iron') return;
+
+      fetch('/media/backup/check', { headers: { Authorization: `Bearer ${STATE.token}` } })
+        .then(r => r.json())
+        .then(data => {
+          if (data.count > 0) {
+            const existing = document.getElementById('backup-banner');
+            if (existing) return;
+
+            const banner = document.createElement('div');
+            banner.id = 'backup-banner';
+            banner.style.cssText = 'background:var(--color-dark);color:var(--color-accent);border-bottom:2px solid var(--color-accent);padding:10px 16px;font-family:var(--font-header);font-size:var(--font-size-sidebar-label);display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:1000;';
+            banner.innerHTML = `
+              <span>📦 BACKUP: ${data.count} local media files need backup — <a href="#" onclick="downloadBackup(event)" style="color:var(--color-accent);text-decoration:underline;">DOWNLOAD</a></span>
+              <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--color-accent);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;">✕</button>
+            `;
+            const chat = document.querySelector('.chat');
+            const chatWin = document.querySelector('.chat-win');
+            if (chat && chatWin) chat.insertBefore(banner, chatWin);
+          }
+        })
+        .catch(() => {});
+    }
+
+    window.checkBackupReminder = checkBackupReminder;
+
+    window.downloadBackup = async function(e) {
+      e.preventDefault();
+      try {
+        const res = await fetch('/media/backup', {
+          headers: { Authorization: `Bearer ${STATE.token}` }
+        });
+        if (!res.ok) throw new Error('Backup failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `curon-media-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        showToast('BACKUP DOWNLOAD FAILED');
+      }
+    };
 
 
     // ════════════════════════════════════════════════════════════

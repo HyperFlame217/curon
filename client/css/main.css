@@ -2884,6 +2884,58 @@ textarea::placeholder {
   opacity: 0.85;
 }
 
+.gallery-star {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.55);
+  border: none;
+  cursor: pointer;
+  font-size: 0;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+  transition: transform 0.1s;
+  color: #ffd700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.gallery-star:hover {
+  transform: scale(1.25);
+}
+.gallery-star i {
+  color: #ffd700;
+}
+.gallery-star .icon-star-off {
+  color: var(--color-sky);
+}
+
+.gallery-dl {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(0,0,0,0.55);
+  border: none;
+  cursor: pointer;
+  font-size: 0;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+  transition: transform 0.1s;
+  color: var(--color-sky);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+.gallery-dl:hover {
+  transform: scale(1.25);
+}
+
 .gallery-item .gallery-item-gif {
   position: absolute;
   bottom: 4px;
@@ -3692,6 +3744,19 @@ textarea::placeholder {
   border-radius: 50%;
   display: inline-block;
   margin: 1px;
+}
+
+.cal-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+}
+
+.cal-event-bar {
+  height: 3px;
+  border-radius: 2px;
+  display: block;
 }
 
 /* Week view */

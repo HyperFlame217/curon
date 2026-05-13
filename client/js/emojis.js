@@ -186,6 +186,7 @@ function buildMediaEl(mediaId, mimeType) {
     img.src = src;
     img.alt = 'image';
     img.loading = 'lazy';
+    img.onerror = () => { img.style.display = 'none'; };
     img.addEventListener('click', () => showLightbox(src));
     return img;
   }
@@ -201,6 +202,7 @@ function buildMediaEl(mediaId, mimeType) {
     vid.preload = 'metadata';
     vid.className = 'media-video';
     vid.style.cssText = 'max-width:100%;width:280px;border:2px solid var(--color-primary);display:block;border-radius:4px;';
+    vid.onerror = () => { vid.style.display = 'none'; };
     return vid;
   }
 
@@ -296,8 +298,30 @@ function fmtDur(s) {
 function showLightbox(src) {
   const lb = document.createElement('div');
   lb.className = 'lightbox';
-  lb.innerHTML = `<img src="${src}" alt="Full size image" class="lightbox-img">`;
-  lb.addEventListener('click', () => lb.remove());
+  
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = 'Full size image';
+  img.className = 'lightbox-img';
+  img.onerror = () => {
+    img.style.display = 'none';
+    const fb = document.createElement('div');
+    fb.textContent = 'Image unavailable';
+    fb.style.cssText = 'color:var(--color-sky);padding:40px;text-align:center;font-family:var(--font-header);font-size:var(--font-size-small);';
+    lb.appendChild(fb);
+  };
+  
+  lb.appendChild(img);
+
+  const dlUrl = src.replace('?', '/download?');
+  const dl = document.createElement('a');
+  dl.href = dlUrl;
+  dl.innerHTML = '<i class="icon-download"></i> DOWNLOAD';
+  dl.style.cssText = 'display:block;text-align:center;color:var(--color-accent);font-family:var(--font-header);font-size:var(--font-size-tiny);padding:8px;cursor:pointer;text-decoration:none;';
+  dl.target = '_blank';
+  lb.appendChild(dl);
+
+  lb.addEventListener('click', (e) => { if (e.target === lb) lb.remove(); });
   document.body.appendChild(lb);
 }
 
@@ -433,14 +457,21 @@ function initMediaButtons() {
   const attachInput = document.createElement('input');
   attachInput.type = 'file';
   attachInput.accept = '*/*';
+  attachInput.multiple = true;
   attachInput.style.display = 'none';
   document.body.appendChild(attachInput);
 
   document.getElementById('btn-attach').addEventListener('click', () => attachInput.click());
 
-  attachInput.addEventListener('change', () => {
-    if (attachInput.files[0]) sendMediaMessage(attachInput.files[0]);
+  attachInput.addEventListener('change', async () => {
+    const files = Array.from(attachInput.files || []);
     attachInput.value = '';
+    if (!files.length) return;
+    for (let i = 0; i < files.length; i++) {
+      showToast(`UPLOADING ${i + 1}/${files.length}...`);
+      await sendMediaMessage(files[i]);
+    }
+    showToast('');
   });
 
   // Mic — hold to record
@@ -935,10 +966,13 @@ document.addEventListener('click', (e) => {
 
 // Close picker on escape
 // Close lightbox on escape
+// Close emoji + gif panel on escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeReactionPicker();
     document.querySelector('.lightbox')?.remove();
+    closeEmojiPanel();
+    closeGifPanel();
   }
 });
 

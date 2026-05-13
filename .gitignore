@@ -4,6 +4,8 @@ server/storage/media/*
 !server/storage/media/.gitkeep
 server/storage/thumbnails/
 server/storage/emojis/
+server/storage/tmp/
+server/storage/avatars/
 .env
 Notes/
 tmp/

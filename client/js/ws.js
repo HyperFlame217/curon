@@ -112,40 +112,44 @@
     });
 
     function handleWsEvent(msg) {
-      switch (msg.type) {
-        case WS_EV.S_MESSAGE_NEW:               return onMessageNew(msg);
-        case WS_EV.S_MESSAGE_STATUS:            return onMessageStatus(msg);
-        case WS_EV.S_MESSAGE_REACTION:          return onReaction(msg);
-        case WS_EV.S_MESSAGE_REACTION_REMOVED:  return onReactionRemoved(msg);
-        case WS_EV.S_TYPING:                    return onTyping(msg);
-        case WS_EV.S_PRESENCE_UPDATE:           return onPresence(msg);
-        case WS_EV.S_PRESENCE_SYNC:             return onPresenceSync(msg);
-        case WS_EV.S_EMOJI_UPDATED:             return onEmojiUpdated();
-        case WS_EV.S_SPOTIFY_UPDATE:            return onSpotifyUpdate(msg);
-        case WS_EV.S_NOTE_ADD:                  return onNoteAdd(msg);
-        case WS_EV.S_NOTE_DELETE:               return onNoteDelete(msg);
-        case WS_EV.S_CALENDAR_EVENT_ADD:        return onCalendarEventAdd(msg);
-        case WS_EV.S_CALENDAR_EVENT_UPDATE:     return onCalendarEventUpdate(msg);
-        case WS_EV.S_CALENDAR_EVENT_DELETE:     return onCalendarEventDelete(msg);
-        case WS_EV.S_SCHEDULE_BLOCK_ADD:        return onScheduleBlockAdd(msg);
-        case WS_EV.S_SCHEDULE_BLOCK_UPDATE:     return onScheduleBlockUpdate(msg);
-        case WS_EV.S_SCHEDULE_BLOCK_DELETE:     return onScheduleBlockDelete(msg);
-        case WS_EV.S_CALL_OFFER:                return onCallOffer(msg);
-        case WS_EV.S_CALL_ANSWER:               return onCallAnswer(msg);
-        case WS_EV.S_CALL_ICE:                  return onCallIce(msg);
-        case WS_EV.S_CALL_ROOM_STARTED:         return onCallRoomStarted(msg);
-        case WS_EV.S_CALL_SEND_OFFER:           return onCallSendOffer(msg);
-        case WS_EV.S_CALL_PARTICIPANT_UPDATE:   return onCallParticipantUpdate(msg);
-        case WS_EV.S_CALL_ROOM_ENDED:           return onCallRoomEnded();
-        case WS_EV.S_CALL_ENDED:                return onCallRoomEnded(); // legacy fallback
-        case WS_EV.S_AVATAR_UPDATE:             return typeof onAvatarUpdate === 'function' && onAvatarUpdate(msg);
-        case WS_EV.S_TZ_UPDATE:                return onTzUpdate(msg);
-        case WS_EV.S_HOUSE_UPDATE:             return typeof onHouseUpdate === 'function' && onHouseUpdate(msg);
-        case WS_EV.S_ROOM_UPDATE:              return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
-        case WS_EV.S_FURNITURE_LOCK:           return typeof onFurnitureLock === 'function' && onFurnitureLock(msg); // DISABLED P22-A
-        case WS_EV.S_FURNITURE_UNLOCK:         return typeof onFurnitureUnlock === 'function' && onFurnitureUnlock(msg); // DISABLED P22-A
-        case WS_EV.S_CHAR_MOVE:               return typeof onCharMove === 'function' && onCharMove(msg); // DISABLED P22-A
-        case WS_EV.S_SOCIAL_INTERACTION:        return typeof onSocialInteraction === 'function' && onSocialInteraction(msg); // DISABLED P22-A
-        // case WS_EV.S_WALLET_UPDATE:             return typeof WalletManager !== 'undefined' && WalletManager.updateState(msg, false); // DISABLED P22-A
+      try {
+        switch (msg.type) {
+          case WS_EV.S_MESSAGE_NEW:               return onMessageNew(msg);
+          case WS_EV.S_MESSAGE_STATUS:            return onMessageStatus(msg);
+          case WS_EV.S_MESSAGE_REACTION:          return onReaction(msg);
+          case WS_EV.S_MESSAGE_REACTION_REMOVED:  return onReactionRemoved(msg);
+          case WS_EV.S_TYPING:                    return onTyping(msg);
+          case WS_EV.S_PRESENCE_UPDATE:           return onPresence(msg);
+          case WS_EV.S_PRESENCE_SYNC:             return onPresenceSync(msg);
+          case WS_EV.S_EMOJI_UPDATED:             return onEmojiUpdated();
+          case WS_EV.S_SPOTIFY_UPDATE:            return onSpotifyUpdate(msg);
+          case WS_EV.S_NOTE_ADD:                  return onNoteAdd(msg);
+          case WS_EV.S_NOTE_DELETE:               return onNoteDelete(msg);
+          case WS_EV.S_CALENDAR_EVENT_ADD:        return onCalendarEventAdd(msg);
+          case WS_EV.S_CALENDAR_EVENT_UPDATE:     return onCalendarEventUpdate(msg);
+          case WS_EV.S_CALENDAR_EVENT_DELETE:     return onCalendarEventDelete(msg);
+          case WS_EV.S_SCHEDULE_BLOCK_ADD:        return onScheduleBlockAdd(msg);
+          case WS_EV.S_SCHEDULE_BLOCK_UPDATE:     return onScheduleBlockUpdate(msg);
+          case WS_EV.S_SCHEDULE_BLOCK_DELETE:     return onScheduleBlockDelete(msg);
+          case WS_EV.S_CALL_OFFER:                return onCallOffer(msg);
+          case WS_EV.S_CALL_ANSWER:               return onCallAnswer(msg);
+          case WS_EV.S_CALL_ICE:                  return onCallIce(msg);
+          case WS_EV.S_CALL_ROOM_STARTED:         return onCallRoomStarted(msg);
+          case WS_EV.S_CALL_SEND_OFFER:           return onCallSendOffer(msg);
+          case WS_EV.S_CALL_PARTICIPANT_UPDATE:   return onCallParticipantUpdate(msg);
+          case WS_EV.S_CALL_ROOM_ENDED:           return onCallRoomEnded();
+          case WS_EV.S_CALL_ENDED:                return onCallRoomEnded(); // legacy fallback
+          case WS_EV.S_AVATAR_UPDATE:             return typeof onAvatarUpdate === 'function' && onAvatarUpdate(msg);
+          case WS_EV.S_TZ_UPDATE:                return onTzUpdate(msg);
+          case WS_EV.S_HOUSE_UPDATE:             return typeof onHouseUpdate === 'function' && onHouseUpdate(msg);
+          case WS_EV.S_ROOM_UPDATE:              return typeof onRoomUpdate === 'function' && onRoomUpdate(msg);
+          case WS_EV.S_FURNITURE_LOCK:           return typeof onFurnitureLock === 'function' && onFurnitureLock(msg); // DISABLED P22-A
+          case WS_EV.S_FURNITURE_UNLOCK:         return typeof onFurnitureUnlock === 'function' && onFurnitureUnlock(msg); // DISABLED P22-A
+          case WS_EV.S_CHAR_MOVE:               return typeof onCharMove === 'function' && onCharMove(msg); // DISABLED P22-A
+          case WS_EV.S_SOCIAL_INTERACTION:        return typeof onSocialInteraction === 'function' && onSocialInteraction(msg); // DISABLED P22-A
+          // case WS_EV.S_WALLET_UPDATE:             return typeof WalletManager !== 'undefined' && WalletManager.updateState(msg, false); // DISABLED P22-A
+        }
+      } catch (err) {
+        console.error('[ws] handler error:', err, msg);
       }
     }

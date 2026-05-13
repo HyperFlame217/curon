@@ -810,6 +810,12 @@
 
     // ── WS handlers ───────────────────────────────────────────────
     function onCalendarEventAdd(msg) {
+      if (msg.event.recurrence && msg.event.recurrence !== 'none') {
+        if (document.getElementById('dates-view').classList.contains('show')) {
+          loadCalendarData();
+        }
+        return;
+      }
       CAL.events.push(msg.event);
       if (document.getElementById('dates-view').classList.contains('show')) {
         renderCalendar(); renderTimeline();
@@ -824,6 +830,12 @@
       }
     }
     function onCalendarEventUpdate(msg) {
+      if (msg.event.recurrence && msg.event.recurrence !== 'none') {
+        if (document.getElementById('dates-view').classList.contains('show')) {
+          loadCalendarData();
+        }
+        return;
+      }
       const idx = CAL.events.findIndex(e => e.id === msg.event.id);
       if (idx >= 0) CAL.events[idx] = msg.event;
       else CAL.events.push(msg.event);

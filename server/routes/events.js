@@ -94,6 +94,10 @@ router.get('/calendar/events', requireAuth, async (req, res) => {
         const dt = new Date(currentStart * 1000);
         dt.setMonth(dt.getMonth() + 1);
         currentStart = Math.floor(dt.getTime() / 1000);
+      } else if (e.recurrence === 'yearly') {
+        const dt = new Date(currentStart * 1000);
+        dt.setFullYear(dt.getFullYear() + 1);
+        currentStart = Math.floor(dt.getTime() / 1000);
       } else {
         break;
       }
@@ -112,7 +116,30 @@ router.post('/calendar/events', requireAuth, async (req, res) => {
   broadcast('calendar_event_add', { event:ev }); res.json(ev);
 });
 
-router.delete('/calendar/events/:id', requireAuth, async (req, res) => { const db=await dbPromise; db.prepare('DELETE FROM events WHERE id=?').run(req.params.id); broadcast('calendar_event_delete', { id:parseInt(req.params.id) }); res.json({ok:true}); });
+router.patch('/calendar/events/:id', requireAuth, async (req, res) => {
+  const { title, start_time, end_time, notes, color, recurrence, recurrence_end } = req.body || {};
+  const db = await dbPromise;
+  const existing = db.prepare('SELECT * FROM events WHERE id=? AND created_by=?').get(req.params.id, req.user.id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const safeTitle = title !== undefined ? sanitizeText(title) : existing.title;
+  const safeNotes = notes !== undefined ? sanitizeText(notes) : existing.notes;
+  if (!safeTitle) return res.status(400).json({ error: 'Invalid title' });
+  db.prepare('UPDATE events SET title=?, notes=?, color=?, start_time=?, end_time=?, recurrence=?, recurrence_end=? WHERE id=?').run(
+    safeTitle,
+    safeNotes,
+    color || existing.color,
+    start_time || existing.start_time,
+    end_time || existing.end_time,
+    recurrence || 'none',
+    recurrence_end !== undefined ? recurrence_end : existing.recurrence_end,
+    req.params.id
+  );
+  const ev = db.prepare('SELECT e.*, u.username as creator_name FROM events e JOIN users u ON u.id=e.created_by WHERE e.id=?').get(req.params.id);
+  broadcast('calendar_event_update', { event: ev });
+  res.json(ev);
+});
+
+router.delete('/calendar/events/:id', requireAuth, async (req, res) => { const db=await dbPromise; db.prepare('DELETE FROM events WHERE id=? AND created_by=?').run(req.params.id, req.user.id); broadcast('calendar_event_delete', { id:parseInt(req.params.id) }); res.json({ok:true}); });
 router.get('/calendar/schedule', requireAuth, async (q, r) => {
   const db = await dbPromise;
   r.json(db.prepare('SELECT s.*, u.username FROM schedule_blocks s JOIN users u ON u.id=s.user_id ORDER BY s.day_type, s.start_minute ASC').all());

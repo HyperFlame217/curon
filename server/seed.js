@@ -3,8 +3,8 @@ const bcrypt = require('bcryptjs');
 const dbPromise = require('./db');
 
 const USERS = [
-  { username: 'iron', password: '1' },
-  { username: 'cubby', password: '2' },
+  { username: 'iron', password: process.env.SEED_PASSWORD_IRON || '1' },
+  { username: 'cubby', password: process.env.SEED_PASSWORD_CUBBY || '2' },
 ];
 
 (async () => {

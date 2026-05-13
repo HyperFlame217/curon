@@ -402,12 +402,14 @@ function onPresence({ userId, status }) {
   // Desktop Status Bar
   const sub = document.querySelector('.status-bar .status-sub');
   if (sub) {
-    sub.innerHTML = `${dotHtml}${status}`;
+    sub.innerHTML = dotHtml;
+    sub.append(status);
   }
   // Mobile Header Status
   const mhSub = document.querySelector('.mh-sub');
   if (mhSub) {
-    mhSub.innerHTML = `${dotHtml}${status}`;
+    mhSub.innerHTML = dotHtml;
+    mhSub.append(status);
   }
 
   // Update sidebar avatar dots (e.g. Iron & Cubby)
@@ -465,13 +467,15 @@ function onPresenceSync({ userId, state }) {
   // Update status bar text (desktop)
   const statusSub = document.querySelector('.status-bar .status-sub');
   if (statusSub) {
-    statusSub.innerHTML = `<div class="status-dot" style="background-color:${color};"></div>${state}`;
+    statusSub.textContent = state;
+    statusSub.insertAdjacentHTML('afterbegin', `<div class="status-dot" style="background-color:${color};"></div>`);
   }
-  
+
   // Update mobile header
   const mhSub = document.querySelector('.mh-sub');
   if (mhSub) {
-    mhSub.innerHTML = `<div class="status-dot" style="background-color:${color};"></div>${state}`;
+    mhSub.textContent = state;
+    mhSub.insertAdjacentHTML('afterbegin', `<div class="status-dot" style="background-color:${color};"></div>`);
   }
 }
 
@@ -591,7 +595,17 @@ function initInput() {
       btn.click();
     }
   });
-  
+
+  // Paste images from clipboard
+  field.addEventListener('paste', async (e) => {
+    const files = Array.from(e.clipboardData.files || []);
+    const images = files.filter(f => f.type.startsWith('image/'));
+    if (!images.length) return;
+    for (const img of images) {
+      await sendMediaMessage(img);
+    }
+  });
+
   // Mark messages as read when tab becomes visible
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {

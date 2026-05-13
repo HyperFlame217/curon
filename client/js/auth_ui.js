@@ -43,7 +43,7 @@ window.showLogin = function() {
     const data = await res.json();
     localStorage.setItem('curon_token', data.token);
     localStorage.setItem('curon_user', JSON.stringify(data.user));
-    sessionStorage.setItem('curon_pw', password);
+    STATE._pw = password;
     location.reload();
   }
   document.getElementById('li-btn').addEventListener('click', doLogin);
@@ -51,9 +51,9 @@ window.showLogin = function() {
 };
 
 window.showPasswordPrompt = function() {
-  const saved = sessionStorage.getItem('curon_pw');
+  const saved = STATE._pw;
   if (saved) {
-    sessionStorage.removeItem('curon_pw');
+    STATE._pw = null;
     bootApp(saved);
     return;
   }

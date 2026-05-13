@@ -457,7 +457,17 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
         CALL.screenStream = null;
         const camTrack = CALL.localStream?.getVideoTracks()[0];
         const sender   = CALL.pc?.getSenders().find(s => s.track?.kind === 'video');
-        if (sender && camTrack) sender.replaceTrack(camTrack);
+        if (sender) {
+          if (camTrack) {
+            sender.replaceTrack(camTrack);
+          } else {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1; canvas.height = 1;
+            const dummyTrack = canvas.captureStream().getVideoTracks()[0];
+            dummyTrack.enabled = false;
+            sender.replaceTrack(dummyTrack);
+          }
+        }
         document.getElementById('call-video-local').srcObject = CALL.localStream;
         CALL.sharing = false;
         document.getElementById('ctrl-screen').classList.remove('active');
@@ -474,13 +484,6 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
       document.getElementById('call-mini').classList.remove('show');
       document.getElementById('call-overlay').classList.add('show');
     }
-
-    // Graceful leave if tab closes
-    window.addEventListener('beforeunload', () => {
-      if (CALL_ROOM.active && CALL_ROOM.participants.includes(STATE.user?.id)) {
-        wsSend(WS_EV.C_CALL_LEAVE);
-      }
-    });
 
     // ════════════════════════════════════════════════════════════
     //  INIT

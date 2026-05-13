@@ -8,21 +8,124 @@ const { requireAuth } = require('../auth');
 const presence        = require('../ws/presence');
 const supabaseStorage = require('../supabase-storage');
 
+// ── Local Storage Config ────────────────────────────────────────
+const STORAGE_DIR = path.join(__dirname, '..', 'storage');
+const MEDIA_DIR = path.join(STORAGE_DIR, 'media');
+const THUMB_DIR = path.join(STORAGE_DIR, 'thumbnails');
+const TMP_DIR = path.join(STORAGE_DIR, 'tmp');
+const MAX_SUPABASE_SIZE = 45 * 1024 * 1024; // 45MB (buffer under 50MB limit)
+
+// Ensure storage directories exist
+[MEDIA_DIR, THUMB_DIR, TMP_DIR].forEach(d => {
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+});
+
 function genFilename(ext) {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}${ext || ''}`;
 }
 
-const uploadMedia = multer({ storage: multer.memoryStorage() });
+// Use diskStorage to avoid loading large files into memory
+const uploadMedia = multer({
+  storage: multer.diskStorage({
+    destination: TMP_DIR,
+    filename: (_req, file, cb) => cb(null, genFilename(path.extname(file.originalname) || ''))
+  })
+});
 const uploadEmoji = multer({ storage: multer.memoryStorage(), limits: { fileSize: 512*1024 } });
 
 function broadcastEmoji() { for (const [, s] of presence.sessions) { if (s.ws && s.ws.readyState === 1) s.ws.send(JSON.stringify({ type: 'emoji_updated' })); } }
 function isAdmin(user) { return user === (process.env.EMOJI_ADMIN || ''); }
+
+// ── MEDIA STARS ────────────────────────────────────────────────
+// Must be defined before /media/:id to avoid param catch-all
+
+router.get('/media/stars', requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  const rows = db.prepare('SELECT media_id FROM media_stars WHERE user_id = ?').all(req.user.id);
+  res.json(rows.map(r => r.media_id));
+});
+
+router.post('/media/:id/star', requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  const media = db.prepare('SELECT id FROM media WHERE id = ?').get(req.params.id);
+  if (!media) return res.status(404).json({ error: 'Not found' });
+  try {
+    db.prepare('INSERT OR IGNORE INTO media_stars (media_id, user_id) VALUES (?, ?)').run(req.params.id, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/media/:id/star', requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  db.prepare('DELETE FROM media_stars WHERE media_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  res.json({ ok: true });
+});
+
+// ── MEDIA BACKUP CHECK ──────────────────────────────────────────
+router.get('/media/backup/check', requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  const count = db.prepare('SELECT COUNT(*) as c FROM media WHERE storage_provider = ?').get('local')?.c || 0;
+  res.json({ count });
+});
+
+// ── MEDIA BACKUP DOWNLOAD ──────────────────────────────────────
+const archiver = require('archiver');
+router.get('/media/backup', requireAuth, async (req, res) => {
+  if (req.user.username !== 'iron') return res.status(403).json({ error: 'Admin only' });
+  const db = await dbPromise;
+  const localFiles = db.prepare('SELECT id, filename, mime_type, size_bytes FROM media WHERE storage_provider = ?').all('local');
+  if (!localFiles.length) return res.status(404).json({ error: 'No local media to back up' });
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="curon-media-backup-${new Date().toISOString().slice(0, 10)}.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 0 } });
+  archive.pipe(res);
+
+  for (const f of localFiles) {
+    const filePath = path.join(MEDIA_DIR, f.filename);
+    if (fs.existsSync(filePath)) {
+      archive.file(filePath, { name: `media/${f.filename}` });
+    }
+    if (f.mime_type?.startsWith('image/')) {
+      const ext = path.extname(f.filename);
+      const thumbPath = path.join(THUMB_DIR, `${f.filename.replace(ext, '')}.jpg`);
+      if (fs.existsSync(thumbPath)) {
+        archive.file(thumbPath, { name: `thumbnails/${f.filename.replace(ext, '')}.jpg` });
+      }
+    }
+  }
+
+  archive.finalize();
+});
+
+// ── MEDIA DOWNLOAD ─────────────────────────────────────────────
+router.get('/media/:id/download', (q, r, n) => { if (q.query.token && !q.headers.authorization) q.headers.authorization = `Bearer ${q.query.token}`; n(); }, requireAuth, async (req, res) => {
+  const db = await dbPromise;
+  const row = db.prepare('SELECT * FROM media WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+
+  if (row.storage_provider === 'local' && fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
+    return res.download(path.join(MEDIA_DIR, row.filename));
+  }
+
+  const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `media/${row.filename}`, { download: true });
+  res.redirect(302, url);
+});
 
 // ── MEDIA (Uploads/Attachments) ─────────────────────────────
 router.get('/media/:id', (q, r, n) => { if (q.query.token && !q.headers.authorization) q.headers.authorization = `Bearer ${q.query.token}`; n(); }, requireAuth, async (req, res) => {
   const db = await dbPromise;
   const row = db.prepare('SELECT * FROM media WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
+
+  if (row.storage_provider === 'local' && fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
+    res.setHeader('Content-Type', row.mime_type);
+    return res.sendFile(path.join(MEDIA_DIR, row.filename));
+  }
+
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `media/${row.filename}`);
   res.redirect(302, url);
 });
@@ -31,24 +134,46 @@ router.post('/media', requireAuth, uploadMedia.single('file'), async (req, res) 
   const db = await dbPromise;
   if (!req.file) return res.status(400).json({ error: 'No file' });
 
-  const ext = path.extname(req.file.originalname) || '';
-  const filename = genFilename(ext);
+  const filename = req.file.filename;
+  const ext = path.extname(filename);
   const contentType = req.file.mimetype || 'application/octet-stream';
+  const fileSize = req.file.size;
+  const filePath = req.file.path;
 
-  const buffer = req.file.buffer;
-  await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `media/${filename}`, buffer, contentType);
+  if (fileSize <= MAX_SUPABASE_SIZE) {
+    // Small file: upload to Supabase (existing flow)
+    const buffer = fs.readFileSync(filePath);
+    await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `media/${filename}`, buffer, contentType);
 
-  if (contentType.startsWith('image/')) {
-    try {
-      const thumbBuffer = await sharp(buffer).resize(300).jpeg({ quality: 80 }).toBuffer();
-      await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `thumbnails/${filename.replace(ext, '')}.jpg`, thumbBuffer, 'image/jpeg');
-    } catch (err) {
-      console.error('[Thumbnail] Failed to generate:', err.message);
+    if (contentType.startsWith('image/')) {
+      try {
+        const thumbBuffer = await sharp(buffer).resize(300).jpeg({ quality: 80 }).toBuffer();
+        await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `thumbnails/${filename.replace(ext, '')}.jpg`, thumbBuffer, 'image/jpeg');
+      } catch (err) {
+        console.error('[Thumbnail] Failed to generate:', err.message);
+      }
     }
-  }
 
-  const result = db.prepare('INSERT INTO media (uploader_id, filename, mime_type, size_bytes) VALUES (?, ?, ?, ?)').run(req.user.id, filename, contentType, req.file.size);
-  res.json({ id: result.lastInsertRowid, mime_type: contentType, filename, size: req.file.size });
+    fs.unlinkSync(filePath); // clean up temp file
+    const result = db.prepare('INSERT INTO media (uploader_id, filename, mime_type, size_bytes, storage_provider) VALUES (?, ?, ?, ?, ?)').run(req.user.id, filename, contentType, fileSize, 'supabase');
+    res.json({ id: result.lastInsertRowid, mime_type: contentType, filename, size: fileSize });
+  } else {
+    // Large file: store locally
+    const destPath = path.join(MEDIA_DIR, filename);
+    fs.renameSync(filePath, destPath);
+
+    if (contentType.startsWith('image/')) {
+      try {
+        const thumbBuffer = await sharp(destPath).resize(300).jpeg({ quality: 80 }).toBuffer();
+        fs.writeFileSync(path.join(THUMB_DIR, `${filename.replace(ext, '')}.jpg`), thumbBuffer);
+      } catch (err) {
+        console.error('[Thumbnail] Failed to generate:', err.message);
+      }
+    }
+
+    const result = db.prepare('INSERT INTO media (uploader_id, filename, mime_type, size_bytes, storage_provider) VALUES (?, ?, ?, ?, ?)').run(req.user.id, filename, contentType, fileSize, 'local');
+    res.json({ id: result.lastInsertRowid, mime_type: contentType, filename, size: fileSize });
+  }
 });
 
 // ── THUMBNAIL SERVE ─────────────────────────────────────────
@@ -63,6 +188,11 @@ router.get('/media/:id/thumb', (q, r, n) => { if (q.query.token && !q.headers.au
   const ext = path.extname(row.filename);
   const base = row.filename.replace(ext, '');
   const thumbFilename = `${base}.jpg`;
+
+  if (row.storage_provider === 'local' && fs.existsSync(path.join(THUMB_DIR, thumbFilename))) {
+    return res.sendFile(path.join(THUMB_DIR, thumbFilename));
+  }
+
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `thumbnails/${thumbFilename}`);
   res.redirect(302, url);
 });
@@ -70,6 +200,14 @@ router.get('/media/:id/thumb', (q, r, n) => { if (q.query.token && !q.headers.au
 // ── GALLERY PAGINATION ───────────────────────────────────────
 router.get('/gallery/media', requireAuth, async (req, res) => {
   const db = await dbPromise;
+
+  // Purge stale unstarred media before returning gallery data
+  db.prepare(`
+    DELETE FROM media
+    WHERE created_at < (strftime('%s','now') - 14*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)
+  `).run();
+
   const limit = Math.min(parseInt(req.query.limit) || 15, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);
 
@@ -79,18 +217,27 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
   // Fetch media items with sender info (only image/video types)
   const items = db.prepare(`
     SELECT m.id, m.uploader_id, m.filename, m.mime_type, m.size_bytes, m.created_at,
-           (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username
+           (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username,
+           (SELECT 1 FROM media_stars WHERE media_id = m.id AND user_id = ?) as is_starred
     FROM media m
     WHERE m.mime_type LIKE 'image/%' OR m.mime_type LIKE 'video/%'
-    ORDER BY m.created_at DESC
+    ORDER BY is_starred DESC, m.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(limit, offset);
+  `).all(req.user.id, limit, offset);
 
   res.json({ items, total, limit, offset });
 });
 
 router.get('/gallery/files', requireAuth, async (req, res) => {
   const db = await dbPromise;
+
+  // Purge stale unstarred media before returning gallery data
+  db.prepare(`
+    DELETE FROM media
+    WHERE created_at < (strftime('%s','now') - 14*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)
+  `).run();
+
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);
 
@@ -103,12 +250,13 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
   // Fetch file items with sender info
   const items = db.prepare(`
     SELECT m.id, m.uploader_id, m.filename, m.mime_type, m.size_bytes, m.created_at,
-           (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username
+           (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username,
+           (SELECT 1 FROM media_stars WHERE media_id = m.id AND user_id = ?) as is_starred
     FROM media m
     WHERE m.mime_type NOT LIKE 'image/%' AND m.mime_type NOT LIKE 'video/%'
-    ORDER BY m.created_at DESC
+    ORDER BY is_starred DESC, m.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(limit, offset);
+  `).all(req.user.id, limit, offset);
 
   res.json({ items, total, limit, offset });
 });

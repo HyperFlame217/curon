@@ -110,6 +110,9 @@ window.bootApp = async function(password) {
   if (window.initScrollPagination) initScrollPagination();
   if (window.initSpotify) initSpotify();
   if (window.loadHistory) await loadHistory();
+
+  // Sunday backup reminder check
+  if (window.checkBackupReminder) checkBackupReminder();
 };
 
 // Global Boot Trigger

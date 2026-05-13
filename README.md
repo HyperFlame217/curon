@@ -7,7 +7,7 @@ A private two-user communication platform designed for intimacy, privacy, and de
 - **Runtime**: Node.js
 - **Server**: Express + `ws` (WebSockets)
 - **Database**: SQLite via `sql.js` (pure JS, no native deps)
-- **Storage**: Supabase Storage (media, avatars, thumbnails)
+- **Storage**: Supabase Storage (media, avatars, thumbnails) + local disk fallback for large files
 - **Auth**: bcrypt passwords + JWT (7-day expiry)
 - **Calls**: WebRTC (signaling via WebSocket, supports STUN/TURN)
 - **UI**: Monolithic `index.html` (Vanilla CSS, custom pixel-art components)
@@ -24,15 +24,37 @@ npm install
 
 ### 2. Configure environment
 
-Edit `.env`:
+Copy `.env.example` to `.env` and fill in:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
 
 ```
 PORT=3000
 JWT_SECRET=replace_with_a_long_random_string
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_KEY=your_supabase_service_role_key
-# SPOTIFY_CLIENT_ID=... (optional)
-# SPOTIFY_CLIENT_SECRET=... (optional)
+```
+
+Optional variables (see `.env.example` for full list):
+
+```
+# Emoji admin (username who can upload custom emojis)
+EMOJI_ADMIN=iron
+
+# Seed passwords (overrides hardcoded defaults)
+SEED_PASSWORD_IRON=your_password_here
+SEED_PASSWORD_CUBBY=their_password_here
+
+# Spotify integration
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+
+# Media cleanup interval (default: 6 hours)
+MEDIA_CLEANUP_INTERVAL_MS=21600000
 ```
 
 Generate a strong secret:
@@ -40,18 +62,7 @@ Generate a strong secret:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-### 3. Set your usernames and passwords
-
-Edit `server/seed.js` — change the `USERS` array:
-
-```js
-const USERS = [
-  { username: 'alice', password: 'your_strong_password' },
-  { username: 'bob',   password: 'their_strong_password' },
-];
-```
-
-### 4. Seed the database
+### 3. Seed the database
 
 ```bash
 npm run seed
@@ -59,7 +70,7 @@ npm run seed
 
 This creates `server/curon.db` with both user accounts. Safe to re-run — skips existing users.
 
-### 5. Run
+### 4. Run
 
 ```bash
 # Development (Node 18+)
@@ -81,22 +92,26 @@ Open `http://localhost:3000` in your browser.
 │   │   ├── chat.js          # Messaging & chat UI
 │   │   ├── emojis.js        # Emoji picker, autocomplete & audio player
 │   │   ├── emoji-data.js    # Standard emoji map (1967 entries, 9 categories)
-│   │   ├── gallery.js       # Media gallery with pagination
+│   │   ├── gallery.js       # Media gallery with starring, pagination
 │   │   ├── calls.js         # WebRTC & signaling UI
 │   │   ├── calendar.js      # Calendar & schedule
 │   │   ├── notes.js         # Shared notes board
 │   │   ├── search.js        # Chat search
-│   │   ├── ui.js            # Shared layout, modals & settings
+│   │   ├── ui.js            # Shared layout, modals, settings, backup banner
 │   │   ├── ws.js            # Client-side WebSocket manager
+│   │   ├── auth_ui.js      # Login & password prompt UI
+│   │   ├── state.js         # Client-side state management
+│   │   ├── boot.js          # App initialization
 │   │   └── utils.js         # Helper functions
 │   ├── css/
-│   │   └── main.css         # All styles
+│   │   ├── main.css         # All styles
+│   │   └── icons.css        # Lucide icon styles
 │   └── index.html           # Main HTML5 entry point
 ├── server/
 │   ├── routes/
 │   │   ├── auth.js          # JWT, login, user endpoints
 │   │   ├── chat.js          # Messages, notes, search
-│   │   ├── assets.js        # Media uploads, gallery, emojis
+│   │   ├── assets.js        # Media uploads, gallery, starring, backup
 │   │   ├── events.js        # Calendar, Spotify integration
 │   │   └── search.js         # Chat search
 │   ├── ws/
@@ -110,10 +125,16 @@ Open `http://localhost:3000` in your browser.
 │   ├── migrations/          # Database migrations
 │   ├── supabase-storage.js  # Supabase Storage client
 │   ├── economy.js           # Economy/wallet (MVP disabled)
-│   ├── index.js             # Express app root
+│   ├── index.js             # Express app root, auto-cleanup interval
 │   └── seed.js              # One-time USERS setup
 ├── config/                  # UI color profiles & static data
-└── storage/                 # Legacy local media uploads (deprecated)
+├── server/storage/          # Local file storage
+│   ├── media/              # Large media files (>45MB)
+│   ├── thumbnails/         # Local thumbnails
+│   └── tmp/                # Temporary upload staging
+├── .env                    # Your environment config (do not commit)
+├── .env.example            # Template for environment variables
+└── package.json
 ```
 
 ---
@@ -122,11 +143,13 @@ Open `http://localhost:3000` in your browser.
 
 - **Password Hashing**: bcrypt with 12 rounds.
 - **Session Security**: JWT tokens with 7-day expiry.
-- **Server-Side Storage**: User data persisted in SQLite; media in Supabase Storage.
+- **Server-Side Storage**: User data persisted in SQLite; media in Supabase Storage or local disk.
 - **WebRTC Privacy**: Direct P2P calls with signaling over WebSocket.
-- **Rate Limiting**: 30 req/min on media uploads.
 - **Security Headers**: Helmet (X-Frame-Options, X-Content-Type-Options, HSTS).
 - **XSS Protection**: Server-side sanitization on messages, notes, and calendar events.
+- **IDOR Protection**: Calendar event deletion verifies ownership.
+- **CORS**: Whitelist-based (localhost, deployed domain, Spotify domains).
+- **Password Security**: Passwords moved to environment variables (`SEED_PASSWORD_IRON`, `SEED_PASSWORD_CUBBY`) — never hardcoded.
 
 ---
 
@@ -138,9 +161,16 @@ Open `http://localhost:3000` in your browser.
 - **Shared Calendar & Schedule**: Relationship milestone tracking and routine sync.
 - **Spotify Sync**: Live playback visibility for partners.
 - **Voice & Video**: WebRTC calls for desktop and mobile.
-- **Notes Board**: Shared virtual sticky notes.
-- **Media Gallery**: Photo/video sharing with pagination and server-side thumbnails.
+- **Notes Board**: Shared virtual sticky notes (formerly "Pinned").
+- **Media Gallery**: Photo/video sharing with pagination, starring, and server-side thumbnails.
+- **Media Starring**: Star/unstar media items for quick access. Starred items appear first.
+- **Batch Upload**: Select multiple files at once — uploads sequentially with progress.
+- **Image Paste**: Paste images directly from clipboard (Ctrl+V) in chat input.
 - **Search**: Full-text chat search.
+- **Auto-cleanup**: Automatic deletion of unstarred media older than 14 days (runs every 6 hours).
+- **Local Storage Fallback**: Files >45MB stored locally (useful for deployment without large Supabase storage).
+- **Backup Endpoint**: Admin can download all local-storage media as a ZIP file.
+- **Sunday Backup Reminder**: Persistent banner on Sundays for admin if local files exist.
 
 ### 🔒 Disabled / Placeholder
 - **House**: 2.5D isometric house UI disabled for MVP.
@@ -159,6 +189,12 @@ npm run backup           # Dry-run DB backup to Supabase
 npm run backup:confirm   # Execute DB backup to Supabase
 npm run backup:dry       # Alias for backup
 ```
+
+---
+
+## ⚠️ Migration Note
+
+If upgrading from an older version with an existing `curon.db`, the app automatically adds missing database columns on first run. No manual migration needed.
 
 ---
 
