@@ -489,7 +489,11 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
     //  INIT
     // ════════════════════════════════════════════════════════════
 
-    function initCalls() {
+    let _callsInitialized = false;
+function initCalls() {
+  if (_callsInitialized) return;
+  _callsInitialized = true;
+
       // Overlay controls
       document.getElementById('ctrl-mute')?.addEventListener('click', toggleMute);
       document.getElementById('ctrl-cam')?.addEventListener('click', toggleCamera);

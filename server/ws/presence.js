@@ -52,8 +52,15 @@ function recordActivity(userId, broadcast) {
 }
 
 function connect(userId, ws, broadcast) {
-  // Clear any previous session for this user
+  // Clear any previous session for this user and close their old socket
+  const oldSession = sessions.get(userId);
+  if (oldSession && oldSession.ws) {
+    try {
+      oldSession.ws.terminate(); // terminate is more aggressive than close
+    } catch (e) {}
+  }
   disconnect(userId, broadcast);
+
 
   const idleTimer = setTimeout(() => {
     setStatus(userId, 'idle', broadcast);

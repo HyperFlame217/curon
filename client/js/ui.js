@@ -216,7 +216,11 @@
       }
     }
 
-    function initSettings() {
+    let _settingsInitialized = false;
+function initSettings() {
+  if (_settingsInitialized) return;
+  _settingsInitialized = true;
+
       document.getElementById('btn-settings')?.addEventListener('click', openSettings);
       document.getElementById('settings-overlay')?.addEventListener('click', closeSettings);
       document.querySelector('.settings-close')?.addEventListener('click', closeSettings);

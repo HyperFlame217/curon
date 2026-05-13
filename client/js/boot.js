@@ -40,8 +40,12 @@ window.onTzUpdate = function(msg) {
   }
 };
 
+let _bootInProgress = false;
 window.bootApp = async function(password) {
+  if (_bootInProgress) return;
+  _bootInProgress = true;
   STATE.password = password;
+
 
   // 0. Load Data Configs
   await loadConfig();

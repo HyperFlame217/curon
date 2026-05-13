@@ -117,7 +117,11 @@ async function loadHistory(before = null, reqAround = null) {
 }
 
 // Load more when scrolled to top
-function initScrollPagination() {
+let _paginationInitialized = false;
+async function initScrollPagination() {
+  if (_paginationInitialized) return;
+  _paginationInitialized = true;
+
   const msgs = document.getElementById('msgs');
   if (!msgs) return;
   let _scrollDebounce = null;
@@ -533,7 +537,11 @@ function onTyping({ userId, typing }) {
 // ════════════════════════════════════════════════════════════
 //  SEND
 // ════════════════════════════════════════════════════════════
+let _inputInitialized = false;
 function initInput() {
+  if (_inputInitialized) return;
+  _inputInitialized = true;
+
   const field = document.getElementById('ifield');
   const btn = document.getElementById('sb');
   if (!field || !btn) return;
@@ -750,7 +758,7 @@ async function buildMsgEl(msg, scrollCtx = 'near') {
 
   row.innerHTML = `
     ${avatar}
-    <div class="bw" data-msg-id="${msg.id}" data-read="${!!msg.read_at}" data-delivered="${msg.read_at || msg.delivered_at ? 'true' : 'false'}" data-status="${msg.read_at ? 'read' : (msg.delivered_at ? 'delivered' : 'sent')}">
+    <div class="bw" data-msg-id="${msg.id}" data-read="${!!msg.read_at}" data-delivered="${msg.read_at || msg.delivered_at ? 'true' : 'false'}" data-status="${msg.status === 'pending' || (typeof msg.id === 'string' && msg.id.startsWith('pending-')) ? 'pending' : (msg.read_at ? 'read' : (msg.delivered_at ? 'delivered' : 'sent'))}">
       ${(msg.media_id || isGif)
       ? `<div class="b" style="padding:4px;"></div>`
       : `<div class="b ${isEmojiOnly ? 'emoji-only' : ''}">${renderMessageText(text)}<span class="ts">${time}</span></div>`

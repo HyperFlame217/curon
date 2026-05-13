@@ -118,7 +118,11 @@ async function sendGif(gif) {
   cancelReply();
 }
 
+let _gifPickerInitialized = false;
 function initGifPicker() {
+  if (_gifPickerInitialized) return;
+  _gifPickerInitialized = true;
+
   document.getElementById('btn-gif').addEventListener('click', (e) => {
     e.stopPropagation();
     const panel = document.getElementById('gif-panel');
@@ -452,7 +456,11 @@ function resetRecordingUI() {
 }
 
 // ── Init media buttons ────────────────────────────────────────
+let _mediaButtonsInitialized = false;
 function initMediaButtons() {
+  if (_mediaButtonsInitialized) return;
+  _mediaButtonsInitialized = true;
+
   // Hidden file inputs
   const attachInput = document.createElement('input');
   attachInput.type = 'file';
@@ -873,7 +881,11 @@ function closeAutocomplete() {
 }
 
 // ── Init all emoji features ───────────────────────────────────
+let _emojisInitialized = false;
 async function initEmojis() {
+  if (_emojisInitialized) return;
+  _emojisInitialized = true;
+
   await loadCustomEmojis();
 
   // Fetch emoji admin username from server

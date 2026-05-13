@@ -33,7 +33,19 @@
     }
 
     function connectWS() {
+      // Close existing connection if any to prevent ghost listeners
+      if (STATE.ws) {
+        try {
+          STATE.ws.onopen = null;
+          STATE.ws.onmessage = null;
+          STATE.ws.onclose = null;
+          STATE.ws.onerror = null;
+          STATE.ws.close();
+        } catch (e) {}
+      }
+
       const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+
       const ws = new WebSocket(`${proto}://${location.host}/?token=${encodeURIComponent(STATE.token)}`);
       STATE.ws = ws;
 
