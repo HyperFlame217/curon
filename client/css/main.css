@@ -1303,10 +1303,7 @@ textarea::placeholder {
 ════════════════════════════════ */
 @media (max-width: 599px) {
 
-  html,
-  body {
-    /* No overflow: hidden here */
-  }
+  /* html, body removed (empty ruleset) */
 
   .mountains {
     height: 40px;
@@ -2888,7 +2885,7 @@ textarea::placeholder {
   position: absolute;
   top: 4px;
   right: 4px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   border: none;
   cursor: pointer;
   font-size: 0;
@@ -2903,12 +2900,15 @@ textarea::placeholder {
   width: 28px;
   height: 28px;
 }
+
 .gallery-star:hover {
   transform: scale(1.25);
 }
+
 .gallery-star i {
   color: #ffd700;
 }
+
 .gallery-star .icon-star-off {
   color: var(--color-sky);
 }
@@ -2917,7 +2917,7 @@ textarea::placeholder {
   position: absolute;
   bottom: 4px;
   left: 4px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   border: none;
   cursor: pointer;
   font-size: 0;
@@ -2932,6 +2932,7 @@ textarea::placeholder {
   width: 28px;
   height: 28px;
 }
+
 .gallery-dl:hover {
   transform: scale(1.25);
 }
@@ -5667,6 +5668,51 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* --- Low Network Pending UI --- */
+.rcpt.pending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.pending-clock {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--color-muted);
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+}
+
+.pending-clock::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 1px;
+  background: var(--color-muted);
+  transform-origin: 0 50%;
+  animation: pendingSpin 2s linear infinite;
+}
+
+.pending-clock::after {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  width: 1px;
+  height: 3px;
+  background: var(--color-muted);
+}
+
+@keyframes pendingSpin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .ghost-time-label {

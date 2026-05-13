@@ -7,7 +7,8 @@ A private two-user communication platform designed for intimacy, privacy, and de
 - **Runtime**: Node.js
 - **Server**: Express + `ws` (WebSockets)
 - **Database**: SQLite via `sql.js` (pure JS, no native deps)
-- **Storage**: Supabase Storage (media, avatars, thumbnails) + local disk fallback for large files
+- **Persistence**: Hybrid Storage (In-memory → Local File → Supabase Backup)
+- **Storage**: Supabase Storage (media, avatars, thumbnails) + local disk fallback for large files (>45MB)
 - **Auth**: bcrypt passwords + JWT (7-day expiry)
 - **Calls**: WebRTC (signaling via WebSocket, supports STUN/TURN)
 - **UI**: Monolithic `index.html` (Vanilla CSS, custom pixel-art components)
@@ -139,6 +140,24 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
+## 📁 Persistence & Backups
+
+Curon uses a triple-layer persistence strategy to ensure you never lose your data, even on ephemeral platforms like Render:
+
+1.  **Memory**: `sql.js` handles queries at lightning speed in RAM.
+2.  **Local Cache**: Every change is written to `server/curon.db`.
+3.  **Supabase**: The database file is backed up to Supabase Storage every 5 minutes and on server shutdown.
+
+### Local Backups
+You can download your entire database and media library from Supabase to your local computer at any time:
+
+```bash
+npm run backup           # Dry-run: see what will be downloaded from Supabase
+npm run backup:confirm   # Actually download and clean up old media from Supabase
+```
+
+---
+
 ## 🔒 Security & Privacy
 
 - **Password Hashing**: bcrypt with 12 rounds.
@@ -179,15 +198,25 @@ Open `http://localhost:3000` in your browser.
 
 ---
 
+## ☁️ Deployment (Render.com)
+
+1.  Create a **Web Service** on Render.
+2.  Connect your GitHub repository.
+3.  Set **Build Command**: `npm install`
+4.  Set **Start Command**: `npm start`
+5.  Add your `.env` variables to the Render **Environment** dashboard.
+6.  (Optional) Set `RENDER_EXTERNAL_URL` to your app's URL for better Spotify/CORS support.
+
+---
+
 ## 🔧 Commands
 
 ```bash
 npm run dev              # Start dev server with auto-restart
 npm start                # Start production server
 npm run seed             # Seed or re-seed the database
-npm run backup           # Dry-run DB backup to Supabase
-npm run backup:confirm   # Execute DB backup to Supabase
-npm run backup:dry       # Alias for backup
+npm run backup           # Preview local backup from Supabase
+npm run backup:confirm   # Execute local backup and clean remote storage
 ```
 
 ---

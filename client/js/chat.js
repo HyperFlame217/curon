@@ -83,9 +83,19 @@ async function loadHistory(before = null, reqAround = null) {
     let url = '/messages?limit=50';
     if (reqAround) url = `/messages?limit=50&around=${reqAround}`;
     else if (before) url = `/messages?limit=50&before=${before}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${STATE.token}` },
-    }).catch(() => null);
+    let res = null;
+    let retries = 3;
+    let delay = 1000;
+    while (retries > 0) {
+      res = await fetch(url, { headers: { Authorization: `Bearer ${STATE.token}` } }).catch(() => null);
+      if (res) break;
+      retries--;
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      }
+    }
+
     if (!res) return;
     if (res.status === 401) {
       localStorage.removeItem('curon_token');
@@ -134,14 +144,14 @@ async function onMessageNew(msg) {
     _incQueue.push(msg);
     return;
   }
-  
+
   // Play notification chime for incoming messages (not our own)
   if (msg.sender_id !== STATE.user?.id) {
     if (typeof AudioManager !== 'undefined' && AudioManager.playChime) {
       AudioManager.playChime();
     }
   }
-  
+
   await processNewMsg(msg);
   // If messages arrived while processing or while history finished
   while (_incQueue.length > 0) {
@@ -149,7 +159,7 @@ async function onMessageNew(msg) {
     await processNewMsg(next);
   }
   if (window.wsSend && msg.sender_id !== STATE.user?.id) wsSend(WS_EV.C_MESSAGE_READ);
-  
+
   // Handle unread badge - only show if not on chat tab
   if (msg.sender_id !== STATE.user?.id && typeof BadgeManager !== 'undefined') {
     BadgeManager.handleIncoming('chat');
@@ -159,7 +169,12 @@ async function onMessageNew(msg) {
 async function processNewMsg(msg) {
   const container = document.getElementById('msgs');
   if (container.querySelector(`[data-msg-id="${msg.id}"]`)) return;
-  
+
+  if (msg.sender_id === STATE.user?.id) {
+    const pendingBw = container.querySelector('.row.me .bw[data-status="pending"]');
+    if (pendingBw) pendingBw.closest('.row').remove();
+  }
+
   // Remove typing indicator when partner sends a message
   if (msg.sender_id !== STATE.user?.id) {
     const tyrow = container.querySelector('.tyrow');
@@ -169,7 +184,7 @@ async function processNewMsg(msg) {
       TypingManager.clearTypingTimers();
     }
   }
-  
+
   const el = await buildMsgEl(msg, 'near'); // new incoming message — scroll only if near bottom
   const d = new Date(msg.created_at * 1000);
   const dateStr = formatDate(d);
@@ -196,10 +211,10 @@ function onMessageStatus(msg) {
 
 function updateReceipts() {
   // Receipt labels with retro styling
-  const labels = { 
-    sent: '>>', 
-    delivered: '>>', 
-    read: '>>' 
+  const labels = {
+    sent: '>> sent',
+    delivered: '>> delivered',
+    read: '>> seen'
   };
 
   // Clear all current receipts
@@ -216,6 +231,7 @@ function updateReceipts() {
     if (rcpt) {
       rcpt.textContent = labels.read;
       rcpt.style.color = 'var(--color-dark)'; // Primary color for read
+      rcpt.className = 'rcpt';
     }
   }
 
@@ -227,6 +243,7 @@ function updateReceipts() {
     if (rcpt) {
       rcpt.textContent = labels.delivered;
       rcpt.style.color = 'var(--color-dark)'; // Highlight for delivered
+      rcpt.className = 'rcpt';
     }
   }
 
@@ -235,8 +252,14 @@ function updateReceipts() {
   if (lastMsg && lastMsg !== lastDelivered && lastMsg !== lastSeen) {
     const rcpt = lastMsg.querySelector('.rcpt');
     if (rcpt) {
-      rcpt.textContent = labels.sent;
-      rcpt.style.color = 'var(--color-muted)'; // Muted for sent
+      if (lastMsg.dataset.status === 'pending') {
+        rcpt.innerHTML = '<span class="pending-clock"></span>';
+        rcpt.className = 'rcpt pending';
+      } else {
+        rcpt.textContent = labels.sent;
+        rcpt.style.color = 'var(--color-muted)'; // Muted for sent
+        rcpt.className = 'rcpt';
+      }
     }
   }
 }
@@ -430,9 +453,9 @@ function onPresence({ userId, status }) {
 function onPresenceSync({ userId, state }) {
   // Skip if it's our own ID
   if (userId === STATE.user?.id) return;
-  
+
   STATE.partnerPresenceState = state;
-  
+
   // Update presence colors for the partner
   const partnerColors = {
     active: '#4ADE80',
@@ -441,7 +464,7 @@ function onPresenceSync({ userId, state }) {
     offline: '#94A3B8'
   };
   const color = partnerColors[state] || partnerColors.offline;
-  
+
   // Update sidebar partner dot - remove ALL status classes first
   const partnerDots = document.querySelectorAll('.pxava.her .sdot');
   partnerDots.forEach(d => {
@@ -453,7 +476,7 @@ function onPresenceSync({ userId, state }) {
     // Remove any blink animation for non-offline
     d.style.animation = state === 'offline' ? 'blink 1.2s steps(1) infinite' : 'none';
   });
-  
+
   // Update app-dot
   const appDot = document.querySelector('.app-dot');
   if (appDot) {
@@ -463,7 +486,7 @@ function onPresenceSync({ userId, state }) {
     appDot.classList.add(state);
     appDot.style.background = color;
   }
-  
+
   // Update status bar text (desktop)
   const statusSub = document.querySelector('.status-bar .status-sub');
   if (statusSub) {
@@ -570,6 +593,25 @@ function initInput() {
     const text = field.value.trim();
     if (!text) return;
 
+    // --- Optimistic UI: Create pending bubble ---
+    const pendingMsg = {
+      id: `pending-${Date.now()}`,
+      sender_id: STATE.user.id,
+      content: text,
+      created_at: Math.floor(Date.now() / 1000),
+      status: 'pending',
+      reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null,
+      reactions: []
+    };
+
+    const el = await buildMsgEl(pendingMsg, 'bottom');
+    const container = document.getElementById('msgs');
+    const tyrow = container.querySelector('.tyrow');
+    tyrow ? container.insertBefore(el, tyrow) : container.appendChild(el);
+    updateReceipts();
+    scrollBottom();
+    // --- End Optimistic UI ---
+
     wsSend(WS_EV.C_MESSAGE_SEND, {
       content: text,
       reply_to_id: REPLY_STATE.active ? REPLY_STATE.msgId : null,
@@ -617,7 +659,7 @@ function initInput() {
 function markAllVisibleAsRead() {
   const myRows = document.querySelectorAll('.row.me .bw[data-read="false"]');
   if (myRows.length === 0) return;
-  
+
   myRows.forEach(row => {
     wsSend(WS_EV.C_MESSAGE_READ);
   });

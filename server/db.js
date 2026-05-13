@@ -169,9 +169,14 @@ const SCHEMA = `
 let _persistTimeout = null;
 let _isDirty = false;
 let _lastSnapshotDate = '';
+let _supabaseSyncDirty = false;
+let _rawDbInstance = null;
 
 function persist(rawDb, force = false) {
   _isDirty = true;
+  _supabaseSyncDirty = true;
+  _rawDbInstance = rawDb;
+
   if (force) {
     if (_persistTimeout) clearTimeout(_persistTimeout);
     _writeToDisk(rawDb);
@@ -194,28 +199,42 @@ function _writeToDisk(rawDb) {
     _isDirty = false;
     const dur = Date.now() - start;
     if (dur > 30) console.log(`[db] Persisted to disk (${dur}ms)`);
-
-    // Upload to Supabase (async, fire-and-forget)
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-      const buffer = Buffer.from(data);
-
-      // Hot-sync — always overwrites (ensures cold start gets latest)
-      supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream')
-        .catch(err => console.warn('[db] Hot-sync failed:', err.message));
-
-      // Daily snapshot — date-stamped, uploaded at most once per day
-      const today = new Date().toISOString().slice(0, 10);
-      if (today !== _lastSnapshotDate) {
-        _lastSnapshotDate = today;
-        supabaseStorage.upload(supabaseStorage.DB_BUCKET, `backups/curon-${today}.db`, buffer, 'application/octet-stream')
-          .then(() => console.log(`[db] Daily snapshot: curon-${today}.db`))
-          .catch(err => console.warn('[db] Daily snapshot failed:', err.message));
-      }
-    }
   } catch (e) {
     console.error('[db] Disk write failed:', e.message);
   }
 }
+
+// ── Supabase Throttling ──────────────────────────────────────
+async function syncToSupabase() {
+  if (!_supabaseSyncDirty || !_rawDbInstance) return;
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return;
+  
+  const start = Date.now();
+  try {
+    const data = _rawDbInstance.export();
+    const buffer = Buffer.from(data);
+    _supabaseSyncDirty = false;
+
+    await supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream');
+    console.log(`[db] Synced to Supabase (${Date.now() - start}ms)`);
+
+    // Daily snapshot — date-stamped, uploaded at most once per day
+    const today = new Date().toISOString().slice(0, 10);
+    if (today !== _lastSnapshotDate) {
+      _lastSnapshotDate = today;
+      await supabaseStorage.upload(supabaseStorage.DB_BUCKET, `backups/curon-${today}.db`, buffer, 'application/octet-stream');
+      console.log(`[db] Daily snapshot: curon-${today}.db`);
+    }
+  } catch (e) {
+    console.warn('[db] Supabase sync failed:', e.message);
+    _supabaseSyncDirty = true; // Retry next time
+  }
+}
+
+// Sync to Supabase every 5 minutes (300000ms)
+setInterval(() => {
+  syncToSupabase().catch(() => {});
+}, 5 * 60 * 1000);
 
 // ── Statement wrapper ────────────────────────────────────────
 class Statement {
@@ -266,6 +285,12 @@ class Db {
   exec(sql) {
     this._db.run(sql);
     persist(this._db);
+  }
+  async syncToSupabase() {
+    await syncToSupabase();
+  }
+  flushLocal() {
+    persist(this._db, true);
   }
 }
 

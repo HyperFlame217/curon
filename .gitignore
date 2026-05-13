@@ -3,9 +3,7 @@ server/curon.db
 server/storage/media/*
 !server/storage/media/.gitkeep
 server/storage/thumbnails/
-server/storage/emojis/
 server/storage/tmp/
-server/storage/avatars/
 .env
 Notes/
 tmp/
@@ -13,3 +11,8 @@ archive/
 .agents/
 .agent/
 backups/
+
+# SQLite journals
+server/*.db-journal
+server/*.db-shm
+server/*.db-wal

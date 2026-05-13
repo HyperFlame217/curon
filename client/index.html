@@ -23,7 +23,7 @@
   <!-- drawer overlay (mobile) -->
   <div class="drawer-overlay" id="drawerOverlay"></div>
   <div class="shell">
-    <!-- â•â• SIDEBAR / DRAWER â•â• -->
+    <!-- ╔╔ SIDEBAR / DRAWER ╔╔ -->
     <aside class="sidebar" id="sidebar">
       <div class="app-header">
         <h1 class="app-title">CURON</h1>
@@ -128,7 +128,7 @@
         <button class="sb-btn"><i class="icon-video"></i> VIDEO</button>
       </div>
     </aside>
-    <!-- â•â• CHAT â•â• -->
+    <!-- ╔╔ CHAT ╔╔ -->
     <main class="chat">
       <!-- mobile only top bar -->
       <div class="mobile-header">
@@ -181,7 +181,7 @@
         </div>
       </div>
 
-      <!-- â•â• PERSISTENT CALL BAR â•â• -->
+      <!-- ╔╔ PERSISTENT CALL BAR ╔╔ -->
       <div class="call-bar" id="call-bar">
         <div class="call-bar-dot"></div>
         <div class="call-bar-info">
@@ -265,7 +265,7 @@
           </div>
         </div>
       </div>
-      <!-- â•â• HOUSE VIEW (Block 4) â•â• -->
+      <!-- ╔╔ HOUSE VIEW (Block 4) ╔╔ -->
       <div class="house-view hide" id="house-view">
         <div id="house-camera">
           <div id="house-viewport">
@@ -294,7 +294,7 @@
           <!-- Items populated by JS -->
         </div>
       </div>
-      <!-- â•â• GALLERY VIEW â•â• -->
+      <!-- ╔╔ GALLERY VIEW ╔╔ -->
       <div class="gallery-view" id="gallery-view">
         <div class="win gallery-win">
           <div class="win-bar">
@@ -312,7 +312,7 @@
           </div>
         </div>
       </div>
-      <!-- â•â• NOTES / CORKBOARD VIEW â•â• -->
+      <!-- ╔╔ NOTES / CORKBOARD VIEW ╔╔ -->
       <div class="notes-view" id="notes-view">
         <div class="win notes-win">
           <div class="win-bar">
@@ -330,7 +330,7 @@
         <button class="board-nav-btn" id="notes-add-btn"
           style="background:var(--color-highlight);color:var(--color-deep);aspect-ratio:1/1;padding:8px;font-size:var(--font-size-input);"><i class="icon-pin"></i></button>
       </div>
-      <!-- â•â• DATES / CALENDAR VIEW â•â• -->
+      <!-- ╔╔ DATES / CALENDAR VIEW ╔╔ -->
       <div class="dates-view" id="dates-view">
         <!-- Top: Calendar -->
         <div class="win cal-win">
@@ -373,7 +373,7 @@
                 <div class="timeline-date-label" id="timeline-date-label" style="padding:0;">TODAY</div>
                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                   <button id="btn-free-time-mobile"
-                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;">â°</button>
+                    style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><i class="icon-clock" style="font-size:16px !important;"></i></button>
                   <button id="btn-tz-toggle-mobile"
                     style="display:none;background:var(--color-primary);border:2px solid var(--color-dark);font-family:var(--font-header);font-size:var(--font-size-caption);color:var(--color-dark);padding:6px 10px;cursor:pointer;"><i class="icon-globe" style="font-size:16px !important;"></i></button>
                   <button id="btn-manage-schedule-mobile"
@@ -415,8 +415,7 @@
                   <div class="schedule-add-row">
                     <label for="sched-start" class="sr-only">Start time</label>
                     <input class="schedule-time-input" id="sched-start" type="time" title="Start time" />
-                    <span
-                      style="font-family:var(--font-header);font-size:var(--font-size-small);color:var(--color-secondary);">â†’</span>
+                    <span style="color:var(--color-secondary);"><i class="icon-arrow-right" style="font-size:16px !important;"></i></span>
                     <label for="sched-end" class="sr-only">End time</label>
                     <input class="schedule-time-input" id="sched-end" type="time" title="End time" />
                   </div>
@@ -532,7 +531,7 @@
     </main>
   </div>
 
-  <!-- â•â• FLOATING UI (Direct children of body for reliable positioning) â•â• -->
+  <!-- ╔╔ FLOATING UI (Direct children of body for reliable positioning) ╔╔ -->
 
   <!-- Add note modal -->
   <div class="notes-modal" id="notes-modal" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
@@ -548,15 +547,15 @@
     </div>
   </div>
 
-  <!-- â•â• MESSAGE CONTEXT MENU â•â• -->
+  <!-- ╔╔ MESSAGE CONTEXT MENU ╔╔ -->
   <div class="msg-context-menu" id="msg-context-menu">
     <button class="ctx-item" id="ctx-reply"><i class="icon-reply"></i> REPLY</button>
     <button class="ctx-item" id="ctx-copy"><i class="icon-copy"></i> COPY</button>
     <button class="ctx-item" id="ctx-react"><i class="icon-heart"></i> REACT</button>
   </div>
-  <!-- â•â• SETTINGS OVERLAY â•â• -->
+  <!-- ╔╔ SETTINGS OVERLAY ╔╔ -->
   <div class="settings-overlay" id="settings-overlay"></div>
-  <!-- â•â• SETTINGS PANEL â•â• -->
+  <!-- ╔╔ SETTINGS PANEL ╔╔ -->
   <div class="settings-panel" id="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-header">
       <h2 class="win-title" id="settings-title">SETTINGS</h2>
@@ -590,7 +589,7 @@
         <div class="avatar-preview" id="avatar-preview-me"></div>
         <div>
           <button class="avatar-upload-btn" id="avatar-upload-btn"><i class="icon-upload"></i> UPLOAD IMAGE<br><span
-              style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);">PNG, JPG, GIF â€” max
+              style="font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-secondary);">PNG, JPG, GIF — max
               2MB</span></button>
           <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
         </div>
@@ -638,7 +637,7 @@
       </div>
     </div>
   </div>
-  <!-- â•â• STATS / MILESTONE MODAL â•â• -->
+  <!-- ╔╔ STATS / MILESTONE MODAL ╔╔ -->
   <div class="stats-modal" id="stats-modal" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
     <div class="stats-modal-box">
       <div class="stats-modal-bar">
@@ -650,19 +649,19 @@
           <div class="stats-section-label">STATS</div>
           <div class="stats-grid" id="stats-grid">
             <div class="stats-tile">
-              <div class="stats-tile-val" id="stat-days">â€”</div>
+              <div class="stats-tile-val" id="stat-days">—</div>
               <div class="stats-tile-lbl">DAYS TOGETHER</div>
             </div>
             <div class="stats-tile">
-              <div class="stats-tile-val" id="stat-msgs">â€”</div>
+              <div class="stats-tile-val" id="stat-msgs">—</div>
               <div class="stats-tile-lbl">MESSAGES SENT</div>
             </div>
             <div class="stats-tile">
-              <div class="stats-tile-val" id="stat-media">â€”</div>
+              <div class="stats-tile-val" id="stat-media">—</div>
               <div class="stats-tile-lbl">MEDIA SHARED</div>
             </div>
             <div class="stats-tile">
-              <div class="stats-tile-val" id="stat-notes">â€”</div>
+              <div class="stats-tile-val" id="stat-notes">—</div>
               <div class="stats-tile-lbl">NOTES PINNED</div>
             </div>
           </div>
@@ -680,7 +679,7 @@
     </div>
   </div>
 
-  <!-- â•â• ACTIVE CALL OVERLAY â•â• -->
+  <!-- ╔╔ ACTIVE CALL OVERLAY ╔╔ -->
   <div class="call-overlay" id="call-overlay" role="dialog" aria-modal="true" aria-labelledby="call-voice-name">
     <div class="call-videos" id="call-videos" style="display:none;">
       <video class="call-video-remote" id="call-video-remote" autoplay playsinline></video>
@@ -701,24 +700,24 @@
       <button class="call-ctrl danger" id="ctrl-hangup" aria-label="End call"><i class="icon-phone-off"></i><div class="call-ctrl-label">END</div></button>
     </div>
   </div>
-  <!-- â•â• MINI CALL BAR â•â• -->
+  <!-- ╔╔ MINI CALL BAR ╔╔ -->
   <button class="call-mini" id="call-mini" aria-label="Return to call">
     <div class="call-mini-dot"></div>
     <span id="call-mini-timer">00:00</span>
-    <span>â–² RETURN TO CALL</span>
+    <span><i class="icon-chevron-up" style="font-size:12px !important;"></i> RETURN TO CALL</span>
   </button>
   <!-- live script below -->
-  <!-- â•â• CORE INFRASTRUCTURE â•â• -->
+  <!-- ╔╔ CORE INFRASTRUCTURE ╔╔ -->
   <script src="js/ws_events.js"></script>
   <script src="js/state.js"></script>
   <script src="js/utils.js"></script>
-  <!-- â•â• HELPERS â•â• -->
+  <!-- ╔╔ HELPERS ╔╔ -->
   <script src="js/helpers/PresenceManager.js"></script>
   <script src="js/helpers/TypingManager.js"></script>
   <script src="js/helpers/BadgeManager.js"></script>
   <script src="js/helpers/AudioManager.js"></script>
   <script src="js/helpers/TabSync.js"></script>
-  <!-- â•â• FEATURES & UTILITIES â•â• -->
+  <!-- ╔╔ FEATURES & UTILITIES ╔╔ -->
   <script src="js/ws.js"></script>
   <script src="js/ModalManager.js"></script>
   <script src="js/ui.js"></script>
@@ -733,7 +732,7 @@
   <script src="js/integrations.js"></script>
   <!-- <script src="js/house.js"></script> DISABLED P22-A -->
   <!-- <script src="js/wallet.js"></script> DISABLED P22-A -->
-  <!-- â•â• BOOT & IDENTITY LAYER â•â• -->
+  <!-- ╔╔ BOOT & IDENTITY LAYER ╔╔ -->
   <script src="js/auth_ui.js"></script>
   <script src="js/avatars.js"></script>
   <script src="js/boot.js"></script>

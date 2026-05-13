@@ -174,6 +174,26 @@ async function main() {
   server.listen(PORT, () => {
     console.log(`CURON.EXE running → http://localhost:${PORT}`);
   });
+
+  // ── Graceful Shutdown (Render Support) ────────────────────
+  const gracefulShutdown = async (signal) => {
+    console.log(`\n[Server] Received ${signal}, shutting down gracefully...`);
+    try {
+      const database = await db;
+      console.log('[Server] Flushing database locally...');
+      if (database.flushLocal) database.flushLocal();
+      console.log('[Server] Flushing database to Supabase...');
+      await database.syncToSupabase();
+      console.log('[Server] Flush complete. Exiting.');
+      process.exit(0);
+    } catch (err) {
+      console.error('[Server] Error during shutdown:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 main().catch(err => { console.error('Failed to start:', err); process.exit(1); });

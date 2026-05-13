@@ -4,13 +4,18 @@
     let _reconnectAttempts = 0;
     const _maxReconnectDelay = 30000;
     const _baseReconnectDelay = 1000;
+    let _offlineQueue = [];
 
     function showReconnectOverlay() {
+      const banner = document.getElementById('reconnect-banner');
+      if (banner) banner.style.display = 'flex';
       const overlay = document.getElementById('reconnect-overlay');
       if (overlay) overlay.style.display = 'flex';
     }
 
     function hideReconnectOverlay() {
+      const banner = document.getElementById('reconnect-banner');
+      if (banner) banner.style.display = 'none';
       const overlay = document.getElementById('reconnect-overlay');
       const status = document.getElementById('reconnect-status');
       if (overlay) overlay.style.display = 'none';
@@ -42,6 +47,12 @@
         // Hide overlay
         hideReconnectOverlay();
         
+        if (_offlineQueue.length > 0) {
+          console.log(`[WS] Flushing ${_offlineQueue.length} queued messages`);
+          _offlineQueue.forEach(msg => wsSend(msg.type, msg.payload, msg.options, true));
+          _offlineQueue = [];
+        }
+
         // P1-I: Silent Reconnect Reconciliation
         if (STATE.wasDisconnected) {
           console.log("[WS] Reconnected. Syncing house state...");
@@ -79,8 +90,13 @@
     let _wsBatch = [];
     let _wsBatchTimer = null;
 
-    function wsSend(type, payload = {}, options = {}) {
-      if (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN) return;
+    function wsSend(type, payload = {}, options = {}, isFlush = false) {
+      if (!STATE.ws || STATE.ws.readyState !== WebSocket.OPEN) {
+        if (!isFlush && (type === WS_EV.C_MESSAGE_SEND || type === WS_EV.C_MESSAGE_READ || type === WS_EV.C_MESSAGE_REACT || type === WS_EV.C_MESSAGE_REACT_REMOVE)) {
+          _offlineQueue.push({ type, payload, options });
+        }
+        return;
+      }
 
       if (options.batch) {
         // Deduplicate high-frequency updates (keep latest per type/charId)
