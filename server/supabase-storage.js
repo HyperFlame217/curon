@@ -22,11 +22,12 @@ async function upload(bucket, key, buffer, contentType) {
   return data;
 }
 
-async function remove(bucket, key) {
+async function remove(bucket, keys) {
   if (!supabase) throw new Error('[Supabase] Client not initialized');
+  const keyList = Array.isArray(keys) ? keys : [keys];
   const { data, error } = await supabase.storage
     .from(bucket)
-    .remove([key]);
+    .remove(keyList);
   if (error) throw new Error(`[Supabase] Delete failed: ${error.message}`);
   return data;
 }

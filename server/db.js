@@ -224,6 +224,25 @@ async function syncToSupabase() {
       _lastSnapshotDate = today;
       await supabaseStorage.upload(supabaseStorage.DB_BUCKET, `backups/curon-${today}.db`, buffer, 'application/octet-stream');
       console.log(`[db] Daily snapshot: curon-${today}.db`);
+
+      // Cleanup old snapshots (>30 days)
+      try {
+        const files = await supabaseStorage.list(supabaseStorage.DB_BUCKET, 'backups');
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+        const toDelete = files
+          .filter(f => f.name.startsWith('curon-') && f.name.endsWith('.db') && f.name < `curon-${cutoffStr}.db`)
+          .map(f => `backups/${f.name}`);
+
+        if (toDelete.length > 0) {
+          await supabaseStorage.remove(supabaseStorage.DB_BUCKET, toDelete);
+          console.log(`[db] Cleaned up ${toDelete.length} old snapshots`);
+        }
+      } catch (err) {
+        console.warn('[db] Snapshot cleanup failed:', err.message);
+      }
     }
   } catch (e) {
     console.warn('[db] Supabase sync failed:', e.message);
