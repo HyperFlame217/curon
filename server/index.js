@@ -183,7 +183,7 @@ async function main() {
       console.log('[Server] Flushing database locally...');
       if (database.flushLocal) database.flushLocal();
       console.log('[Server] Flushing database to Supabase...');
-      await database.syncToSupabase();
+      await database.syncToSupabase(true);
       console.log('[Server] Flush complete. Exiting.');
       process.exit(0);
     } catch (err) {

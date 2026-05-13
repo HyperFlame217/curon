@@ -205,8 +205,8 @@ function _writeToDisk(rawDb) {
 }
 
 // ── Supabase Throttling ──────────────────────────────────────
-async function syncToSupabase() {
-  if (!_supabaseSyncDirty || !_rawDbInstance) return;
+async function syncToSupabase(force = false) {
+  if (!force && (!_supabaseSyncDirty || !_rawDbInstance)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return;
   
   const start = Date.now();
@@ -305,8 +305,8 @@ class Db {
     this._db.run(sql);
     persist(this._db);
   }
-  async syncToSupabase() {
-    await syncToSupabase();
+  async syncToSupabase(force = false) {
+    await syncToSupabase(force);
   }
   flushLocal() {
     persist(this._db, true);
