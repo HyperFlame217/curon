@@ -1,11 +1,11 @@
-const router          = require('express').Router();
-const path            = require('path');
-const fs              = require('fs');
-const multer          = require('multer');
-const sharp           = require('sharp');
-const dbPromise       = require('../db');
+const router = require('express').Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const sharp = require('sharp');
+const dbPromise = require('../db');
 const { requireAuth } = require('../auth');
-const presence        = require('../ws/presence');
+const presence = require('../ws/presence');
 const supabaseStorage = require('../supabase-storage');
 
 // ── Local Storage Config ────────────────────────────────────────
@@ -32,7 +32,7 @@ const uploadMedia = multer({
     filename: (_req, file, cb) => cb(null, genFilename(path.extname(file.originalname) || ''))
   })
 });
-const uploadEmoji = multer({ storage: multer.memoryStorage(), limits: { fileSize: 512*1024 } });
+const uploadEmoji = multer({ storage: multer.memoryStorage(), limits: { fileSize: 512 * 1024 } });
 
 function broadcastEmoji() { for (const [, s] of presence.sessions) { if (s.ws && s.ws.readyState === 1) s.ws.send(JSON.stringify({ type: 'emoji_updated' })); } }
 function isAdmin(user) { return user === (process.env.EMOJI_ADMIN || ''); }
@@ -273,7 +273,7 @@ router.get('/emojis', requireAuth, async (req, res) => { const db = await dbProm
 
 router.get('/emojis/img/:filename', (q, r, n) => { if (q.query.token && !q.headers.authorization) q.headers.authorization = `Bearer ${q.query.token}`; n(); }, requireAuth, (req, res) => {
   const filename = path.basename(req.params.filename);
-  
+
   if (fs.existsSync(path.join(EMOJI_DIR, filename))) {
     return res.sendFile(path.join(EMOJI_DIR, filename));
   }
@@ -308,7 +308,7 @@ router.delete('/emojis/:name', requireAuth, async (req, res) => {
   const row = db.prepare('SELECT * FROM custom_emojis WHERE name = ?').get(req.params.name);
   if (!row) return res.status(404).json({ error: 'Not found' });
   db.prepare('DELETE FROM custom_emojis WHERE name = ?').run(req.params.name);
-  try { await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `emojis/${row.filename}`); } catch {}
+  try { await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `emojis/${row.filename}`); } catch { }
   broadcastEmoji(); res.json({ ok: true });
 });
 
@@ -318,12 +318,12 @@ router.get('/emojis/admin', requireAuth, (_req, res) => res.json({ admin: proces
 async function kFetch(ep, p) {
   const apiKey = process.env.KLIPY_API_KEY || '';
   if (!apiKey) throw new Error('KLIPY_API_KEY missing');
-  
+
   // KLIPY uses API key in the URL path: api/v1/[key]/gifs/...
   const url = new URL(`https://api.klipy.com/api/v1/${apiKey}/gifs${ep}`);
   url.searchParams.set('limit', '24');
   for (const [k, v] of Object.entries(p)) url.searchParams.set(k, v);
-  
+
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`KLIPY Error: ${res.status}`);
   return res.json();
@@ -341,11 +341,11 @@ function normG(d) {
     const f = g.file || g.files || {};
     const hd = f.hd || f.md || f.original || {};
     const sm = f.sm || f.md || hd || {};
-    
+
     // Klipy uses .gif.url, .webp.url etc
     const url = hd.gif?.url || hd.url || g.url || '';
     const preview = sm.gif?.url || sm.url || g.preview || url;
-    
+
     return {
       id: g.id,
       url: url,
@@ -358,14 +358,14 @@ function normG(d) {
 }
 
 router.get('/gifs/trending', requireAuth, async (_q, r) => {
-  try { r.json(normG(await kFetch('/trending', {}))); } 
+  try { r.json(normG(await kFetch('/trending', {}))); }
   catch (e) { console.error('[Gifs] Trending Error:', e.message); r.status(502).json({ error: e.message }); }
 });
 
 router.get('/gifs/search', requireAuth, async (q, r) => {
   const qry = (q.query.q || '').trim();
   if (!qry) return r.json([]);
-  try { r.json(normG(await kFetch('/search', { q: qry }))); } 
+  try { r.json(normG(await kFetch('/search', { q: qry }))); }
   catch (e) { console.error('[Gifs] Search Error:', e.message); r.status(502).json({ error: e.message }); }
 });
 

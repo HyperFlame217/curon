@@ -16,18 +16,31 @@
       _ctxMsgId = msgId;
 
       const menu = document.getElementById('msg-context-menu');
-      if (menu) menu.classList.add('show');
+      if (!menu) return;
+
+      // Measure actual dimensions (offscreen, no flicker)
+      menu.style.left = '-9999px';
+      menu.style.top = '-9999px';
+      menu.classList.add('show');
+      const menuW = menu.offsetWidth;
+      const menuH = menu.offsetHeight;
+      menu.classList.remove('show');
+      menu.style.left = '';
+      menu.style.top = '';
 
       // Position near tap/click
       let x = e.clientX || (e.touches?.[0]?.clientX) || 0;
       let y = e.clientY || (e.touches?.[0]?.clientY) || 0;
 
-      // Keep within viewport
-      if (x + 160 > window.innerWidth) x = window.innerWidth - 160;
-      if (y + 80 > window.innerHeight) y = window.innerHeight - 80;
+      // Keep entirely within viewport
+      if (x + menuW > window.innerWidth) x = window.innerWidth - menuW;
+      if (x < 0) x = 0;
+      if (y + menuH > window.innerHeight) y = window.innerHeight - menuH;
+      if (y < 0) y = 0;
 
       menu.style.left = x + 'px';
       menu.style.top = y + 'px';
+      menu.classList.add('show');
     }
 
     function closeContextMenu() {
