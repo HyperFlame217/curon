@@ -26,10 +26,10 @@
    /* Soft Peach    — Their chat bubbles, scrollbars */
    --color-dark: #393f45;
    /* Blue-Grey Ink — All borders, text, shadows */
---color-muted: #393f45;
-    /* Mid Blue-Grey — Timestamps, labels, disabled */
+   --color-muted: #393f45;
+   /* Mid Blue-Grey — Timestamps, labels, disabled */
    --color-text-subtle: #5a6b7e;
-    /* Darker slate for readable secondary text */
+   /* Darker slate for readable secondary text */
    --color-highlight: var(--color-primary);
    /* Legacy Alias */
 
@@ -174,7 +174,7 @@
    /* Chat header: Partner name */
    --font-size-status-sub: 14px;
    /* Chat header: Online status */
-   --font-size-chat-bubble: 18px;
+   --font-size-chat-bubble: 25px;
    /* Chat message text */
    --font-size-input: 16px;
    /* Main text input fields */
@@ -261,9 +261,9 @@
        tokens above and these aliases follow automatically.
     ──────────────────────────────────────────────────────────────────────── */
 
---color-sky: var(--color-text-subtle);
-    --color-deep: var(--color-border);
-    --color-forest: var(--color-text-subtle);
+   --color-sky: var(--color-text-subtle);
+   --color-deep: var(--color-border);
+   --color-forest: var(--color-text-subtle);
    --color-offwhite: var(--color-surface-raised);
    --color-text: var(--color-dark);
    --color-mint: var(--color-tertiary);

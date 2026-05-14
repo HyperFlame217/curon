@@ -79,9 +79,6 @@ const WS_EV = Object.freeze({
   S_SCHEDULE_BLOCK_UPDATE:   'schedule_block_update',
   S_SCHEDULE_BLOCK_DELETE:   'schedule_block_delete',
 
-  // ── Spotify ───────────────────────────────────────────────────
-  S_SPOTIFY_UPDATE:          'spotify_update',
-
   // ── House — Furniture & Room ──────────────────────────────────
   C_HOUSE_UPDATE:            'house_update',
   C_ROOM_UPDATE:             'room_update',

@@ -112,7 +112,7 @@ window.bootApp = async function(password) {
 
   if (window._showChat) _showChat();
   if (window.initScrollPagination) initScrollPagination();
-  if (window.initSpotify) initSpotify();
+
   if (window.loadHistory) await loadHistory();
 
   // Sunday backup reminder check

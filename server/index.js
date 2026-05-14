@@ -40,19 +40,20 @@ async function main() {
   const server = http.createServer(app);
 
   // ── Security Headers ─────────────────────────────────────
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(helmet({ 
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+  }));
 
   // ── Trust Proxy (for rate limiting behind Render's proxy) ──
   app.set('trust proxy', 1);
 
-  // ── CORS (for Render + Spotify callback) ────────────────────
+  // ── CORS ──────────────────────────────────────────────────────
   const RENDER_URL = (process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
   app.use((req, res, next) => {
     const allowedOrigins = [
       'http://localhost:3000',
       RENDER_URL,
-      'https://spotify.com',
-      'https://open.spotify.com',
     ].filter(Boolean);
     const origin = req.get('origin');
     if (allowedOrigins.includes(origin)) {
@@ -93,7 +94,7 @@ async function main() {
   app.use('/', require('./routes/search')); // /chat/search
   app.use('/', require('./routes/assets')); // /media, /emojis, /gifs
   app.use('/', require('./routes/house'));  // Stats & milestones
-  app.use('/', require('./routes/events')); // /spotify, /calendar
+  app.use('/', require('./routes/events')); // /calendar, /schedule
   // app.use('/', require('./routes/wallet')); // DISABLED P22-A (Economy feature)
 
   // ── Fallback: SPA shell ───────────────────────────────────

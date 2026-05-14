@@ -50,10 +50,6 @@ EMOJI_ADMIN=iron
 SEED_PASSWORD_IRON=your_password_here
 SEED_PASSWORD_CUBBY=their_password_here
 
-# Spotify integration
-SPOTIFY_CLIENT_ID=...
-SPOTIFY_CLIENT_SECRET=...
-
 # Media cleanup interval (default: 6 hours)
 MEDIA_CLEANUP_INTERVAL_MS=21600000
 ```
@@ -113,7 +109,7 @@ Open `http://localhost:3000` in your browser.
 │   │   ├── auth.js          # JWT, login, user endpoints
 │   │   ├── chat.js          # Messages, notes, search
 │   │   ├── assets.js        # Media uploads, gallery, starring, backup
-│   │   ├── events.js        # Calendar, Spotify integration
+│   │   ├── events.js        # Calendar, schedule
 │   │   └── search.js         # Chat search
 │   ├── ws/
 │   │   ├── handler.js       # WebSocket message dispatcher
@@ -167,7 +163,7 @@ npm run backup:confirm   # Actually download and clean up old media from Supabas
 - **Security Headers**: Helmet (X-Frame-Options, X-Content-Type-Options, HSTS).
 - **XSS Protection**: Server-side sanitization on messages, notes, and calendar events.
 - **IDOR Protection**: Calendar event deletion verifies ownership.
-- **CORS**: Whitelist-based (localhost, deployed domain, Spotify domains).
+- **CORS**: Whitelist-based (localhost, deployed domain).
 - **Password Security**: Passwords moved to environment variables (`SEED_PASSWORD_IRON`, `SEED_PASSWORD_CUBBY`) — never hardcoded.
 
 ---
@@ -178,7 +174,6 @@ npm run backup:confirm   # Actually download and clean up old media from Supabas
 - **Chat**: Real-time messaging with reactions, replies, search, and notes.
 - **Emoji Picker**: Full 1967-standard-emoji grid with `:name:` autocomplete, plus custom emoji uploads (admin).
 - **Shared Calendar & Schedule**: Relationship milestone tracking and routine sync.
-- **Spotify Sync**: Live playback visibility for partners.
 - **Voice & Video**: WebRTC calls for desktop and mobile.
 - **Notes Board**: Shared virtual sticky notes (formerly "Pinned").
 - **Media Gallery**: Photo/video sharing with pagination, starring, and server-side thumbnails.
@@ -205,7 +200,7 @@ npm run backup:confirm   # Actually download and clean up old media from Supabas
 3.  Set **Build Command**: `npm install`
 4.  Set **Start Command**: `npm start`
 5.  Add your `.env` variables to the Render **Environment** dashboard.
-6.  (Optional) Set `RENDER_EXTERNAL_URL` to your app's URL for better Spotify/CORS support.
+6.  (Optional) Set `RENDER_EXTERNAL_URL` to your app's URL for better CORS support.
 
 ---
 

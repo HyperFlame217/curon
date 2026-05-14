@@ -132,12 +132,6 @@ const SCHEMA = `
     content    TEXT NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
   );
-  CREATE TABLE IF NOT EXISTS spotify_tokens (
-    user_id       INTEGER PRIMARY KEY REFERENCES users(id),
-    access_token  TEXT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    expires_at    INTEGER NOT NULL
-  );
 
   CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
   CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);

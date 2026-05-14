@@ -65,8 +65,7 @@
       // Settings action buttons
       document.getElementById('btn-clear-chat-settings')?.addEventListener('click', async () => { await clearChat(); closeSettings(); });
       document.getElementById('btn-restore-chat')?.addEventListener('click', restoreChat);
-      document.getElementById('btn-settings-spotify')?.addEventListener('click', () => { connectSpotify(); closeSettings(); });
-      document.getElementById('btn-settings-spotify-disconnect')?.addEventListener('click', () => { disconnectSpotify(); closeSettings(); });
+
       document.getElementById('btn-logout')?.addEventListener('click', logout);
       document.getElementById('btn-export-data')?.addEventListener('click', exportData);
 
@@ -157,11 +156,6 @@
       document.getElementById('settings-panel').classList.add('show');
       document.getElementById('settings-overlay').classList.add('show');
       closeDrawer();
-      // Update Spotify button state
-      const spotifyData = document.getElementById('spot-song-me')?.textContent;
-      const connected = spotifyData && spotifyData !== 'NOT CONNECTED';
-      document.getElementById('btn-settings-spotify')?.style.setProperty('display', connected ? 'none' : '');
-      document.getElementById('btn-settings-spotify-disconnect')?.style.setProperty('display', connected ? '' : 'none');
     }
 
     function closeSettings() {

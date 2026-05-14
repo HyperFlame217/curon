@@ -150,7 +150,7 @@
           case WS_EV.S_PRESENCE_UPDATE:           return onPresence(msg);
           case WS_EV.S_PRESENCE_SYNC:             return onPresenceSync(msg);
           case WS_EV.S_EMOJI_UPDATED:             return onEmojiUpdated();
-          case WS_EV.S_SPOTIFY_UPDATE:            return onSpotifyUpdate(msg);
+
           case WS_EV.S_NOTE_ADD:                  return onNoteAdd(msg);
           case WS_EV.S_NOTE_DELETE:               return onNoteDelete(msg);
           case WS_EV.S_CALENDAR_EVENT_ADD:        return onCalendarEventAdd(msg);

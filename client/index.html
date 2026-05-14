@@ -68,61 +68,7 @@
           <button class="ni"><i class="icon-calendar-days"></i>DATES</button>
         </div>
       </div>
-      <div class="win" id="spotify-win">
-        <div class="win-bar">
-          <div class="win-title">SPOTIFY</div>
-        </div>
-        <!-- My now playing -->
-        <div class="spot-body" id="spot-me">
-          <div class="spot-art" id="spot-art-me"
-            style="width:30px;height:30px;background:var(--color-primary);border:2px solid var(--color-dark);display:flex;align-items:center;justify-content:center;font-size:var(--font-size-muted);flex-shrink:0;box-shadow:2px 2px 0 var(--color-dark);overflow:hidden;">
-            <i class="icon-music" style="font-size:14px;"></i></div>
-          <div style="flex:1;min-width:0;">
-            <div
-              style="font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-secondary);margin-bottom:2px;"
-              id="spot-label-me">YOU</div>
-            <div class="msong" id="spot-song-me">NOT CONNECTED</div>
-            <div class="martist" id="spot-artist-me"></div>
-            <div id="spot-progress-me"
-              style="display:none;height:3px;background:var(--color-dark);margin-top:4px;position:relative;">
-              <div id="spot-bar-me"
-                style="position:absolute;left:0;top:0;height:100%;background:var(--color-primary);width:0%;transition:width 1s linear;">
-              </div>
-            </div>
-          </div>
-          <div class="mbars" id="spot-bars-me" style="display:none;">
-            <span></span><span></span><span></span><span></span>
-          </div>
-        </div>
-        <!-- Divider -->
-        <div style="height:1px;background:var(--color-dark);margin:0 8px;opacity:0.3;"></div>
-        <!-- Their now playing -->
-        <div class="spot-body" id="spot-them">
-          <div class="spot-art" id="spot-art-them"
-            style="width:30px;height:30px;background:var(--color-secondary);border:2px solid var(--color-dark);display:flex;align-items:center;justify-content:center;font-size:var(--font-size-muted);flex-shrink:0;box-shadow:2px 2px 0 var(--color-dark);overflow:hidden;">
-            <i class="icon-music" style="font-size:14px;"></i></div>
-          <div style="flex:1;min-width:0;">
-            <div
-              style="font-family:var(--font-header);font-size:var(--font-size-micro);color:var(--color-secondary);margin-bottom:2px;"
-              id="spot-label-them">THEM</div>
-            <div class="msong" id="spot-song-them">NOT CONNECTED</div>
-            <div class="martist" id="spot-artist-them"></div>
-            <div id="spot-progress-them"
-              style="display:none;height:3px;background:var(--color-dark);margin-top:4px;position:relative;">
-              <div id="spot-bar-them"
-                style="position:absolute;left:0;top:0;height:100%;background:var(--color-secondary);width:0%;transition:width 1s linear;">
-              </div>
-            </div>
-          </div>
-          <div class="mbars" id="spot-bars-them" style="display:none;">
-            <span></span><span></span><span></span><span></span>
-          </div>
-        </div>
-        <!-- Connect button (shown if not connected) -->
-        <div style="padding:4px 8px 6px;" id="spot-connect-row">
-          <button id="spot-connect-btn" style="width:100%;background:var(--color-primary);border:2px solid var(--color-dark);box-shadow:2px 2px 0 var(--color-dark);font-family:var(--font-main);font-size:var(--font-size-muted);color:var(--color-dark);padding:4px;cursor:pointer;"><i class="icon-headphones"></i> CONNECT SPOTIFY</button>
-        </div>
-      </div>
+
       <div class="sb-btm">
         <button class="sb-btn"><i class="icon-phone"></i> CALL</button>
         <button class="sb-btn"><i class="icon-video"></i> VIDEO</button>
@@ -599,16 +545,6 @@
         <span style="font-size:var(--font-size-xsmall);color:var(--color-secondary);margin-left:auto;">SOON</span>
       </button>
     </div>
-    <!-- Spotify -->
-    <div class="settings-section" id="settings-spotify-section">
-      <div class="settings-section-title">SPOTIFY</div>
-<button class="settings-btn" id="btn-settings-spotify" style="display:none;">
-        <i class="icon-headphones"></i> CONNECT SPOTIFY
-      </button>
-<button class="settings-btn danger" id="btn-settings-spotify-disconnect" style="display:none;">
-        <i class="icon-headphones"></i> DISCONNECT SPOTIFY
-      </button>
-    </div>
     <!-- Account -->
     <div class="settings-section">
       <div class="settings-section-title">MY TIMEZONE</div>
@@ -729,7 +665,7 @@
   <script src="js/notes.js"></script>
   <script src="js/gallery.js"></script>
   <script src="js/calls.js"></script>
-  <script src="js/integrations.js"></script>
+
   <!-- <script src="js/house.js"></script> DISABLED P22-A -->
   <!-- <script src="js/wallet.js"></script> DISABLED P22-A -->
   <!-- ╔╔ BOOT & IDENTITY LAYER ╔╔ -->

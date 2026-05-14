@@ -411,85 +411,6 @@ body {
   padding: 3px 5px;
 }
 
-.spot-body {
-  padding: 8px 10px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.spot-icon {
-  width: 30px;
-  height: 30px;
-  background-color: var(--color-highlight);
-  border: 2px solid var(--color-deep);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-muted);
-  flex-shrink: 0;
-  box-shadow: 2px 2px 0 var(--color-deep);
-}
-
-.msong {
-  font-size: var(--font-size-cal-sub);
-  color: var(--color-deep);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.martist {
-  font-size: var(--font-size-muted);
-  color: var(--color-forest);
-}
-
-.mbars {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 14px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.mbars span {
-  display: block;
-  width: 3px;
-  background-color: var(--color-forest);
-  animation: mb .6s steps(3) infinite alternate;
-}
-
-.mbars span:nth-child(1) {
-  height: 5px;
-  animation-delay: 0s;
-}
-
-.mbars span:nth-child(2) {
-  height: 13px;
-  animation-delay: .12s;
-}
-
-.mbars span:nth-child(3) {
-  height: 7px;
-  animation-delay: .24s;
-}
-
-.mbars span:nth-child(4) {
-  height: 10px;
-  animation-delay: .06s;
-}
-
-@keyframes mb {
-  from {
-    transform: scaleY(.2)
-  }
-
-  to {
-    transform: scaleY(1)
-  }
-}
-
 .sb-btm {
   margin-top: auto;
   display: flex;
@@ -1275,18 +1196,6 @@ textarea::placeholder {
     padding: 6px 7px;
   }
 
-  .spot-body {
-    padding: 6px 8px;
-  }
-
-  .msong {
-    font-size: var(--font-size-muted);
-  }
-
-  .martist {
-    font-size: var(--font-size-xsmall);
-  }
-
   .b {
     font-size: var(--font-size-cal-sub);
   }
@@ -1545,7 +1454,6 @@ textarea::placeholder {
   }
 
 
-  /* spotify mini bar on mobile — shown in drawer */
   .sb-btm {
     padding-top: 4px;
   }
@@ -3583,6 +3491,12 @@ textarea::placeholder {
   height: 100%;
 }
 
+.dates-view.day-mode .routine-dock {
+  position: relative;
+  max-height: none;
+  flex-shrink: 0;
+}
+
 /* position is now always set on .routine-dock base rule */
 
 /* Top half — calendar */
@@ -4407,24 +4321,6 @@ textarea::placeholder {
     flex: 1;
   }
 
-  .routine-dock {
-    flex-direction: column;
-    max-height: 200px;
-  }
-
-  .routine-dock-right {
-    width: 100%;
-    flex: none;
-    height: auto;
-    border-left: none;
-    border-top: 2px solid var(--color-deep);
-  }
-
-  .routine-dock-left {
-    flex: none;
-    height: 120px;
-  }
-
   .timeline-win {
     border: none;
     box-shadow: none;
@@ -4733,6 +4629,39 @@ textarea::placeholder {
   flex-direction: column;
   border-left: 2px solid var(--color-deep);
   background: var(--color-offwhite);
+}
+
+/* ── Routine Dock: Mobile ── */
+@media (max-width: 599px) {
+  .routine-dock.open {
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 50vh;
+    z-index: var(--z-modal-top);
+  }
+
+  .routine-dock-left {
+    flex: none;
+    max-height: 120px;
+  }
+
+  .routine-dock-right {
+    flex: 1;
+    width: 100%;
+    border-left: none;
+    border-top: 2px solid var(--color-deep);
+    overflow-y: auto;
+  }
+}
+
+/* ── Routine Dock: Tablet ── */
+@media (max-width: 899px) and (min-width: 600px) {
+  .routine-dock-right {
+    width: 240px;
+  }
 }
 
 /* ── Stats / Milestone Modal ── */
@@ -5722,4 +5651,96 @@ textarea::placeholder {
   text-align: center;
   width: 100%;
   pointer-events: none;
+}
+
+@media (max-height: 700px) and (min-width: 600px) {
+  :root {
+    --status-bar-min-height: 44px;
+    --status-bar-padding: 6px 12px;
+    --status-bar-avatar-size: 28px;
+    --status-bar-avatar-font: 22px;
+  }
+
+  .shell {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .sidebar {
+    padding: 4px;
+    gap: 4px;
+    overflow-y: auto;
+  }
+
+  .app-header {
+    padding: 4px 6px;
+  }
+
+  .pair-body {
+    padding: 7px;
+    gap: 5px;
+  }
+
+  .pair-row {
+    gap: 8px;
+  }
+
+  .pxava {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  /* pair-sub and streak remain visible */
+
+  .nav-body {
+    padding: 3px;
+    gap: 1px;
+  }
+
+  .ni {
+    padding: 6px 10px;
+  }
+
+  .sb-btm {
+    gap: 4px;
+  }
+
+  .chat {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .status-sub {
+    display: none;
+  }
+
+  .status-bar .pxava {
+    width: 28px;
+    height: 28px;
+  }
+
+  .input-win {
+    margin-top: 4px;
+  }
+
+  .ibox {
+    padding: 2px 6px;
+    min-height: 38px;
+  }
+
+  .ia {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .ifield {
+    min-height: 28px;
+    max-height: 80px;
+  }
+
+  .emoji-panel {
+    max-height: 200px;
+  }
 }

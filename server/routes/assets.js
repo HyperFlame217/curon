@@ -12,11 +12,12 @@ const supabaseStorage = require('../supabase-storage');
 const STORAGE_DIR = path.join(__dirname, '..', 'storage');
 const MEDIA_DIR = path.join(STORAGE_DIR, 'media');
 const THUMB_DIR = path.join(STORAGE_DIR, 'thumbnails');
+const EMOJI_DIR = path.join(STORAGE_DIR, 'emojis');
 const TMP_DIR = path.join(STORAGE_DIR, 'tmp');
 const MAX_SUPABASE_SIZE = 45 * 1024 * 1024; // 45MB (buffer under 50MB limit)
 
 // Ensure storage directories exist
-[MEDIA_DIR, THUMB_DIR, TMP_DIR].forEach(d => {
+[MEDIA_DIR, THUMB_DIR, EMOJI_DIR, TMP_DIR].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
@@ -107,12 +108,13 @@ router.get('/media/:id/download', (q, r, n) => { if (q.query.token && !q.headers
   const row = db.prepare('SELECT * FROM media WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
 
-  if (row.storage_provider === 'local' && fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
+  if (fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
     return res.download(path.join(MEDIA_DIR, row.filename));
   }
 
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `media/${row.filename}`, { download: true });
-  res.redirect(302, url);
+  if (url) return res.redirect(302, url);
+  res.status(404).json({ error: 'File not available (Supabase not configured)' });
 });
 
 // ── MEDIA (Uploads/Attachments) ─────────────────────────────
@@ -121,13 +123,14 @@ router.get('/media/:id', (q, r, n) => { if (q.query.token && !q.headers.authoriz
   const row = db.prepare('SELECT * FROM media WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
 
-  if (row.storage_provider === 'local' && fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
+  if (fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
     res.setHeader('Content-Type', row.mime_type);
     return res.sendFile(path.join(MEDIA_DIR, row.filename));
   }
 
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `media/${row.filename}`);
-  res.redirect(302, url);
+  if (url) return res.redirect(302, url);
+  res.status(404).json({ error: 'File not available (Supabase not configured)' });
 });
 
 router.post('/media', requireAuth, uploadMedia.single('file'), async (req, res) => {
@@ -140,8 +143,11 @@ router.post('/media', requireAuth, uploadMedia.single('file'), async (req, res) 
   const fileSize = req.file.size;
   const filePath = req.file.path;
 
-  if (fileSize <= MAX_SUPABASE_SIZE) {
-    // Small file: upload to Supabase (existing flow)
+  // Detect if we should use local storage (either too big OR Supabase not configured)
+  const useSupabase = fileSize <= MAX_SUPABASE_SIZE && supabaseStorage.isConfigured();
+
+  if (useSupabase) {
+    // Flow: Upload to Supabase
     const buffer = fs.readFileSync(filePath);
     await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `media/${filename}`, buffer, contentType);
 
@@ -158,7 +164,7 @@ router.post('/media', requireAuth, uploadMedia.single('file'), async (req, res) 
     const result = db.prepare('INSERT INTO media (uploader_id, filename, mime_type, size_bytes, storage_provider) VALUES (?, ?, ?, ?, ?)').run(req.user.id, filename, contentType, fileSize, 'supabase');
     res.json({ id: result.lastInsertRowid, mime_type: contentType, filename, size: fileSize });
   } else {
-    // Large file: store locally
+    // Flow: Store Locally
     const destPath = path.join(MEDIA_DIR, filename);
     fs.renameSync(filePath, destPath);
 
@@ -189,12 +195,13 @@ router.get('/media/:id/thumb', (q, r, n) => { if (q.query.token && !q.headers.au
   const base = row.filename.replace(ext, '');
   const thumbFilename = `${base}.jpg`;
 
-  if (row.storage_provider === 'local' && fs.existsSync(path.join(THUMB_DIR, thumbFilename))) {
+  if (fs.existsSync(path.join(THUMB_DIR, thumbFilename))) {
     return res.sendFile(path.join(THUMB_DIR, thumbFilename));
   }
 
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `thumbnails/${thumbFilename}`);
-  res.redirect(302, url);
+  if (url) return res.redirect(302, url);
+  res.status(404).json({ error: 'Thumbnail not available' });
 });
 
 // ── GALLERY PAGINATION ───────────────────────────────────────
@@ -266,8 +273,14 @@ router.get('/emojis', requireAuth, async (req, res) => { const db = await dbProm
 
 router.get('/emojis/img/:filename', (q, r, n) => { if (q.query.token && !q.headers.authorization) q.headers.authorization = `Bearer ${q.query.token}`; n(); }, requireAuth, (req, res) => {
   const filename = path.basename(req.params.filename);
+  
+  if (fs.existsSync(path.join(EMOJI_DIR, filename))) {
+    return res.sendFile(path.join(EMOJI_DIR, filename));
+  }
+
   const url = supabaseStorage.getPublicUrl(supabaseStorage.MEDIA_BUCKET, `emojis/${filename}`);
-  res.redirect(302, url);
+  if (url) return res.redirect(302, url);
+  res.status(404).json({ error: 'Emoji not found' });
 });
 
 router.post('/emojis', requireAuth, (q, r, n) => { if (!isAdmin(q.user.username)) return r.status(403).json({ error: 'Admin only' }); n(); }, uploadEmoji.single('file'), async (req, res) => {
@@ -279,7 +292,12 @@ router.post('/emojis', requireAuth, (q, r, n) => { if (!isAdmin(q.user.username)
   const filename = `${name}${ext}`;
   const contentType = req.file.mimetype || 'image/png';
 
-  await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `emojis/${filename}`, req.file.buffer, contentType);
+  if (supabaseStorage.isConfigured()) {
+    await supabaseStorage.upload(supabaseStorage.MEDIA_BUCKET, `emojis/${filename}`, req.file.buffer, contentType);
+  } else {
+    fs.writeFileSync(path.join(EMOJI_DIR, filename), req.file.buffer);
+  }
+
   db.prepare('INSERT INTO custom_emojis (name, filename, uploader_id) VALUES (?, ?, ?)').run(name, filename, req.user.id);
   broadcastEmoji(); res.json({ ok: true, name });
 });
