@@ -30,7 +30,8 @@ window.STATE = {
   // Notification preferences
   notificationPrefs: {
     soundAlerts: true,
-    unreadBadges: true
+    unreadBadges: true,
+    browserAlerts: true
   },
   // Crypto
   privateKey: null,   // RSA-OAEP CryptoKey (in memory only)

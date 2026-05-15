@@ -32,7 +32,7 @@
       return delay;
     }
 
-    function connectWS() {
+    function connectWS(silent = false) {
       // Close existing connection if any to prevent ghost listeners
       if (STATE.ws) {
         try {
@@ -49,14 +49,12 @@
       const ws = new WebSocket(`${proto}://${location.host}/?token=${encodeURIComponent(STATE.token)}`);
       STATE.ws = ws;
 
-      // Show overlay immediately when connecting
-      showReconnectOverlay();
+      if (!silent) showReconnectOverlay();
 
       ws.addEventListener('open', () => {
         if (STATE.reconnTimer) { clearTimeout(STATE.reconnTimer); STATE.reconnTimer = null; }
         _reconnectAttempts = 0; // Reset backoff on success
         
-        // Hide overlay
         hideReconnectOverlay();
         
         if (_offlineQueue.length > 0) {
@@ -133,9 +131,23 @@
 
     // P1-I: Wake up and reconnect if mobile OS killed WS while in background
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && (!STATE.ws || (STATE.ws.readyState !== WebSocket.OPEN && STATE.ws.readyState !== WebSocket.CONNECTING))) {
-        console.log("[WS] Woke up, reconnecting...");
-        connectWS();
+      if (document.visibilityState === 'visible') {
+        // Don't reconnect during an active call
+        if (typeof CALL !== 'undefined' && CALL.pc && CALL.pc.connectionState === 'connected') return;
+
+        // Clear pending reconnect to prevent double-connect race
+        if (STATE.reconnTimer) {
+          clearTimeout(STATE.reconnTimer);
+          STATE.reconnTimer = null;
+        }
+
+        console.log("[WS] Tab visible, reconnecting...");
+        connectWS(true);
+
+        // Catch up on missed messages via HTTP
+        if (typeof window.catchUpMessages === 'function') {
+          window.catchUpMessages();
+        }
       }
     });
 
@@ -179,5 +191,48 @@
         }
       } catch (err) {
         console.error('[ws] handler error:', err, msg);
+      }
+    }
+
+    let _lastCatchUp = 0;
+    window.catchUpMessages = async function() {
+      const now = Date.now();
+      if (now - _lastCatchUp < 5000) return;
+      _lastCatchUp = now;
+
+      try {
+        const res = await fetch('/messages?limit=50', {
+          headers: { Authorization: `Bearer ${STATE.token}` }
+        });
+        if (!res.ok) return;
+        if (res.status === 401) return;
+
+        const msgs = await res.json();
+        const container = document.getElementById('msgs');
+        if (!container) return;
+
+        let newCount = 0;
+        for (const msg of msgs) {
+          if (msg.sender_id !== STATE.user?.id && !container.querySelector(`[data-msg-id="${msg.id}"]`)) {
+            await processNewMsg(msg, true);
+            newCount++;
+          }
+        }
+
+        if (newCount > 0) {
+          if (typeof scrollIfNearBottom === 'function') scrollIfNearBottom();
+
+          if (typeof BadgeManager !== 'undefined') {
+            const activeTab = BadgeManager.getActiveTab();
+            if (activeTab !== 'chat') {
+              STATE.unreadCounts.chat += newCount;
+              BadgeManager.setCount('chat', STATE.unreadCounts.chat);
+            } else {
+              if (typeof wsSend !== 'undefined') wsSend(WS_EV.C_MESSAGE_READ);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[WS] catch-up failed:', e);
       }
     }

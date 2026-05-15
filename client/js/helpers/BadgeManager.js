@@ -3,6 +3,8 @@
  * Tracks unread counts per category: chat, notes, calendar
  */
 
+const _ORIGINAL_TITLE = document.title;
+
 const BadgeManager = {
   /**
    * Updates the badge count for a category
@@ -12,6 +14,7 @@ const BadgeManager = {
   setCount(category, count) {
     STATE.unreadCounts[category] = count;
     this.renderBadge(category, count);
+    this.updateTitle();
   },
   
   /**
@@ -48,6 +51,14 @@ const BadgeManager = {
     return 'chat';
   },
   
+  /**
+   * Updates document.title with total unread count
+   */
+  updateTitle() {
+    const total = STATE.unreadCounts.chat + STATE.unreadCounts.notes + STATE.unreadCounts.calendar;
+    document.title = total > 0 ? `(${total}) ${_ORIGINAL_TITLE}` : _ORIGINAL_TITLE;
+  },
+
   /**
    * Renders a badge for a category
    * @param {string} category - The category name
@@ -138,6 +149,7 @@ const BadgeManager = {
         }
       });
     }
+    this.updateTitle();
   }
 };
 

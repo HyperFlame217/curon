@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curon 3D House Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1528; font-family: system-ui, sans-serif; }
+#canvas-container { width: 100%; height: 100%; display: block; }
+canvas { display: block; }
+
+#hud {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+  color: #fff; z-index: 10;
+  display: flex; align-items: center; gap: 20px;
+  pointer-events: none;
+  user-select: none;
+}
+#hud .title {
+  font-size: 14px; font-weight: 700; letter-spacing: 2px;
+  color: #b8a0e8; text-shadow: 0 0 12px rgba(184,160,232,0.4);
+}
+#hud .controls { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; gap: 8px; flex-wrap: wrap; }
+kbd {
+  display: inline-block; padding: 1px 6px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px; font-size: 10px; font-family: inherit; color: rgba(255,255,255,0.6);
+}
+
+#bp-badge {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 48px; font-weight: 900; letter-spacing: 8px;
+  color: rgba(255,255,255,0.06); z-index: 5;
+  pointer-events: none; user-select: none;
+}
+
+#toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  padding: 8px 18px; border-radius: 6px;
+  background: rgba(0,0,0,0.75); color: #fff;
+  font-size: 13px; z-index: 20;
+  opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="title">CURON · 3D HOUSE</div>
+  <div class="controls">
+    <kbd>Click empty floor</kbd> Move · <kbd>Drag</kbd> Furniture · <kbd>B</kbd> Blueprint · <kbd>Scroll</kbd> Zoom
+  </div>
+</div>
+<div id="bp-badge">BLUEPRINT</div>
+<div id="toast"></div>
+<div id="canvas-container"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ──────────────────────────────────────────────
+// CONFIG
+// ──────────────────────────────────────────────
+const COLS = 10;
+const ROWS = 8;
+const WALL_H = 1.2;
+
+const FURNITURE_DEFS = [
+  { id:'sofa',      emoji:'🛋️', gx:2, gz:1, w:2, h:1, color:'#d48585' },
+  { id:'table',     emoji:'🪑', gx:5, gz:5, w:2, h:1, color:'#b8956a' },
+  { id:'bookshelf', emoji:'📚', gx:1, gz:6, w:1, h:2, color:'#7a6548' },
+  { id:'lamp',      emoji:'💡', gx:8, gz:1, w:1, h:1, color:'#e8c840' },
+  { id:'plant',     emoji:'🌳', gx:7, gz:6, w:1, h:1, color:'#5a9a5a' },
+];
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+const state = {
+  playerPos:   { gx:3, gz:3 },
+  partnerPos:  { gx:6, gz:4 },
+  playerSprite:   null,
+  partnerSprite:   null,
+  furnitureGroup: null,
+  furnData: [],
+  isBlueprint: false,
+  zoom: 1,
+  drag: null,
+};
+
+// ──────────────────────────────────────────────
+// CANVAS2D → TEXTURE EXPLANATION
+// ──────────────────────────────────────────────
+//
+// THREE.js renders 3D geometry (boxes, planes, etc.) using TEXTURES —
+// essentially images wrapped around shapes.
+//
+// Normally you'd provide texture images by uploading .png/.jpg files.
+// But we have no external files. So instead, we GENERATE textures
+// programmatically using the browser's Canvas2D API.
+//
+// Think of it like this:
+//
+//   Canvas2D is MS Paint. You draw on it with code.
+//
+//   Step 1: Create a blank canvas at a specific pixel size
+//           e.g. 256×128 px (for a 2×1 tile furniture)
+//   Step 2: Fill the background with a solid color
+//   Step 3: Draw an emoji on it using ctx.fillText()
+//           (the browser's own font renderer picks the right glyph)
+//   Step 4: Wrap that canvas as a THREE.CanvasTexture
+//   Step 5: Apply the texture to a face of a BoxGeometry
+//
+// The result: a 3D box with 🛋️ drawn on its top face.
+// No PNG files, no uploads — just emoji characters + code.
+//
+// Same technique for character sprites: a 64×64 canvas with 🚶 drawn
+// on it, wrapped in a THREE.Sprite (a billboard that always faces camera).
+//
+// ──────────────────────────────────────────────
+
+function createFurnitureTexture(emoji, bgColor, wTile, hTile) {
+  const tilePx = 128;
+  const cw = wTile * tilePx; // e.g. 2 tiles × 128px = 256px wide
+  const ch = hTile * tilePx; // e.g. 1 tile × 128px = 128px tall
+  const c = document.createElement('canvas');
+  c.width = cw;
+  c.height = ch;
+  const ctx = c.getContext('2d');
+
+  // Draw solid colored background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Draw a subtle border for depth
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillRect(0, 0, cw, 2);      // top
+  ctx.fillRect(0, 0, 2, ch);       // left
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(0, ch-2, cw, 2);    // bottom
+  ctx.fillRect(cw-2, 0, 2, ch);    // right
+
+  // Draw the emoji using browser's built-in emoji font
+  const emojiSize = Math.min(cw, ch) * 0.55;
+  ctx.font = `${emojiSize}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, cw / 2, ch / 2);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function createSpriteTexture(char) {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 64, 64);
+
+  const fs = 48;
+  ctx.font = `${fs}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(char, 32, 34);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// ──────────────────────────────────────────────
+// THREE.JS SETUP
+// ──────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1528);
+
+// Origin offsets — places the room grid centered around world (0, 0)
+const OX = -COLS / 2;
+const OZ = -ROWS / 2;
+
+// OrthographicCamera — orthographic means no perspective distortion,
+// which is what we want for a consistent isometric look.
+const baseFrustum = 7.5;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+
+function updateCamera() {
+  const s = baseFrustum / state.zoom;
+  const a = container.clientWidth / container.clientHeight;
+  camera.left   = -s * a;
+  camera.right  =  s * a;
+  camera.top    =  s;
+  camera.bottom = -s;
+
+  if (state.isBlueprint) {
+    // Top-down view
+    camera.position.set(0, 14, 0.001);
+    camera.lookAt(0, 0, 0);
+  } else {
+    // Classic isometric — 45° from each axis
+    camera.position.set(7.5, 5.5, 7.5);
+    camera.lookAt(0.5, 0, 0);
+  }
+  camera.updateProjectionMatrix();
+}
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+// Lights
+const ambient = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambient);
+
+const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+dirLight.position.set(8, 12, 6);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width  = 1024;
+dirLight.shadow.mapSize.height = 1024;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far  = 30;
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.4);
+fillLight.position.set(-4, 6, -4);
+scene.add(fillLight);
+
+// ──────────────────────────────────────────────
+// GRID ↔ WORLD CONVERSION
+// ──────────────────────────────────────────────
+// Grid tile (gx, gz) → world center position (x, z)
+//
+// With OX = -COLS/2 = -5 and OZ = -ROWS/2 = -4:
+//   tile (0,0) center → world (-4.5, -3.5)
+//   tile (9,7) center → world ( 4.5,  3.5)
+// Room spans from world (-5, -4) to (+5, +4)
+//
+function gridToWorld(gx, gz) {
+  return { x: gx + OX + 0.5, z: gz + OZ + 0.5 };
+}
+
+// World position → nearest grid tile
+function worldToGrid(wx, wz) {
+  return {
+    gx: Math.round(wx - OX - 0.5),
+    gz: Math.round(wz - OZ - 0.5),
+  };
+}
+
+// ──────────────────────────────────────────────
+// BUILD ROOM (floor + north + west walls only)
+// ──────────────────────────────────────────────
+function buildRoom() {
+  const group = new THREE.Group();
+
+  // Checkerboard floor tiles
+  const floorColors = ['#2a2040', '#302548'];
+  for (let gz = 0; gz < ROWS; gz++) {
+    for (let gx = 0; gx < COLS; gx++) {
+      const p = gridToWorld(gx, gz);
+      const geo = new THREE.PlaneGeometry(0.92, 0.92);
+      const ci = (gx + gz) % 2;
+      const mat = new THREE.MeshLambertMaterial({ color: floorColors[ci], side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(p.x, 0, p.z);
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+  }
+
+  // Floor border glow
+  const borderGeo = new THREE.PlaneGeometry(COLS + 0.6, ROWS + 0.6);
+  const borderMat = new THREE.MeshBasicMaterial({
+    color: 0x403060, side: THREE.DoubleSide, transparent: true, opacity: 0.3,
+  });
+  const border = new THREE.Mesh(borderGeo, borderMat);
+  border.rotation.x = -Math.PI / 2;
+  border.position.set(OX + COLS / 2, -0.005, OZ + ROWS / 2);
+  group.add(border);
+
+  const wallMat  = new THREE.MeshLambertMaterial({ color: '#3a2a50' });
+  const wallTrim = new THREE.MeshLambertMaterial({ color: '#4a3a60' });
+
+  function addWall(x, z, w, d, h, m) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+    mesh.position.set(x, h / 2, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+
+  // North wall (top of the room in iso view)
+  addWall(OX + COLS / 2, OZ - 0.1, COLS + 0.4, 0.15, WALL_H, wallMat);
+  addWall(OX + COLS / 2, OZ - 0.05, COLS + 0.2, 0.25, 0.08, wallTrim);
+
+  // West wall (left side in iso view)
+  addWall(OX - 0.1, OZ + ROWS / 2, 0.15, ROWS + 0.4, WALL_H, wallMat);
+  addWall(OX - 0.05, OZ + ROWS / 2, 0.25, ROWS + 0.2, 0.08, wallTrim);
+
+  // South wall: REMOVED
+  // East wall: REMOVED
+
+  return group;
+}
+
+// ──────────────────────────────────────────────
+// BUILD FURNITURE
+// ──────────────────────────────────────────────
+// Each piece is a BoxGeometry with 6 faces:
+//   [  right,  left,   top,  bottom,  front,  back  ]
+// Faces 0,1,4,5 (sides) get solid dark-ish colors for depth.
+// Face 2 (top) gets the emoji Canvas2D texture.
+//
+// The BoxGeometry vertex order in Three.js:
+//   0: front-bottom-left     4: front-top-left
+//   1: front-bottom-right    5: front-top-right
+//   2: back-bottom-right     6: back-top-right
+//   3: back-bottom-left      7: back-top-left
+//
+// BoxGeometry groups (default material array indexing):
+//   Group 0 = right  (+X): mat[0]
+//   Group 1 = left   (-X): mat[1]
+//   Group 2 = top    (+Y): mat[2]
+//   Group 3 = bottom (-Y): mat[3]
+//   Group 4 = front  (+Z): mat[4]
+//   Group 5 = back   (-Z): mat[5]
+//
+function buildFurniture() {
+  const group = new THREE.Group();
+  state.furnData = [];
+
+  for (const def of FURNITURE_DEFS) {
+    const topTex = createFurnitureTexture(def.emoji, def.color, def.w, def.h);
+
+    const baseColor = new THREE.Color(def.color);
+    const mats = [
+      new THREE.MeshLambertMaterial({ color: baseColor.clone().multiplyScalar(0.7) }),   // 0 right
+      new THREE.MeshLambertMaterial({ color: baseColor.clone().multiplyScalar(0.6) }),   // 1 left
+      new THREE.MeshLambertMaterial({ map: topTex }),                                     // 2 top  ← emoji
+      new THREE.MeshLambertMaterial({ color: baseColor.clone().multiplyScalar(0.45) }),   // 3 bottom
+      new THREE.MeshLambertMaterial({ color: baseColor.clone().multiplyScalar(0.8) }),   // 4 front
+      new THREE.MeshLambertMaterial({ color: baseColor.clone().multiplyScalar(0.55) }),  // 5 back
+    ];
+
+    const height = def.h === 2 ? 0.5 : 0.35;
+    const geo = new THREE.BoxGeometry(def.w * 0.88, height, def.h * 0.88);
+    const mesh = new THREE.Mesh(geo, mats);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    // Place at center of the furniture footprint
+    const p = gridToWorld(def.gx + def.w / 2 - 0.5, def.gz + def.h / 2 - 0.5);
+    mesh.position.set(p.x, height / 2, p.z);
+
+    mesh.userData = {
+      id: def.id,
+      gx: def.gx,
+      gz: def.gz,
+      w: def.w,
+      h: def.h,
+      height,
+    };
+
+    group.add(mesh);
+    state.furnData.push({ def, mesh });
+  }
+
+  return group;
+}
+
+// ──────────────────────────────────────────────
+// CHARACTER SPRITES
+// ──────────────────────────────────────────────
+// THREE.Sprite is a billboard — it always faces the camera.
+// We generate a texture from an emoji character using Canvas2D,
+// then wrap it in a Sprite so the emoji is always readable.
+function createCharacter(emoji, gx, gz) {
+  const tex = createSpriteTexture(emoji);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(mat);
+  const p = gridToWorld(gx, gz);
+  sprite.position.set(p.x, 0.6, p.z);
+  sprite.scale.set(0.9, 0.9, 1);
+  return sprite;
+}
+
+// ──────────────────────────────────────────────
+// INVISIBLE FLOOR PLANE FOR CLICK DETECTION
+// ──────────────────────────────────────────────
+// We need a solid horizontal plane to raycast against so clicks
+// on empty floor tiles are detected. This mesh is completely invisible
+// but covers the entire room so raycasting always hits something walkable.
+const floorPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(COLS + 2, ROWS + 2),
+  new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+);
+floorPlane.rotation.x = -Math.PI / 2;
+floorPlane.position.set(OX + COLS / 2, 0.001, OZ + ROWS / 2);
+scene.add(floorPlane);
+
+// ──────────────────────────────────────────────
+// SCENE ASSEMBLY
+// ──────────────────────────────────────────────
+const roomGroup = buildRoom();
+scene.add(roomGroup);
+
+state.furnitureGroup = buildFurniture();
+scene.add(state.furnitureGroup);
+
+state.playerSprite  = createCharacter('🚶', state.playerPos.gx, state.playerPos.gz);
+state.partnerSprite = createCharacter('👧', state.partnerPos.gx, state.partnerPos.gz);
+scene.add(state.playerSprite);
+scene.add(state.partnerSprite);
+
+updateCamera();
+
+// ──────────────────────────────────────────────
+// RESIZE
+// ──────────────────────────────────────────────
+function onResize() {
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  updateCamera();
+}
+window.addEventListener('resize', onResize);
+
+// ──────────────────────────────────────────────
+// TOAST NOTIFICATION
+// ──────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ──────────────────────────────────────────────
+// INTERACTION — RAYCASTING
+// ──────────────────────────────────────────────
+// Raycasting = shooting an invisible ray from the camera through the
+// mouse cursor into the 3D scene. Whatever the ray hits first is what
+// the user clicked on. This is how all 3D engines handle mouse picking.
+const raycaster  = new THREE.Raycaster();
+const pointer    = new THREE.Vector2();
+
+function getPointerNDC(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+}
+
+function raycast(e) {
+  getPointerNDC(e);
+  raycaster.setFromCamera(pointer, camera);
+
+  // First: check furniture (we want to pick furniture first, over floor)
+  const furnHits = raycaster.intersectObjects(state.furnitureGroup.children);
+  if (furnHits.length > 0) {
+    return { type: 'furniture', mesh: furnHits[0].object, point: furnHits[0].point };
+  }
+
+  // Second: check floor
+  const floorHits = raycaster.intersectObject(floorPlane);
+  if (floorHits.length > 0) {
+    const pt = floorHits[0].point;
+    const { gx, gz } = worldToGrid(pt.x, pt.z);
+    if (gx >= 0 && gx < COLS && gz >= 0 && gz < ROWS) {
+      return { type: 'floor', gx, gz };
+    }
+  }
+
+  return null;
+}
+
+// Snap a world position to the nearest valid grid cell for a w×h furniture piece.
+// This converts world coordinates back to grid coordinates.
+function snapToGrid(wx, wz, w, h) {
+  let gx = Math.round(wx - OX - w / 2 + 0.5);
+  let gz = Math.round(wz - OZ - h / 2 + 0.5);
+  gx = Math.max(0, Math.min(COLS - w, gx));
+  gz = Math.max(0, Math.min(ROWS - h, gz));
+  return { gx, gz };
+}
+
+// Check if a furniture piece (at ud) overlaps a world-space tile (gx, gz)
+function furnitureOverlaps(ud, gx, gz) {
+  return gx >= ud.gx && gx < ud.gx + ud.w &&
+         gz >= ud.gz && gz < ud.gz + ud.h;
+}
+
+// ──────────────────────────────────────────────
+// POINTER EVENTS
+// ──────────────────────────────────────────────
+let mouseDownAt = { x: 0, y: 0 };
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  mouseDownAt.x = e.clientX;
+  mouseDownAt.y = e.clientY;
+
+  const hit = raycast(e);
+  if (!hit) return;
+
+  if (hit.type === 'furniture') {
+    const mesh = hit.mesh;
+    const ud   = mesh.userData;
+    state.drag = {
+      mesh,
+      ud,
+      // Remember where the furniture currently sits in grid space
+      origGx: ud.gx,
+      origGz: ud.gz,
+    };
+    renderer.domElement.style.cursor = 'grabbing';
+    showToast(`Dragging ${ud.id}…`);
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!state.drag) {
+    // Hover: show grab cursor over furniture
+    const hit = raycast(e);
+    renderer.domElement.style.cursor =
+      (hit && hit.type === 'furniture') ? 'grab' : 'default';
+    return;
+  }
+
+  // Drag furniture
+  const hit = raycast(e);
+  if (!hit || hit.type !== 'floor') return;
+
+  const ud = state.drag.ud;
+  const { gx, gz } = snapToGrid(hit.gx + OX + 0.5, hit.gz + OZ + 0.5, ud.w, ud.h);
+
+  // Update userData AND mesh position
+  ud.gx = gx;
+  ud.gz = gz;
+  const p = gridToWorld(gx + ud.w / 2 - 0.5, gz + ud.h / 2 - 0.5);
+  state.drag.mesh.position.x = p.x;
+  state.drag.mesh.position.z = p.z;
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (state.drag) {
+    const ud = state.drag.ud;
+    renderer.domElement.style.cursor = 'default';
+    showToast(`${ud.id} placed at (${ud.gx}, ${ud.gz})`);
+    state.drag = null;
+    return;
+  }
+
+  // Click-to-move: fire only if pointer barely moved (not a drag)
+  const dx = e.clientX - mouseDownAt.x;
+  const dy = e.clientY - mouseDownAt.y;
+  if (Math.sqrt(dx * dx + dy * dy) > 6) return;
+
+  const hit = raycast(e);
+  if (hit && hit.type === 'floor') {
+    movePlayer(hit.gx, hit.gz);
+  }
+});
+
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  state.zoom *= e.deltaY > 0 ? 1.12 : 0.88;
+  state.zoom = Math.max(0.3, Math.min(4, state.zoom));
+  updateCamera();
+}, { passive: false });
+
+// ──────────────────────────────────────────────
+// KEYBOARD
+// ──────────────────────────────────────────────
+window.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'b') {
+    state.isBlueprint = !state.isBlueprint;
+    document.getElementById('bp-badge').style.display = state.isBlueprint ? 'block' : 'none';
+    updateCamera();
+    showToast(state.isBlueprint ? 'BLUEPRINT MODE' : 'ISOMETRIC MODE');
+  }
+});
+
+// ──────────────────────────────────────────────
+// PLAYER MOVEMENT
+// ──────────────────────────────────────────────
+function movePlayer(gx, gz) {
+  // Reject if landing on furniture
+  for (const { mesh, def: _def } of state.furnData) {
+    const ud = mesh.userData;
+    if (furnitureOverlaps(ud, gx, gz)) {
+      showToast('Tile occupied!');
+      return;
+    }
+  }
+
+  // Also reject if landing on partner
+  if (gx === state.partnerPos.gx && gz === state.partnerPos.gz) {
+    showToast('Partner is there!');
+    return;
+  }
+
+  state.playerPos.gx = gx;
+  state.playerPos.gz = gz;
+  const p = gridToWorld(gx, gz);
+  state.playerSprite.position.x = p.x;
+  state.playerSprite.position.z = p.z;
+  showToast(`Moved to (${gx}, ${gz})`);
+}
+
+// ──────────────────────────────────────────────
+// RENDER LOOP
+// ──────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// ──────────────────────────────────────────────
+// CONSOLE API (for debugging / experiments)
+// ──────────────────────────────────────────────
+window.__house = {
+  scene, camera, renderer, state,
+  FURNITURE_DEFS, gridToWorld, worldToGrid,
+  // Try in console: __house.movePlayer(5, 5)
+  movePlayer,
+  showToast,
+};
+</script>
+</body>
+</html>

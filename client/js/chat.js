@@ -154,6 +154,11 @@ async function onMessageNew(msg) {
     if (typeof AudioManager !== 'undefined' && AudioManager.playChime) {
       AudioManager.playChime();
     }
+
+    // Show browser notification if tab is hidden
+    if (document.visibilityState !== 'visible' && STATE.notificationPrefs?.browserAlerts) {
+      showBrowserNotification(msg.content || '📎 Sent a media message');
+    }
   }
 
   await processNewMsg(msg);
@@ -170,7 +175,7 @@ async function onMessageNew(msg) {
   }
 }
 
-async function processNewMsg(msg) {
+async function processNewMsg(msg, noScroll = false) {
   const container = document.getElementById('msgs');
   if (container.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
@@ -200,7 +205,7 @@ async function processNewMsg(msg) {
   const tyrow = container.querySelector('.tyrow');
   tyrow ? container.insertBefore(el, tyrow) : container.appendChild(el);
   updateReceipts();
-  scrollBottom();
+  if (!noScroll) scrollBottom();
 }
 
 function onMessageStatus(msg) {
@@ -830,6 +835,18 @@ function scrollIfNearBottom() {
   if (!msgs) return;
   const distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
   if (distFromBottom < 200) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showBrowserNotification(body) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification(STATE.otherName || 'Curon', {
+      body,
+      tag: 'curon-message'
+    });
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
 }
 
 // ════════════════════════════════════════════════════════════

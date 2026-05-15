@@ -25,7 +25,7 @@ const AudioManager = {
    * Plays the notification chime
    * @param {boolean} force - If true, plays regardless of window focus
    */
-  playChime(force = false) {
+  async playChime(force = false) {
     // Check user preferences
     if (!STATE.notificationPrefs?.soundAlerts) return;
     
@@ -47,7 +47,7 @@ const AudioManager = {
     
     // Resume context if suspended
     if (this._ctx.state === 'suspended') {
-      this._ctx.resume();
+      await this._ctx.resume();
     }
     
     this._playRetroPing();
@@ -84,14 +84,14 @@ const AudioManager = {
   /**
    * Plays a different chime for new notes
    */
-  playNoteChime() {
+  async playNoteChime() {
     if (!STATE.notificationPrefs?.soundAlerts) return;
     
     this.init();
     if (!this._ctx) return;
     
     if (this._ctx.state === 'suspended') {
-      this._ctx.resume();
+      await this._ctx.resume();
     }
     
     const now = this._ctx.currentTime;
@@ -115,14 +115,14 @@ const AudioManager = {
   /**
    * Plays a different chime for calendar events
    */
-  playCalendarChime() {
+  async playCalendarChime() {
     if (!STATE.notificationPrefs?.soundAlerts) return;
     
     this.init();
     if (!this._ctx) return;
     
     if (this._ctx.state === 'suspended') {
-      this._ctx.resume();
+      await this._ctx.resume();
     }
     
     const now = this._ctx.currentTime;

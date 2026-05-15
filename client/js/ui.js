@@ -232,7 +232,13 @@ function initSettings() {
       if (!STATE.notificationPrefs) STATE.notificationPrefs = {};
       STATE.notificationPrefs.soundAlerts = !!document.getElementById('setting-sound-alerts')?.checked;
       STATE.notificationPrefs.unreadBadges = !!document.getElementById('setting-unread-badges')?.checked;
+      STATE.notificationPrefs.browserAlerts = !!document.getElementById('setting-browser-notifs')?.checked;
       localStorage.setItem('curon_notification_prefs', JSON.stringify(STATE.notificationPrefs));
+
+      // Request permission when user enables browser notifications
+      if (STATE.notificationPrefs.browserAlerts && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     }
 
     function loadNotificationPrefs() {
@@ -248,6 +254,9 @@ function initSettings() {
       }
       if (document.getElementById('setting-unread-badges')) {
         document.getElementById('setting-unread-badges').checked = STATE.notificationPrefs?.unreadBadges !== false;
+      }
+      if (document.getElementById('setting-browser-notifs')) {
+        document.getElementById('setting-browser-notifs').checked = STATE.notificationPrefs?.browserAlerts !== false;
       }
     }
 
