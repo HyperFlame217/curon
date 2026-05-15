@@ -53,7 +53,10 @@ function openGifPanel() {
 
   // Load trending on open
   if (!document.querySelector('#gif-grid img')) loadGifs('');
-  setTimeout(() => document.getElementById('gif-search')?.focus(), 50);
+  setTimeout(() => {
+    if (!matchMedia('(hover: none) and (pointer: coarse)').matches)
+      document.getElementById('gif-search')?.focus();
+  }, 50);
 }
 
 function closeGifPanel() {
@@ -590,7 +593,10 @@ function toggleEmojiPanel() {
   _syncPanelPosition('emoji-panel', 'btn-emoji', 320);
   _initLayoutListeners();
   renderEmojiGrid();
-  setTimeout(() => document.getElementById('emoji-search')?.focus(), 50);
+  setTimeout(() => {
+    if (!matchMedia('(hover: none) and (pointer: coarse)').matches)
+      document.getElementById('emoji-search')?.focus();
+  }, 50);
 }
 
 function closeEmojiPanel() {
@@ -762,7 +768,7 @@ function initEmojiAutocomplete() {
     const before = val.slice(0, cursor);
 
     // Match : followed by 0 or more valid chars (triggers on just ":")
-    const match = before.match(/:([a-z0-9_]{0,30})$/);
+    const match = before.match(/:([a-z0-9_]{1,30})$/);
 
     if (!match) { closeAutocomplete(); return; }
 

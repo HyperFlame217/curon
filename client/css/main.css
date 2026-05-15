@@ -488,6 +488,7 @@ body {
   padding: var(--status-bar-padding);
   border-bottom: var(--border-width) solid var(--color-dark);
   background-color: var(--color-primary);
+  font-family: var(--font-header);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -502,6 +503,7 @@ body {
 }
 
 .status-sub {
+  font-family: var(--font-main);
   font-size: var(--font-size-status-sub);
   color: var(--color-dark);
   display: flex;
@@ -1605,8 +1607,8 @@ textarea::placeholder {
   border: 2px solid var(--color-deep);
   box-shadow: -3px -3px 0 var(--color-deep);
   z-index: var(--z-modal);
-  width: 320px;
-  max-height: 260px;
+  width: 360px;
+  max-height: 380px;
   flex-direction: column;
 }
 
@@ -1682,20 +1684,20 @@ textarea::placeholder {
 .emoji-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
   padding: 8px;
   flex: 1;
 }
 
 .emoji-grid-item {
-  width: 36px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border: 2px solid transparent;
-  font-size: var(--font-size-timeline-user);
+  font-size: 32px;
   transition: all .08s;
   position: relative;
 }
@@ -1706,8 +1708,8 @@ textarea::placeholder {
 }
 
 .emoji-grid-item img {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
 }
 

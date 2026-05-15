@@ -98,11 +98,11 @@
    ──────────────────────────────────────────────────────────────────────── */
 
    --font-header: 'Press Start 2P', monospace;
-   /* Bold, blocky pixel font for titles and headers */
+   /* Chunky monospace font for titles and headers */
    --font-display: var(--font-header);
    /* Alias for font-header (used in legacy code) */
-   --font-main: 'VT323', monospace;
-   /* Taller, more readable pixel font for body text and time labels */
+   --font-main: 'Handjet', monospace;
+   /* Pixel body font for chat and text */
 
 
 
@@ -170,11 +170,11 @@
       Font sizes for communication and text entry.
    ──────────────────────────────────────────────────────────────────────── */
 
-   --font-size-status-name: 15px;
+   --font-size-status-name: 11px;
    /* Chat header: Partner name */
-   --font-size-status-sub: 14px;
+   --font-size-status-sub: 15px;
    /* Chat header: Online status */
-   --font-size-chat-bubble: 22px;
+   --font-size-chat-bubble: 20px;
    /* Chat message text */
    --font-size-input: 16px;
    /* Main text input fields */

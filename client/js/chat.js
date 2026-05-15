@@ -150,7 +150,7 @@ async function onMessageNew(msg) {
   }
 
   // Play notification chime for incoming messages (not our own)
-  if (msg.sender_id !== STATE.user?.id) {
+  if (msg.sender_id != STATE.user?.id) {
     if (typeof AudioManager !== 'undefined' && AudioManager.playChime) {
       AudioManager.playChime();
     }
@@ -162,10 +162,10 @@ async function onMessageNew(msg) {
     const next = _incQueue.shift();
     await processNewMsg(next);
   }
-  if (window.wsSend && msg.sender_id !== STATE.user?.id) wsSend(WS_EV.C_MESSAGE_READ);
+  if (window.wsSend && msg.sender_id != STATE.user?.id) wsSend(WS_EV.C_MESSAGE_READ);
 
   // Handle unread badge - only show if not on chat tab
-  if (msg.sender_id !== STATE.user?.id && typeof BadgeManager !== 'undefined') {
+  if (msg.sender_id != STATE.user?.id && typeof BadgeManager !== 'undefined') {
     BadgeManager.handleIncoming('chat');
   }
 }
@@ -174,13 +174,13 @@ async function processNewMsg(msg) {
   const container = document.getElementById('msgs');
   if (container.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
-  if (msg.sender_id === STATE.user?.id) {
+  if (msg.sender_id == STATE.user?.id) {
     const pendingBw = container.querySelector('.row.me .bw[data-status="pending"]');
     if (pendingBw) pendingBw.closest('.row').remove();
   }
 
   // Remove typing indicator when partner sends a message
-  if (msg.sender_id !== STATE.user?.id) {
+  if (msg.sender_id != STATE.user?.id) {
     const tyrow = container.querySelector('.tyrow');
     if (tyrow) tyrow.remove();
     // Stop our own typing indicator if we were showing one
@@ -688,7 +688,7 @@ function isEmojiOnlyMsg(text) {
 
 // scrollCtx: 'bottom' = snap to bottom on load, 'near' = scroll if near bottom, 'none' = never scroll
 async function buildMsgEl(msg, scrollCtx = 'near') {
-  const isMe = msg.sender_id === STATE.user.id;
+  const isMe = msg.sender_id == STATE.user.id;
   let text = '';
 
   if (msg.content) {
