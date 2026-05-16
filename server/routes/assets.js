@@ -125,6 +125,7 @@ router.get('/media/:id', (q, r, n) => { if (q.query.token && !q.headers.authoriz
 
   if (fs.existsSync(path.join(MEDIA_DIR, row.filename))) {
     res.setHeader('Content-Type', row.mime_type);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     return res.sendFile(path.join(MEDIA_DIR, row.filename));
   }
 
@@ -196,6 +197,7 @@ router.get('/media/:id/thumb', (q, r, n) => { if (q.query.token && !q.headers.au
   const thumbFilename = `${base}.jpg`;
 
   if (fs.existsSync(path.join(THUMB_DIR, thumbFilename))) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     return res.sendFile(path.join(THUMB_DIR, thumbFilename));
   }
 
@@ -275,6 +277,7 @@ router.get('/emojis/img/:filename', (q, r, n) => { if (q.query.token && !q.heade
   const filename = path.basename(req.params.filename);
 
   if (fs.existsSync(path.join(EMOJI_DIR, filename))) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     return res.sendFile(path.join(EMOJI_DIR, filename));
   }
 
@@ -315,18 +318,26 @@ router.delete('/emojis/:name', requireAuth, async (req, res) => {
 router.get('/emojis/admin', requireAuth, (_req, res) => res.json({ admin: process.env.EMOJI_ADMIN || '' }));
 
 // ── KLIPY PROXY ──────────────────────────────────────────────
+const klipyCache = new Map();
+const KLIPY_CACHE_TTL = 120_000; // 2 minutes
+
 async function kFetch(ep, p) {
   const apiKey = process.env.KLIPY_API_KEY || '';
   if (!apiKey) throw new Error('KLIPY_API_KEY missing');
 
-  // KLIPY uses API key in the URL path: api/v1/[key]/gifs/...
+  const cacheKey = `${ep}|${JSON.stringify(p)}`;
+  const cached = klipyCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < KLIPY_CACHE_TTL) return cached.data;
+
   const url = new URL(`https://api.klipy.com/api/v1/${apiKey}/gifs${ep}`);
   url.searchParams.set('per_page', '24');
   for (const [k, v] of Object.entries(p)) url.searchParams.set(k, v);
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`KLIPY Error: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  klipyCache.set(cacheKey, { data, ts: Date.now() });
+  return data;
 }
 
 function normG(d) {

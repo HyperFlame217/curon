@@ -282,15 +282,17 @@ async function sendMediaMessage(file) {
 // ── Build inline media element for a message ─────────────────
 function buildMediaEl(mediaId, mimeType) {
   const src = `/media/${mediaId}?token=${encodeURIComponent(STATE.token)}`;
+  const thumbSrc = `/media/${mediaId}/thumb?token=${encodeURIComponent(STATE.token)}`;
+  const fullSrc = src;
 
   if (mimeType && mimeType.startsWith('image/')) {
     const img = document.createElement('img');
     img.className = 'media-img';
-    img.src = src;
+    img.src = thumbSrc;
     img.alt = 'image';
     img.loading = 'lazy';
-    img.onerror = () => { img.style.display = 'none'; };
-    img.addEventListener('click', () => showLightbox(src));
+    img.onerror = () => { img.src = fullSrc; img.onerror = () => { img.style.display = 'none'; }; };
+    img.addEventListener('click', () => showLightbox(fullSrc));
     return img;
   }
 
@@ -1009,7 +1011,7 @@ async function initEmojis() {
 // ════════════════════════════════════════════════════════════
 //  EMOJI REACTIONS
 // ════════════════════════════════════════════════════════════
-const REACTION_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍', '👎', '🎉'];
+const REACTION_EMOJIS = ['❤️', '🔥', '👍', '👎'];
 
 let _pickerMsgId = null;
 let _pickerEl = null;
@@ -1022,6 +1024,20 @@ function showReactionPicker(msgId, anchorEl) {
   picker.className = 'rxn-picker';
   picker.id = 'rxn-picker';
   picker.style.cssText += ';flex-wrap:wrap;max-width:320px;';
+
+  // Custom emojis first
+  _customEmojis.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'rxn-pick-btn';
+    btn.title = `:${emoji.name}:`;
+    btn.innerHTML = `<img src="${emojiImgUrl(emoji.filename)}" style="width:24px;height:24px;object-fit:contain;" alt=":${emoji.name}:">`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wsSend(WS_EV.C_MESSAGE_REACT, { message_id: msgId, emoji: `:${emoji.name}:` });
+      closeReactionPicker();
+    });
+    picker.appendChild(btn);
+  });
 
   // Standard emojis
   REACTION_EMOJIS.forEach(emoji => {
@@ -1036,26 +1052,13 @@ function showReactionPicker(msgId, anchorEl) {
     picker.appendChild(btn);
   });
 
-  // Custom emojis
-  _customEmojis.forEach(emoji => {
-    const btn = document.createElement('button');
-    btn.className = 'rxn-pick-btn';
-    btn.title = `:${emoji.name}:`;
-    btn.innerHTML = `<img src="${emojiImgUrl(emoji.filename)}" style="width:20px;height:20px;object-fit:contain;" alt=":${emoji.name}:">`;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      wsSend(WS_EV.C_MESSAGE_REACT, { message_id: msgId, emoji: `:${emoji.name}:` });
-      closeReactionPicker();
-    });
-    picker.appendChild(btn);
-  });
-
   document.body.appendChild(picker);
   _pickerEl = picker;
 
   // Position near the anchor element
   const rect = anchorEl.getBoundingClientRect();
-  const pickerW = REACTION_EMOJIS.length * 38;
+  const totalBtns = REACTION_EMOJIS.length + _customEmojis.length;
+  const pickerW = Math.min(totalBtns, 8) * 38;
   let left = rect.left;
   let top = rect.top - 54;
 

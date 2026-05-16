@@ -815,6 +815,7 @@ async function buildMsgEl(msg, scrollCtx = 'near', parentLookup) {
       img.src = gifUrl;
       img.className = 'media-img';
       img.alt = 'GIF';
+      img.loading = 'lazy';
       img.style.maxWidth = '240px';
       img.addEventListener('click', () => showLightbox(gifUrl));
       img.addEventListener('load', scrollCtx === 'bottom' ? scrollBottom : scrollCtx === 'near' ? scrollIfNearBottom : () => { });
