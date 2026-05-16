@@ -2198,6 +2198,9 @@ textarea::placeholder {
 /* Mini call bar */
 .call-mini {
   display: none;
+  position: fixed;
+  bottom: 180px;
+  right: 20px;
   appearance: none;
   background: var(--color-deep);
   border: 2px solid var(--color-accent);
@@ -5590,9 +5593,10 @@ textarea::placeholder {
 }
 
 .call-bar-join,
-.call-bar-leave {
+.call-bar-leave,
+.call-bar-max {
   font-family: var(--font-header);
-  font-size: var(--font-size-title);
+  font-size: var(--font-size-sidebar-label);
   padding: 10px 14px;
   cursor: pointer;
   border: 2px solid var(--color-dark);
@@ -5615,6 +5619,15 @@ textarea::placeholder {
 
 .call-bar-leave:hover {
   background: #e8a0a0;
+}
+
+.call-bar-max {
+  background: var(--color-accent);
+  color: var(--color-dark);
+}
+
+.call-bar-max:hover {
+  background: var(--color-highlight);
 }
 
 /* --- Timeline Ghost Block --- */

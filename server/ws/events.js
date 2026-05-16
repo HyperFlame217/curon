@@ -49,9 +49,12 @@ module.exports = Object.freeze({
   C_CALL_LEAVE:              'call_room_leave',     // leave without destroying room
   C_CALL_END_ALL:            'call_room_end_all',   // force-end for both
 
+  C_CALL_ROOM_MODIFY:        'call_room_modify',     // change room type (voice↔video)
+
   S_CALL_ROOM_STARTED:       'call_room_started',   // room created → show bar
   S_CALL_SEND_OFFER:         'call_send_offer',     // ask in-room peer to send WebRTC offer
   S_CALL_PARTICIPANT_UPDATE: 'call_participant_update', // who is currently in
+  S_CALL_ROOM_MODIFIED:      'call_room_modified',  // room type changed → update UI
   S_CALL_ROOM_ENDED:         'call_room_ended',     // room destroyed → hide bar
 
   // ── Calls — Legacy (kept for rollback safety, not actively used) ─

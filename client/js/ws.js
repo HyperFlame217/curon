@@ -182,6 +182,7 @@
           case WS_EV.S_CALL_ROOM_STARTED:         return onCallRoomStarted(msg);
           case WS_EV.S_CALL_SEND_OFFER:           return onCallSendOffer(msg);
           case WS_EV.S_CALL_PARTICIPANT_UPDATE:   return onCallParticipantUpdate(msg);
+          case WS_EV.S_CALL_ROOM_MODIFIED:        return onCallRoomModified(msg);
           case WS_EV.S_CALL_ROOM_ENDED:           return onCallRoomEnded();
           case WS_EV.S_CALL_ENDED:                return onCallRoomEnded(); // legacy fallback
           case WS_EV.S_AVATAR_UPDATE:             return typeof onAvatarUpdate === 'function' && onAvatarUpdate(msg);

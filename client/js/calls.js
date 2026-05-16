@@ -109,6 +109,12 @@
       showToast('CALL ENDED');
     }
 
+    function onCallRoomModified(msg) {
+      CALL_ROOM.isVideo = !!msg.isVideo;
+      CALL.isVideo = !!msg.isVideo;
+      updateCallOverlay();
+    }
+
     // Server asks THIS client (already in room w/ media) to send offer to joiner
     async function onCallSendOffer(msg) {
       if (!CALL.pc) return;
@@ -159,8 +165,12 @@
 
     function startCallRoom(isVideo) {
       if (CALL_ROOM.active) {
-        // Room exists — join it (or maximize if already in)
-        joinCall();
+        // Already in a call — upgrade/downgrade if type differs, else maximize
+        if (!!isVideo !== CALL_ROOM.isVideo) {
+          toggleCallVideo(!!isVideo);
+        } else {
+          joinCall();
+        }
         return;
       }
       wsSend(WS_EV.C_CALL_ROOM_START, { isVideo: !!isVideo });
@@ -192,6 +202,51 @@
         document.getElementById('call-mini')?.classList.remove('show');
       }
     };
+
+    // ════════════════════════════════════════════════════════════
+    //  UPGRADE / DOWNGRADE (voice ↔ video mid-call)
+    // ════════════════════════════════════════════════════════════
+
+    async function toggleCallVideo(wantVideo) {
+      if (!CALL.pc) return;
+
+      if (wantVideo && !CALL.isVideo) {
+        // Upgrade: voice → video
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+          const videoTrack = stream.getVideoTracks()[0];
+          CALL.localStream.addTrack(videoTrack);
+          CALL.pc.addTrack(videoTrack, CALL.localStream);
+          CALL.isVideo = true;
+          CALL.camOff = false;
+
+          const offer = await CALL.pc.createOffer();
+          await CALL.pc.setLocalDescription(offer);
+          wsSend(WS_EV.C_CALL_OFFER, { offer, isVideo: true });
+          wsSend(WS_EV.C_CALL_ROOM_MODIFY, { isVideo: true });
+          updateCallOverlay();
+        } catch { showToast('CAMERA ACCESS DENIED'); }
+
+      } else if (!wantVideo && CALL.isVideo) {
+        // Downgrade: video → voice
+        const videoTrack = CALL.localStream?.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.stop();
+          CALL.localStream.removeTrack(videoTrack);
+        }
+        const sender = CALL.pc?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) CALL.pc.removeTrack(sender);
+        CALL.isVideo = false;
+        CALL.camOff = false;
+
+        const offer = await CALL.pc.createOffer();
+        await CALL.pc.setLocalDescription(offer);
+        wsSend(WS_EV.C_CALL_OFFER, { offer, isVideo: false });
+        wsSend(WS_EV.C_CALL_ROOM_MODIFY, { isVideo: false });
+        document.getElementById('call-video-remote').srcObject = null;
+        updateCallOverlay();
+      }
+    }
 
     // ════════════════════════════════════════════════════════════
     //  INTERNAL HELPERS
@@ -244,6 +299,8 @@
 
       // Reset control UI
       const ctrlMute = document.getElementById('ctrl-mute');
+      const ctrlCam = document.getElementById('ctrl-cam');
+      const ctrlScreen = document.getElementById('ctrl-screen');
 if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off'); ctrlMute.innerHTML = '<i class="icon-volume-2"></i><div class="call-ctrl-label">MUTE</div>'; }
 
       if (ctrlCam) { ctrlCam.classList.add('active'); ctrlCam.classList.remove('off'); ctrlCam.innerHTML = '<i class="icon-camera"></i><div class="call-ctrl-label">CAM</div>'; }
@@ -335,19 +392,22 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
     //  CALL OVERLAY (full-screen in-call UI)
     // ════════════════════════════════════════════════════════════
 
-    function showCallOverlay() {
-      const overlay = document.getElementById('call-overlay');
-      overlay.classList.add('show');
-
+    function updateCallOverlay() {
       const isVideo = CALL.isVideo;
       document.getElementById('call-videos').style.display    = isVideo ? 'flex' : 'none';
       document.getElementById('call-voice-ui').style.display  = isVideo ? 'none' : 'flex';
       document.getElementById('ctrl-cam').style.display       = isVideo ? 'flex' : 'none';
       document.getElementById('ctrl-screen').style.display    = isVideo ? 'flex' : 'none';
-
       if (isVideo && CALL.localStream) {
         document.getElementById('call-video-local').srcObject = CALL.localStream;
       }
+    }
+
+    function showCallOverlay() {
+      const overlay = document.getElementById('call-overlay');
+      overlay.classList.add('show');
+
+      updateCallOverlay();
 
       document.getElementById('call-voice-name').textContent   = STATE.otherName?.toUpperCase() || 'CONNECTED';
       document.getElementById('call-voice-status').textContent = 'connecting...';
@@ -389,10 +449,13 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
         }
       }
 
-      const joinBtn  = document.getElementById('call-bar-join');
-      const leaveBtn = document.getElementById('call-bar-leave');
+      const joinBtn   = document.getElementById('call-bar-join');
+      const leaveBtn  = document.getElementById('call-bar-leave');
+      const maxBtn    = document.getElementById('call-bar-max');
+      const overlayHidden = !document.getElementById('call-overlay').classList.contains('show');
       if (joinBtn)  joinBtn.style.display  = iAmIn ? 'none' : 'inline-flex';
       if (leaveBtn) leaveBtn.style.display = iAmIn ? 'inline-flex' : 'none';
+      if (maxBtn)   maxBtn.style.display   = (iAmIn && overlayHidden) ? 'inline-flex' : 'none';
     }
 
     // ════════════════════════════════════════════════════════════
@@ -478,11 +541,13 @@ if (ctrlMute) { ctrlMute.classList.add('active'); ctrlMute.classList.remove('off
     function minimizeCall() {
       document.getElementById('call-overlay').classList.remove('show');
       document.getElementById('call-mini').classList.add('show');
+      renderCallBar();
     }
 
     function maximizeCall() {
       document.getElementById('call-mini').classList.remove('show');
       document.getElementById('call-overlay').classList.add('show');
+      renderCallBar();
     }
 
     // ════════════════════════════════════════════════════════════
@@ -500,17 +565,20 @@ function initCalls() {
       document.getElementById('ctrl-screen')?.addEventListener('click', toggleScreenShare);
       document.getElementById('ctrl-minimize')?.addEventListener('click', minimizeCall);
       document.getElementById('ctrl-hangup')?.addEventListener('click', leaveCall);
+      document.getElementById('call-mini')?.addEventListener('click', maximizeCall);
 
       // Persistent call bar buttons
       document.getElementById('call-bar-join')?.addEventListener('click', joinCall);
       document.getElementById('call-bar-leave')?.addEventListener('click', leaveCall);
+      document.getElementById('call-bar-max')?.addEventListener('click', maximizeCall);
 
-      // Sidebar / mobile header call buttons
+      // Sidebar / mobile header / status bar call buttons
       document.querySelectorAll('.sb-btn, .mh-btn, .act-btn').forEach(btn => {
-        const text = btn.textContent.trim();
-        if (text.includes('📞') || text.includes('CALL')) {
+        const isPhone = btn.querySelector('.icon-phone');
+        const isVideo = btn.querySelector('.icon-video');
+        if (isPhone) {
           btn.addEventListener('click', () => startCallRoom(false));
-        } else if (text.includes('🎥') || text.includes('VIDEO')) {
+        } else if (isVideo) {
           btn.addEventListener('click', () => startCallRoom(true));
         }
       });

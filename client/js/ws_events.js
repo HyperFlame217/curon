@@ -50,9 +50,12 @@ const WS_EV = Object.freeze({
   C_CALL_LEAVE:              'call_room_leave',
   C_CALL_END_ALL:            'call_room_end_all',
 
+  C_CALL_ROOM_MODIFY:        'call_room_modify',
+
   S_CALL_ROOM_STARTED:       'call_room_started',
   S_CALL_SEND_OFFER:         'call_send_offer',
   S_CALL_PARTICIPANT_UPDATE: 'call_participant_update',
+  S_CALL_ROOM_MODIFIED:      'call_room_modified',
   S_CALL_ROOM_ENDED:         'call_room_ended',
 
   // ── Calls — Legacy (kept for rollback safety, not actively used) ─

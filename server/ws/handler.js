@@ -335,6 +335,16 @@ function setup(server) {
           break;
         }
 
+        case EV.C_CALL_ROOM_MODIFY: {
+          if (!callRoom.active) break;
+          callRoom.isVideo = !!msg.isVideo;
+          for (const pid of callRoom.participants) {
+            const pws = presence.getWsById(pid);
+            if (pws) send(pws, EV.S_CALL_ROOM_MODIFIED, { isVideo: callRoom.isVideo });
+          }
+          break;
+        }
+
         // Legacy — kept for rollback safety
         case EV.C_CALL_END: {
           const other = presence.getOtherWs(user.id);
