@@ -3,6 +3,9 @@
 
 let _gifSearchTimer = null;
 let _layoutListenersInit = false;
+let _gifFavorites = new Set();
+let _gifActiveTab = 'trending';
+let _gifFavData = [];
 
 /**
  * Shared helper to position panels (GIF, Emoji, Autocomplete) relative to .input-win
@@ -51,8 +54,9 @@ function openGifPanel() {
   _syncPanelPosition('gif-panel', 'btn-gif', 340);
   _initLayoutListeners();
 
-  // Load trending on open
+  // Load trending and favorites on open
   if (!document.querySelector('#gif-grid img')) loadGifs('');
+  loadGifFavorites().then(() => refreshGifStars());
   setTimeout(() => {
     if (!matchMedia('(hover: none) and (pointer: coarse)').matches)
       document.getElementById('gif-search')?.focus();
@@ -63,6 +67,62 @@ function closeGifPanel() {
   document.getElementById('gif-panel').style.display = 'none';
 }
 
+function renderGifGrid(gifs) {
+  const grid = document.getElementById('gif-grid');
+
+  if (!gifs.length) {
+    grid.innerHTML = '<div style="width:100%;text-align:center;padding:16px;font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-tertiary);">NO RESULTS</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  const colL = document.createElement('div');
+  const colR = document.createElement('div');
+  colL.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
+  colR.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
+  grid.appendChild(colL);
+  grid.appendChild(colR);
+
+  gifs.forEach((gif, i) => {
+    const col = i % 2 === 0 ? colL : colR;
+
+    const cell = document.createElement('div');
+    cell.className = 'gif-cell';
+    cell.style.cssText = 'cursor:pointer;overflow:hidden;background:var(--color-overlay);position:relative;border:2px solid transparent;transition:border-color .08s;';
+
+    const img = document.createElement('img');
+    img.src = gif.preview || gif.url;
+    img.alt = gif.title;
+    img.loading = 'lazy';
+    img.style.cssText = 'width:100%;display:block;transition:opacity .1s;';
+
+    cell.appendChild(img);
+    cell.addEventListener('click', () => sendGif(gif));
+    cell.addEventListener('mouseenter', () => { cell.style.borderColor = 'var(--color-accent)'; img.style.opacity = '0.85'; });
+    cell.addEventListener('mouseleave', () => { cell.style.borderColor = 'transparent'; img.style.opacity = '1'; });
+
+    // Star overlay for favorites
+    const star = document.createElement('div');
+    star.className = 'gif-star';
+    star.dataset.gifId = gif.id;
+    star.textContent = _gifFavorites.has(gif.id) ? '★' : '☆';
+    star.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await toggleGifFavorite(gif);
+      star.textContent = _gifFavorites.has(gif.id) ? '★' : '☆';
+    });
+    cell.appendChild(star);
+
+    col.appendChild(cell);
+  });
+}
+
+function refreshGifStars() {
+  document.querySelectorAll('.gif-star').forEach(el => {
+    el.textContent = _gifFavorites.has(el.dataset.gifId) ? '★' : '☆';
+  });
+}
+
 async function loadGifs(query) {
   const grid = document.getElementById('gif-grid');
   grid.innerHTML = `<div class="loading-container" style="width:100%"><div class="pixel-loader"></div> SEARCHING KLIPY...</div>`;
@@ -71,41 +131,56 @@ async function loadGifs(query) {
     const endpoint = query ? `/gifs/search?q=${encodeURIComponent(query)}` : '/gifs/trending';
     const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${STATE.token}` } });
     const gifs = await res.json();
-
-    if (!gifs.length) {
-      grid.innerHTML = '<div style="width:100%;text-align:center;padding:16px;font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-tertiary);">NO RESULTS</div>';
-      return;
-    }
-
-    grid.innerHTML = '';
-    // Two-column masonry: split GIFs into left and right columns
-    const colL = document.createElement('div');
-    const colR = document.createElement('div');
-    colL.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
-    colR.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
-    grid.appendChild(colL);
-    grid.appendChild(colR);
-
-    gifs.forEach((gif, i) => {
-      const col = i % 2 === 0 ? colL : colR;
-
-      const cell = document.createElement('div');
-      cell.style.cssText = 'cursor:pointer;overflow:hidden;background:var(--color-overlay);position:relative;border:2px solid transparent;transition:border-color .08s;';
-
-      const img = document.createElement('img');
-      img.src = gif.preview || gif.url;
-      img.alt = gif.title;
-      img.loading = 'lazy';
-      img.style.cssText = 'width:100%;display:block;transition:opacity .1s;';
-
-      cell.appendChild(img);
-      cell.addEventListener('click', () => sendGif(gif));
-      cell.addEventListener('mouseenter', () => { cell.style.borderColor = 'var(--color-accent)'; img.style.opacity = '0.85'; });
-      cell.addEventListener('mouseleave', () => { cell.style.borderColor = 'transparent'; img.style.opacity = '1'; });
-      col.appendChild(cell);
-    });
+    renderGifGrid(gifs);
   } catch {
     grid.innerHTML = '<div style="width:100%;text-align:center;padding:16px;font-family:var(--font-header);font-size:var(--font-size-tiny);color:var(--color-danger);">ERROR LOADING GIFS</div>';
+  }
+}
+
+async function loadGifFavorites() {
+  try {
+    const res = await fetch('/gifs/favorites', { headers: { Authorization: `Bearer ${STATE.token}` } });
+    if (!res.ok) return [];
+    const gifs = await res.json();
+    _gifFavData = gifs;
+    const serverIds = new Set(gifs.map(g => g.id));
+    for (const id of _gifFavorites) {
+      if (!serverIds.has(id)) serverIds.add(id);
+    }
+    _gifFavorites = serverIds;
+    return gifs;
+  } catch { return []; }
+}
+
+async function toggleGifFavorite(gif) {
+  const isFav = _gifFavorites.has(gif.id);
+  if (isFav) {
+    _gifFavorites.delete(gif.id);
+    _gifFavData = _gifFavData.filter(g => g.id !== gif.id);
+    await fetch(`/gifs/favorites/${encodeURIComponent(gif.id)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${STATE.token}` }
+    });
+  } else {
+    _gifFavorites.add(gif.id);
+    _gifFavData.push(gif);
+    await fetch('/gifs/favorites', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${STATE.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gif_id: gif.id, gif_url: gif.url, gif_preview: gif.preview, gif_title: gif.title, gif_width: gif.width, gif_height: gif.height })
+    });
+  }
+  if (_gifActiveTab === 'favorites') renderGifGrid(_gifFavData);
+}
+
+function switchGifTab(tab) {
+  _gifActiveTab = tab;
+  document.querySelectorAll('.gif-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+  document.getElementById('gif-search').value = '';
+  if (tab === 'favorites') {
+    loadGifFavorites().then(gifs => renderGifGrid(gifs));
+  } else {
+    loadGifs('');
   }
 }
 
@@ -135,7 +210,28 @@ function initGifPicker() {
 
   document.getElementById('gif-close').addEventListener('click', closeGifPanel);
 
+  // Tab bar
+  const tabBar = document.createElement('div');
+  tabBar.style.cssText = 'display:flex;gap:0;padding:0 8px;border-bottom:2px solid var(--color-secondary);flex-shrink:0;';
+  ['TRENDING', 'FAVORITES'].forEach(label => {
+    const tab = document.createElement('button');
+    tab.className = 'gif-tab';
+    tab.dataset.tab = label.toLowerCase();
+    tab.textContent = label;
+    tab.style.cssText = `
+      flex:1;background:none;border:none;border-bottom:2px solid transparent;
+      font-family:var(--font-header);font-size:var(--font-size-tiny);
+      color:var(--color-secondary);cursor:pointer;padding:6px 4px;margin-bottom:-2px;
+      transition:color .1s,border-color .1s;
+    `;
+    if (label.toLowerCase() === 'trending') tab.classList.add('on');
+    tab.addEventListener('click', () => switchGifTab(label.toLowerCase()));
+    tabBar.appendChild(tab);
+  });
+  document.getElementById('gif-panel').insertBefore(tabBar, document.getElementById('gif-grid'));
+
   document.getElementById('gif-search').addEventListener('input', (e) => {
+    if (_gifActiveTab === 'favorites') switchGifTab('trending');
     clearTimeout(_gifSearchTimer);
     _gifSearchTimer = setTimeout(() => loadGifs(e.target.value.trim()), 400);
   });

@@ -321,7 +321,7 @@ async function kFetch(ep, p) {
 
   // KLIPY uses API key in the URL path: api/v1/[key]/gifs/...
   const url = new URL(`https://api.klipy.com/api/v1/${apiKey}/gifs${ep}`);
-  url.searchParams.set('limit', '24');
+  url.searchParams.set('per_page', '24');
   for (const [k, v] of Object.entries(p)) url.searchParams.set(k, v);
 
   const res = await fetch(url.toString());
@@ -367,6 +367,32 @@ router.get('/gifs/search', requireAuth, async (q, r) => {
   if (!qry) return r.json([]);
   try { r.json(normG(await kFetch('/search', { q: qry }))); }
   catch (e) { console.error('[Gifs] Search Error:', e.message); r.status(502).json({ error: e.message }); }
+});
+
+router.get('/gifs/favorites', requireAuth, async (req, res) => {
+  try {
+    const db = await dbPromise;
+    const rows = db.prepare('SELECT gif_id, gif_url, gif_preview, gif_title, gif_width, gif_height FROM gif_favorites WHERE user_id = ? ORDER BY created_at DESC').all(req.user.id);
+    res.json(rows.map(r => ({ id: r.gif_id, url: r.gif_url, preview: r.gif_preview, title: r.gif_title, width: r.gif_width, height: r.gif_height })));
+  } catch (e) { console.error('[Gifs] Favorites Error:', e.message); res.status(500).json({ error: e.message }); }
+});
+
+router.post('/gifs/favorites', requireAuth, async (req, res) => {
+  try {
+    const { gif_id, gif_url, gif_preview, gif_title, gif_width, gif_height } = req.body;
+    if (!gif_id || !gif_url) return res.status(400).json({ error: 'Missing gif_id or gif_url' });
+    const db = await dbPromise;
+    db.prepare('INSERT OR REPLACE INTO gif_favorites (gif_id, user_id, gif_url, gif_preview, gif_title, gif_width, gif_height) VALUES (?, ?, ?, ?, ?, ?, ?)').run(gif_id, req.user.id, gif_url, gif_preview || '', gif_title || '', gif_width || 100, gif_height || 100);
+    res.json({ ok: true });
+  } catch (e) { console.error('[Gifs] Add Favorite Error:', e.message); res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/gifs/favorites/:gifId', requireAuth, async (req, res) => {
+  try {
+    const db = await dbPromise;
+    db.prepare('DELETE FROM gif_favorites WHERE gif_id = ? AND user_id = ?').run(req.params.gifId, req.user.id);
+    res.json({ ok: true });
+  } catch (e) { console.error('[Gifs] Remove Favorite Error:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

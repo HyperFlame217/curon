@@ -61,6 +61,17 @@ const SCHEMA = `
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     PRIMARY KEY (media_id, user_id)
   );
+  CREATE TABLE IF NOT EXISTS gif_favorites (
+    gif_id      TEXT    NOT NULL,
+    user_id     INTEGER NOT NULL,
+    gif_url     TEXT    NOT NULL,
+    gif_preview TEXT    NOT NULL DEFAULT '',
+    gif_title   TEXT    NOT NULL DEFAULT '',
+    gif_width   INTEGER NOT NULL DEFAULT 100,
+    gif_height  INTEGER NOT NULL DEFAULT 100,
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    PRIMARY KEY (gif_id, user_id)
+  );
   CREATE TABLE IF NOT EXISTS custom_emojis (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT    NOT NULL UNIQUE,

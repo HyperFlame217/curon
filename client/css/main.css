@@ -1833,6 +1833,33 @@ textarea::placeholder {
   object-fit: contain;
 }
 
+/* ── GIF star favorite overlay ── */
+.gif-star {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 28px;
+  cursor: pointer;
+  color: #ffd700;
+  text-shadow: 0 0 4px rgba(0,0,0,0.9);
+  opacity: 0;
+  transition: opacity .1s;
+  z-index: 2;
+  user-select: none;
+  line-height: 1;
+  pointer-events: auto;
+}
+.gif-cell:hover .gif-star,
+.gif-star:hover {
+  opacity: 1;
+}
+
+/* ── GIF picker tabs ── */
+.gif-tab.on {
+  color: var(--color-accent) !important;
+  border-bottom-color: var(--color-accent) !important;
+}
+
 /* ════════════════════════════════
    CALL OVERLAY
 ════════════════════════════════ */
