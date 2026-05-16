@@ -258,6 +258,11 @@ function initSettings() {
       if (document.getElementById('setting-browser-notifs')) {
         document.getElementById('setting-browser-notifs').checked = STATE.notificationPrefs?.browserAlerts !== false;
       }
+
+      // Request permission proactively if browser alerts are enabled
+      if (STATE.notificationPrefs?.browserAlerts && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     }
 
     // Expose for global access

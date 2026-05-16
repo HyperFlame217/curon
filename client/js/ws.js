@@ -82,6 +82,9 @@
       });
       ws.addEventListener('message', e => { let m; try { m = JSON.parse(e.data); } catch { return; } handleWsEvent(m); });
       ws.addEventListener('close', () => {
+        // Ignore stale sockets (e.g. old socket closing after new one already opened)
+        if (ws !== STATE.ws) return;
+
         // Show overlay on genuine disconnect (not tab-switch reconnect)
         const showOverlay = !_silentReconnect;
         _silentReconnect = false;

@@ -176,7 +176,7 @@ async function onMessageNew(msg) {
 
     // Show browser notification if tab is hidden
     if (document.visibilityState !== 'visible' && STATE.notificationPrefs?.browserAlerts) {
-      showBrowserNotification(msg.content || '📎 Sent a media message');
+      await showBrowserNotification(msg.content || '📎 Sent a media message');
     }
   }
 
@@ -865,15 +865,21 @@ function scrollIfNearBottom() {
   if (distFromBottom < 200) msgs.scrollTop = msgs.scrollHeight;
 }
 
-function showBrowserNotification(body) {
+async function showBrowserNotification(body) {
   if (!("Notification" in window)) return;
   if (Notification.permission === 'granted') {
     new Notification(STATE.otherName || 'Curon', {
       body,
       tag: 'curon-message'
     });
-  } else if (Notification.permission !== 'denied') {
-    Notification.requestPermission();
+  } else if (Notification.permission === 'default') {
+    const result = await Notification.requestPermission();
+    if (result === 'granted') {
+      new Notification(STATE.otherName || 'Curon', {
+        body,
+        tag: 'curon-message'
+      });
+    }
   }
 }
 
