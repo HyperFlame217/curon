@@ -7,6 +7,24 @@ let _allLoaded = false;
 // P1-H: E2EE shim to prevent crashes during key exchange
 async function importPublicKey(key) { return key; }
 
+function buildParentLookup(msgs) {
+  const map = {};
+  for (const msg of msgs) {
+    const isMe = msg.sender_id === STATE.user?.id;
+    let previewText = '📎 Media';
+    if (!msg.media_id && !msg.content?.startsWith('[gif]')) {
+      previewText = (msg.content || '').trim().slice(0, 80) || '📎 Media';
+    }
+    map[msg.id] = {
+      senderName: isMe
+        ? (STATE.user?.username || 'YOU').toUpperCase()
+        : (STATE.otherName || 'THEM').toUpperCase(),
+      previewText
+    };
+  }
+  return map;
+}
+
 async function renderHistory(msgs, before = null, isTeleport = false) {
   const container = document.getElementById('msgs');
 
@@ -20,7 +38,8 @@ async function renderHistory(msgs, before = null, isTeleport = false) {
   let scrollCtx = 'none';
   if (!before && !isTeleport) scrollCtx = 'bottom';
   else if (isTeleport) scrollCtx = 'teleport';
-  const msgPromises = msgs.map(msg => buildMsgEl(msg, scrollCtx));
+  const parentLookup = buildParentLookup(msgs);
+  const msgPromises = msgs.map(msg => buildMsgEl(msg, scrollCtx, parentLookup));
   const msgElements = await Promise.all(msgPromises);
 
   const frag = document.createDocumentFragment();
@@ -692,7 +711,7 @@ function isEmojiOnlyMsg(text) {
 }
 
 // scrollCtx: 'bottom' = snap to bottom on load, 'near' = scroll if near bottom, 'none' = never scroll
-async function buildMsgEl(msg, scrollCtx = 'near') {
+async function buildMsgEl(msg, scrollCtx = 'near', parentLookup) {
   const isMe = msg.sender_id == STATE.user.id;
   let text = '';
 
@@ -740,23 +759,31 @@ async function buildMsgEl(msg, scrollCtx = 'near') {
   // Build reply quote if this message is a reply
   let replyQuoteEl = null;
   if (msg.reply_to_id) {
-    const replyRow = document.querySelector(`[data-msg-id="${msg.reply_to_id}"]`);
+    // Try pre-resolved parent data first (covers intra-batch replies)
+    const parent = parentLookup?.[msg.reply_to_id];
     let replyName = '', replyText = '📎 Media';
-    if (replyRow) {
-      const replyBubble = replyRow.querySelector('.b');
-      const replyIsMe = replyRow.closest('.row')?.classList.contains('me');
-      replyName = replyIsMe
-        ? (STATE.user?.username || 'YOU').toUpperCase()
-        : (STATE.otherName || 'THEM').toUpperCase();
-      if (replyBubble) {
-        const clone = replyBubble.cloneNode(true);
-        clone.querySelectorAll('.ts, .reply-quote').forEach(el => el.remove());
-        replyText = clone.textContent.trim().slice(0, 80) || '📎 Media';
-      }
+    if (parent) {
+      replyName = parent.senderName;
+      replyText = parent.previewText;
     } else {
-      // Message not in current view
-      replyName = '...';
-      replyText = 'click to find message';
+      // Fallback: parent may be from an earlier batch already in the DOM
+      const replyRow = document.querySelector(`[data-msg-id="${msg.reply_to_id}"]`);
+      if (replyRow) {
+        const replyBubble = replyRow.querySelector('.b');
+        const replyIsMe = replyRow.closest('.row')?.classList.contains('me');
+        replyName = replyIsMe
+          ? (STATE.user?.username || 'YOU').toUpperCase()
+          : (STATE.otherName || 'THEM').toUpperCase();
+        if (replyBubble) {
+          const clone = replyBubble.cloneNode(true);
+          clone.querySelectorAll('.ts, .reply-quote').forEach(el => el.remove());
+          replyText = clone.textContent.trim().slice(0, 80) || '📎 Media';
+        }
+      } else {
+        // Message not in current view
+        replyName = '...';
+        replyText = 'click to find message';
+      }
     }
     replyQuoteEl = buildReplyQuote(msg.reply_to_id, replyName, replyText);
   }

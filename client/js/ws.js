@@ -5,6 +5,7 @@
     const _maxReconnectDelay = 30000;
     const _baseReconnectDelay = 1000;
     let _offlineQueue = [];
+    let _silentReconnect = false;
 
     function showReconnectOverlay() {
       const banner = document.getElementById('reconnect-banner');
@@ -52,6 +53,7 @@
       if (!silent) showReconnectOverlay();
 
       ws.addEventListener('open', () => {
+        _silentReconnect = false;
         if (STATE.reconnTimer) { clearTimeout(STATE.reconnTimer); STATE.reconnTimer = null; }
         _reconnectAttempts = 0; // Reset backoff on success
         
@@ -80,11 +82,13 @@
       });
       ws.addEventListener('message', e => { let m; try { m = JSON.parse(e.data); } catch { return; } handleWsEvent(m); });
       ws.addEventListener('close', () => {
-        // Show overlay on disconnect
-        showReconnectOverlay();
+        // Show overlay on genuine disconnect (not tab-switch reconnect)
+        const showOverlay = !_silentReconnect;
+        _silentReconnect = false;
+        if (showOverlay) showReconnectOverlay();
 
         // If in a call, notify user connection dropped
-        if (typeof CALL !== 'undefined' && CALL.pc) showToast('CONNECTION LOST...');
+        if (showOverlay && typeof CALL !== 'undefined' && CALL.pc) showToast('CONNECTION LOST...');
         STATE.wasDisconnected = true;
         
         // Exponential backoff
@@ -142,6 +146,7 @@
         }
 
         console.log("[WS] Tab visible, reconnecting...");
+        _silentReconnect = true;
         connectWS(true);
 
         // Catch up on missed messages via HTTP
