@@ -74,6 +74,11 @@
           STATE.wasDisconnected = false;
         }
 
+        // Catch up on messages missed during the disconnect window
+        if (typeof window.catchUpMessages === 'function') {
+          window.catchUpMessages();
+        }
+
         // If we were in a call when connection dropped, end it gracefully
         if (typeof CALL !== 'undefined' && CALL.pc && CALL.pc.connectionState === 'failed') {
           endCall(false);

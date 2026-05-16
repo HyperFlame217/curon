@@ -320,6 +320,7 @@ router.get('/emojis/admin', requireAuth, (_req, res) => res.json({ admin: proces
 // ── KLIPY PROXY ──────────────────────────────────────────────
 const klipyCache = new Map();
 const KLIPY_CACHE_TTL = 120_000; // 2 minutes
+const KLIPY_CACHE_MAX = 500; // prevent unbounded growth
 
 async function kFetch(ep, p) {
   const apiKey = process.env.KLIPY_API_KEY || '';
@@ -336,6 +337,10 @@ async function kFetch(ep, p) {
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`KLIPY Error: ${res.status}`);
   const data = await res.json();
+  if (klipyCache.size >= KLIPY_CACHE_MAX) {
+    const oldest = [...klipyCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    klipyCache.delete(oldest[0]);
+  }
   klipyCache.set(cacheKey, { data, ts: Date.now() });
   return data;
 }

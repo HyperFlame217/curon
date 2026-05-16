@@ -455,11 +455,15 @@ function setup(server) {
         }
       }
 
-      // 3. Teardown presence
-      presence.disconnect(user.id, broadcastPresence);
-      
-      // 4. Broadcast offline to partner
-      PresenceSync.broadcastOffline(user.id, _wss);
+      // 3. Only tear down presence if this socket is still the active session
+      //    (prevents stale close events from killing the new session after reconnect)
+      const activeWs = presence.getWsById(user.id);
+      if (!activeWs || activeWs === ws) {
+        presence.disconnect(user.id, broadcastPresence);
+
+        // 4. Broadcast offline to partner
+        PresenceSync.broadcastOffline(user.id, _wss);
+      }
       console.log(`[WS] - ${user.username}`);
     });
 
