@@ -445,23 +445,23 @@ function setup(server) {
       //   }
       // }
 
-      // 2. Handle call room departure on disconnect
-      if (callRoom.active && callRoom.participants.has(user.id)) {
-        callRoom.participants.delete(user.id);
-        if (callRoom.participants.size === 0) {
-          endCallRoom();
-        } else {
-          broadcastCallParticipants();
-        }
-      }
-
-      // 3. Only tear down presence if this socket is still the active session
-      //    (prevents stale close events from killing the new session after reconnect)
+      // 2. Only handle call room departure + presence teardown if this socket
+      //    is still the active session (prevents stale close events from
+      //    killing the new session or ending the call room after reconnect)
       const activeWs = presence.getWsById(user.id);
       if (!activeWs || activeWs === ws) {
+        if (callRoom.active && callRoom.participants.has(user.id)) {
+          callRoom.participants.delete(user.id);
+          if (callRoom.participants.size === 0) {
+            endCallRoom();
+          } else {
+            broadcastCallParticipants();
+          }
+        }
+
         presence.disconnect(user.id, broadcastPresence);
 
-        // 4. Broadcast offline to partner
+        // 3. Broadcast offline to partner
         PresenceSync.broadcastOffline(user.id, _wss);
       }
       console.log(`[WS] - ${user.username}`);

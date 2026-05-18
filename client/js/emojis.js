@@ -431,21 +431,18 @@ function showLightbox(src) {
 }
 
 
-// ── WAV encoder ───────────────────────────────────────────────
-// Converts an AudioBuffer to a WAV Blob — universally playable
+// ── WAV encoder (fallback when MediaRecorder unavailable) ──────
 function encodeWAVFromFloat32(samples, sampleRate) {
-  const numChannels = 1; // mono recording
-  const format = 1; // PCM
+  const numChannels = 1;
+  const format = 1;
   const bitDepth = 16;
 
-  // Convert Float32 to 16-bit PCM
   const pcm = new Int16Array(samples.length);
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]));
     pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
 
-  // Build WAV header
   const dataLength = pcm.byteLength;
   const buffer = new ArrayBuffer(44 + dataLength);
   const view = new DataView(buffer);
@@ -468,18 +465,27 @@ function encodeWAVFromFloat32(samples, sampleRate) {
   writeString(36, 'data');
   view.setUint32(40, dataLength, true);
 
-  // Write PCM data
   const pcmView = new Int16Array(buffer, 44);
   pcmView.set(pcm);
 
   return new Blob([buffer], { type: 'audio/wav' });
 }
-// ── Voice recording (AudioContext-based — cross-browser compatible) ──
+// ── Voice recording (MediaRecorder + Opus) with WAV fallback ──
+let _mediaRecorder = null;
 let _audioCtxRec = null;
 let _recProcessor = null;
 let _recStream = null;
+let _audioChunks = [];
 let _recSamples = [];
 let _recordingStart = null;
+let _useFallback = false;
+
+function _supportsMediaRecorder() {
+  return typeof MediaRecorder !== 'undefined' && (
+    MediaRecorder.isTypeSupported('audio/webm; codecs=opus') ||
+    MediaRecorder.isTypeSupported('audio/webm')
+  );
+}
 
 async function startRecording() {
   try {
@@ -489,25 +495,33 @@ async function startRecording() {
     return;
   }
 
-  _recSamples = [];
   _recordingStart = Date.now();
-  // Don't force sample rate — use device's native rate to avoid resampling issues
-  _audioCtxRec = new AudioContext();
 
-  const source = _audioCtxRec.createMediaStreamSource(_recStream);
-
-  // ScriptProcessorNode is deprecated but AudioWorklet requires an external file
-  // which breaks our single-file approach. It works fine in all browsers for now.
-  _recProcessor = _audioCtxRec.createScriptProcessor(4096, 1, 1);
-  _recProcessor.onaudioprocess = (e) => {
-    if (_audioCtxRec) {
-      _recSamples.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-    }
-  };
-
-  source.connect(_recProcessor);
-  // Connect to destination to keep the audio graph alive (required by spec)
-  _recProcessor.connect(_audioCtxRec.destination);
+  if (_supportsMediaRecorder()) {
+    _useFallback = false;
+    _audioChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm; codecs=opus')
+      ? 'audio/webm; codecs=opus'
+      : 'audio/webm';
+    _mediaRecorder = new MediaRecorder(_recStream, { mimeType });
+    _mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) _audioChunks.push(e.data);
+    };
+    _mediaRecorder.start();
+  } else {
+    _useFallback = true;
+    _recSamples = [];
+    _audioCtxRec = new AudioContext();
+    const source = _audioCtxRec.createMediaStreamSource(_recStream);
+    _recProcessor = _audioCtxRec.createScriptProcessor(4096, 1, 1);
+    _recProcessor.onaudioprocess = (e) => {
+      if (_audioCtxRec) {
+        _recSamples.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      }
+    };
+    source.connect(_recProcessor);
+    _recProcessor.connect(_audioCtxRec.destination);
+  }
 
   document.getElementById('btn-mic').classList.add('recording');
   document.getElementById('rec-indicator').classList.add('show');
@@ -515,7 +529,7 @@ async function startRecording() {
 }
 
 async function stopRecording() {
-  if (!_audioCtxRec) return;
+  if (!_mediaRecorder && !_audioCtxRec) return;
 
   if (Date.now() - _recordingStart < 500) {
     _cleanupRecorder();
@@ -524,30 +538,55 @@ async function stopRecording() {
     return;
   }
 
-  _recProcessor.disconnect();
-  _recStream.getTracks().forEach(t => t.stop());
-  const actualSampleRate = _audioCtxRec.sampleRate;
-  await _audioCtxRec.close();
+  if (_useFallback) {
+    _recProcessor.disconnect();
+    _recStream.getTracks().forEach(t => t.stop());
+    const actualSampleRate = _audioCtxRec.sampleRate;
+    await _audioCtxRec.close();
 
-  // Merge all chunks
-  const totalLen = _recSamples.reduce((n, c) => n + c.length, 0);
-  const merged = new Float32Array(totalLen);
-  let offset = 0;
-  for (const chunk of _recSamples) { merged.set(chunk, offset); offset += chunk.length; }
+    const totalLen = _recSamples.reduce((n, c) => n + c.length, 0);
+    const merged = new Float32Array(totalLen);
+    let offset = 0;
+    for (const chunk of _recSamples) { merged.set(chunk, offset); offset += chunk.length; }
 
-  _cleanupRecorder();
-  resetRecordingUI();
+    _cleanupRecorder();
+    resetRecordingUI();
 
-  const wavBlob = encodeWAVFromFloat32(merged, actualSampleRate);
-  const file = new File([wavBlob], 'voice-' + Date.now() + '.wav', { type: 'audio/wav' });
-  await sendMediaMessage(file);
+    const wavBlob = encodeWAVFromFloat32(merged, actualSampleRate);
+    const file = new File([wavBlob], 'voice-' + Date.now() + '.wav', { type: 'audio/wav' });
+    await sendMediaMessage(file);
+  } else {
+    _mediaRecorder.stop();
+    _recStream.getTracks().forEach(t => t.stop());
+
+    const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+    let finalBlob = blob;
+    const durationMs = Date.now() - _recordingStart;
+    if (typeof fixWebmDuration === 'function') {
+      try {
+        finalBlob = await fixWebmDuration(blob, durationMs);
+      } catch (e) {
+        console.warn('[Voice] fixWebmDuration failed:', e.message);
+      }
+    }
+
+    _cleanupRecorder();
+    resetRecordingUI();
+
+    const file = new File([finalBlob], 'voice-' + Date.now() + '.webm', { type: 'audio/webm' });
+    await sendMediaMessage(file);
+  }
 }
 
 function _cleanupRecorder() {
+  _mediaRecorder = null;
   _audioCtxRec = null;
   _recProcessor = null;
   _recStream = null;
+  _audioChunks = [];
   _recSamples = [];
+  _recordingStart = null;
+  _useFallback = false;
 }
 
 function resetRecordingUI() {
@@ -589,7 +628,7 @@ function initMediaButtons() {
   // Desktop: mousedown/mouseup
   micBtn.addEventListener('mousedown', e => { e.preventDefault(); startRecording(); });
   micBtn.addEventListener('mouseup', () => stopRecording());
-  micBtn.addEventListener('mouseleave', () => { if (_audioCtxRec) stopRecording(); });
+  micBtn.addEventListener('mouseleave', () => { if (_mediaRecorder || _audioCtxRec) stopRecording(); });
 
   // Mobile: touchstart/touchend
   micBtn.addEventListener('touchstart', e => { e.preventDefault(); startRecording(); }, { passive: false });

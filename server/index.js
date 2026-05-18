@@ -115,7 +115,7 @@ async function main() {
   async function cleanupOldMedia() {
     try {
       const database = await db;
-      const cutoff = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60;
+      const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
       const oldItems = database.prepare(`
         SELECT id, filename, mime_type, storage_provider FROM media
         WHERE created_at < ? AND id NOT IN (SELECT media_id FROM media_stars)
@@ -151,7 +151,7 @@ async function main() {
       }
 
       if (oldItems.length > 0) {
-        console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >14 days old`);
+        console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >7 days old`);
       }
     } catch (err) {
       console.error('[cleanup] Error:', err.message);

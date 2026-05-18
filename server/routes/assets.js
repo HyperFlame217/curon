@@ -213,7 +213,7 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
   // Purge stale unstarred media before returning gallery data
   db.prepare(`
     DELETE FROM media
-    WHERE created_at < (strftime('%s','now') - 14*24*60*60)
+    WHERE created_at < (strftime('%s','now') - 7*24*60*60)
     AND id NOT IN (SELECT media_id FROM media_stars)
   `).run();
 
@@ -243,7 +243,7 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
   // Purge stale unstarred media before returning gallery data
   db.prepare(`
     DELETE FROM media
-    WHERE created_at < (strftime('%s','now') - 14*24*60*60)
+    WHERE created_at < (strftime('%s','now') - 7*24*60*60)
     AND id NOT IN (SELECT media_id FROM media_stars)
   `).run();
 
