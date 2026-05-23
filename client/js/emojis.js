@@ -556,25 +556,26 @@ async function stopRecording() {
     const file = new File([wavBlob], 'voice-' + Date.now() + '.wav', { type: 'audio/wav' });
     await sendMediaMessage(file);
   } else {
+    if (_mediaRecorder.state !== 'recording') return;
     _mediaRecorder.stop();
-    _recStream.getTracks().forEach(t => t.stop());
 
-    const blob = new Blob(_audioChunks, { type: 'audio/webm' });
-    let finalBlob = blob;
-    const durationMs = Date.now() - _recordingStart;
-    if (typeof fixWebmDuration === 'function') {
-      try {
-        finalBlob = await fixWebmDuration(blob, durationMs);
-      } catch (e) {
-        console.warn('[Voice] fixWebmDuration failed:', e.message);
+    _mediaRecorder.onstop = async () => {
+      _recStream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+      let finalBlob = blob;
+      const durationMs = Date.now() - _recordingStart;
+      if (typeof fixWebmDuration === 'function') {
+        try {
+          finalBlob = await fixWebmDuration(blob, durationMs);
+        } catch (e) {
+          console.warn('[Voice] fixWebmDuration failed:', e.message);
+        }
       }
-    }
-
-    _cleanupRecorder();
-    resetRecordingUI();
-
-    const file = new File([finalBlob], 'voice-' + Date.now() + '.webm', { type: 'audio/webm' });
-    await sendMediaMessage(file);
+      _cleanupRecorder();
+      resetRecordingUI();
+      const file = new File([finalBlob], 'voice-' + Date.now() + '.webm', { type: 'audio/webm' });
+      sendMediaMessage(file);
+    };
   }
 }
 
