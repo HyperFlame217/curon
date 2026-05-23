@@ -16,6 +16,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { createClient } = require('@supabase/supabase-js');
 const initSqlJs = require('sql.js');
 
@@ -53,25 +54,40 @@ function getDateStamp() {
 
 async function downloadDB() {
   console.log('[backup] Downloading DB from Supabase...');
+  let buffer = null;
+  let source = '';
+
+  // Try compressed backup first
   try {
     const { data, error } = await supabase.storage
       .from(DB_BUCKET)
-      .download('backups/curon.db');
-
+      .download('backups/curon-db.gz');
     if (error) throw error;
-
-    const buffer = await data.arrayBuffer();
-    const filename = `curon-${getDateStamp()}.db`;
-    const filepath = path.join(BACKUP_DIR, filename);
-    fs.writeFileSync(filepath, Buffer.from(buffer));
-
-    const sizeKB = Math.round(buffer.byteLength / 1024);
-    console.log(`[backup] Downloaded DB → ${filename} (${sizeKB} KB)`);
-    return true;
-  } catch (err) {
-    console.warn('[backup] DB download failed:', err.message);
-    return false;
+    const rawBuf = Buffer.from(await data.arrayBuffer());
+    buffer = zlib.gunzipSync(rawBuf);
+    source = 'curon-db.gz (compressed)';
+  } catch {
+    // Fall back to uncompressed backup
+    try {
+      const { data, error } = await supabase.storage
+        .from(DB_BUCKET)
+        .download('backups/curon.db');
+      if (error) throw error;
+      const rawBuf = Buffer.from(await data.arrayBuffer());
+      buffer = (rawBuf[0] === 0x1f && rawBuf[1] === 0x8b) ? zlib.gunzipSync(rawBuf) : rawBuf;
+      source = 'curon.db';
+    } catch (err) {
+      console.warn('[backup] DB download failed:', err.message);
+      return false;
+    }
   }
+
+  const filename = `curon-${getDateStamp()}.db`;
+  const filepath = path.join(BACKUP_DIR, filename);
+  fs.writeFileSync(filepath, buffer);
+  const sizeKB = Math.round(buffer.length / 1024);
+  console.log(`[backup] Downloaded DB → ${filename} (${sizeKB} KB, from ${source})`);
+  return true;
 }
 
 async function downloadAndCleanMedia() {

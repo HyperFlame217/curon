@@ -8,10 +8,15 @@
  * Supabase integration: DB is backed up to Supabase Storage after each
  * mutation. On cold start (no local DB), restores from Supabase.
  */
+const zlib     = require('zlib');
+const { promisify } = require('util');
 const initSqlJs = require('sql.js');
 const path      = require('path');
 const fs        = require('fs');
 const supabaseStorage = require('./supabase-storage');
+
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
 
 const DB_PATH = path.join(__dirname, 'curon.db');
 
@@ -174,12 +179,16 @@ const SCHEMA = `
 let _persistTimeout = null;
 let _isDirty = false;
 let _lastSnapshotDate = '';
-let _supabaseSyncDirty = false;
 let _rawDbInstance = null;
+let _hadChangesSinceLastSync = false;
+let _syncInterval = 30 * 60 * 1000;
+const MAX_SYNC_INTERVAL = 2 * 60 * 60 * 1000;
+let _syncTimer = null;
+let _lastUncompressedSync = 0;
 
 function persist(rawDb, force = false) {
   _isDirty = true;
-  _supabaseSyncDirty = true;
+  _hadChangesSinceLastSync = true;
   _rawDbInstance = rawDb;
 
   if (force) {
@@ -209,18 +218,27 @@ function _writeToDisk(rawDb) {
   }
 }
 
-// ── Supabase Throttling ──────────────────────────────────────
+// ── Supabase Backup (compressed + uncompressed fallback) ────
 async function syncToSupabase(force = false) {
-  if (!force && (!_supabaseSyncDirty || !_rawDbInstance)) return;
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return;
-  
+  if (!force && (!_hadChangesSinceLastSync || !_rawDbInstance)) return false;
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) return false;
+
   const start = Date.now();
   try {
     const data = _rawDbInstance.export();
     const buffer = Buffer.from(data);
-    _supabaseSyncDirty = false;
+    _hadChangesSinceLastSync = false;
 
-    await supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream');
+    // Compressed backup (primary — 30 min adaptive interval)
+    const gzBuffer = await gzip(buffer);
+    await supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon-db.gz', gzBuffer, 'application/gzip');
+
+    // Uncompressed backup (rollback safety — every 6 hours)
+    if (force || Date.now() - _lastUncompressedSync >= 6 * 60 * 60 * 1000) {
+      _lastUncompressedSync = Date.now();
+      await supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream');
+    }
+
     console.log(`[db] Synced to Supabase (${Date.now() - start}ms)`);
 
     // Daily snapshot — date-stamped, uploaded at most once per day
@@ -249,16 +267,30 @@ async function syncToSupabase(force = false) {
         console.warn('[db] Snapshot cleanup failed:', err.message);
       }
     }
+    return true;
   } catch (e) {
     console.warn('[db] Supabase sync failed:', e.message);
-    _supabaseSyncDirty = true; // Retry next time
+    _hadChangesSinceLastSync = true; // Retry next time
+    return false;
   }
 }
 
-// Sync to Supabase every 5 minutes (300000ms)
-setInterval(() => {
-  syncToSupabase().catch(() => {});
-}, 5 * 60 * 1000);
+// ── Adaptive sync scheduling ─────────────────────────────────
+function scheduleNextSync() {
+  _syncTimer = setTimeout(async () => {
+    try {
+      if (await syncToSupabase()) {
+        _syncInterval = 30 * 60 * 1000;
+      } else {
+        _syncInterval = Math.min(_syncInterval * 2, MAX_SYNC_INTERVAL);
+      }
+    } catch {
+      _syncInterval = Math.min(_syncInterval * 2, MAX_SYNC_INTERVAL);
+    }
+    scheduleNextSync();
+  }, _syncInterval);
+}
+scheduleNextSync();
 
 // ── Statement wrapper ────────────────────────────────────────
 class Statement {
@@ -328,13 +360,22 @@ async function getDb() {
 
     // If no local DB, try to restore from Supabase
     if (!fileData && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+      // Try compressed backup first (new format)
       try {
-        console.log('[db] No local DB — attempting restore from Supabase...');
-        const buffer = await supabaseStorage.download(supabaseStorage.DB_BUCKET, 'backups/curon.db');
-        fileData = buffer;
-        console.log('[db] Restored DB from Supabase backup');
-      } catch (err) {
-        console.warn('[db] Could not restore from Supabase:', err.message);
+        console.log('[db] No local DB — attempting restore from compressed backup...');
+        const gzBuffer = await supabaseStorage.download(supabaseStorage.DB_BUCKET, 'backups/curon-db.gz');
+        fileData = await gunzip(gzBuffer);
+        console.log('[db] Restored DB from compressed Supabase backup');
+      } catch {
+        // Fall back to uncompressed backup
+        try {
+          console.log('[db] Attempting restore from uncompressed backup...');
+          const raw = await supabaseStorage.download(supabaseStorage.DB_BUCKET, 'backups/curon.db');
+          fileData = (raw[0] === 0x1f && raw[1] === 0x8b) ? await gunzip(raw) : raw;
+          console.log('[db] Restored DB from uncompressed Supabase backup');
+        } catch (err) {
+          console.warn('[db] Could not restore from Supabase:', err.message);
+        }
       }
     }
 
