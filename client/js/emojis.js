@@ -564,9 +564,9 @@ async function stopRecording() {
       const blob = new Blob(_audioChunks, { type: 'audio/webm' });
       let finalBlob = blob;
       const durationMs = Date.now() - _recordingStart;
-      if (typeof fixWebmDuration === 'function') {
+      if (typeof window.ysFixWebmDuration === 'function') {
         try {
-          finalBlob = await fixWebmDuration(blob, durationMs);
+          finalBlob = await window.ysFixWebmDuration(blob, durationMs);
         } catch (e) {
           console.warn('[Voice] fixWebmDuration failed:', e.message);
         }
