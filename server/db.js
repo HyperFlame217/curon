@@ -191,6 +191,15 @@ function persist(rawDb, force = false) {
   _hadChangesSinceLastSync = true;
   _rawDbInstance = rawDb;
 
+  // Reset adaptive backoff on mutation — sync sooner
+  if (_syncInterval > 30 * 60 * 1000) {
+    _syncInterval = 30 * 60 * 1000;
+    if (_syncTimer) {
+      clearTimeout(_syncTimer);
+      scheduleNextSync();
+    }
+  }
+
   if (force) {
     if (_persistTimeout) clearTimeout(_persistTimeout);
     _writeToDisk(rawDb);
@@ -235,8 +244,8 @@ async function syncToSupabase(force = false) {
 
     // Uncompressed backup (rollback safety — every 6 hours)
     if (force || Date.now() - _lastUncompressedSync >= 6 * 60 * 60 * 1000) {
-      _lastUncompressedSync = Date.now();
       await supabaseStorage.upload(supabaseStorage.DB_BUCKET, 'backups/curon.db', buffer, 'application/octet-stream');
+      _lastUncompressedSync = Date.now();
     }
 
     console.log(`[db] Synced to Supabase (${Date.now() - start}ms)`);
