@@ -141,6 +141,7 @@
     function initSchedulePanel() {
       document.getElementById('btn-manage-schedule')?.addEventListener('click', toggleRoutineDock);
       document.getElementById('btn-manage-schedule-mobile')?.addEventListener('click', toggleRoutineDock);
+      document.getElementById('routine-dock-close')?.addEventListener('click', toggleRoutineDock);
       document.getElementById('sched-add-btn').addEventListener('click', addScheduleBlock);
 
       // Day type tabs

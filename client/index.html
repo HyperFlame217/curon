@@ -342,9 +342,12 @@
             <div class="routine-dock" id="routine-dock">
               <!-- Left side: Tabs and Block List -->
               <div class="routine-dock-left">
-                <div class="routine-dock-tabs" role="tablist">
-                  <div class="schedule-day-tab on" role="tab" aria-selected="true" tabindex="0" data-dtype="weekday">WEEKDAY</div>
-                  <div class="schedule-day-tab" role="tab" aria-selected="false" tabindex="-1" data-dtype="weekend">WEEKEND</div>
+                <div class="routine-dock-tabs-row">
+                  <div class="routine-dock-tabs" role="tablist">
+                    <div class="schedule-day-tab on" role="tab" aria-selected="true" tabindex="0" data-dtype="weekday">WEEKDAY</div>
+                    <div class="schedule-day-tab" role="tab" aria-selected="false" tabindex="-1" data-dtype="weekend">WEEKEND</div>
+                  </div>
+                  <button class="routine-dock-close" id="routine-dock-close" aria-label="Close routine">✕</button>
                 </div>
                 <div class="routine-dock-body">
                   <div class="schedule-blocks-list" id="schedule-blocks-list"></div>
@@ -612,7 +615,7 @@
           <div class="milestone-list" id="milestone-list"></div>
           <div class="milestone-add-row">
             <input id="milestone-input-name" aria-label="Milestone name" placeholder="milestone name..." autocomplete="off" />
-            <input id="milestone-input-date" aria-label="Milestone date" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
+            <input id="milestone-input-date" aria-label="Milestone date" placeholder="DD / MM / YYYY" maxlength="14" autocomplete="off" />
             <button class="milestone-add-btn" id="milestone-add-btn">+ ADD</button>
           </div>
         </div>
