@@ -122,6 +122,15 @@ async function main() {
     const oldItems = database.prepare(`SELECT id, filename, mime_type, storage_provider FROM media
       WHERE created_at < ? AND id NOT IN (SELECT media_id FROM media_stars)`).all(cutoff);
 
+    console.log(`[cleanup] Cutoff=${cutoff}, found ${oldItems.length} items to purge`);
+    if (oldItems.length > 0) {
+      const sample = oldItems.slice(0, 3).map(i => `#${i.id} created_at=${i.created_at} file=${i.filename}`).join(', ');
+      console.log(`[cleanup] Samples: ${sample}`);
+    }
+
+    const total = database.prepare('SELECT COUNT(*) as c FROM media').get()?.c || 0;
+    console.log(`[cleanup] Total media rows before purge: ${total}`);
+
     for (const item of oldItems) {
       try {
         await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`);
@@ -171,7 +180,8 @@ async function main() {
     }
 
     if (oldItems.length > 0) {
-      console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >7 days old`);
+      const remaining = database.prepare('SELECT COUNT(*) as c FROM media').get()?.c || 0;
+      console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >7 days old, ${remaining} rows remaining`);
     }
   }
 

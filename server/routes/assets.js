@@ -67,10 +67,12 @@ router.delete('/media/:id/star', requireAuth, async (req, res) => {
 // ── MEDIA BACKUP CHECK ──────────────────────────────────────────
 router.get('/media/backup/check', requireAuth, async (req, res) => {
   const db = await dbPromise;
-  db.prepare(`DELETE FROM media WHERE storage_provider = 'local'
+  const purged = db.prepare(`DELETE FROM media WHERE storage_provider = 'local'
     AND created_at < (strftime('%s','now') - 7*24*60*60)
     AND id NOT IN (SELECT media_id FROM media_stars)`).run();
   const count = db.prepare('SELECT COUNT(*) as c FROM media WHERE storage_provider = ?').get('local')?.c || 0;
+  const total = db.prepare('SELECT COUNT(*) as c FROM media').get()?.c || 0;
+  console.log(`[backup/check] Purged ${purged.changes} local rows, ${count} local remaining, ${total} total media`);
   res.json({ count });
 });
 
@@ -218,24 +220,27 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
     FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
     AND id NOT IN (SELECT media_id FROM media_stars)`).all();
 
-  for (const item of toDelete) {
-    supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
-    if (item.mime_type?.startsWith('image/')) {
-      const base = item.filename.replace(path.extname(item.filename), '');
-      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
-    }
-    if (item.storage_provider === 'local') {
-      const p = path.join(MEDIA_DIR, item.filename);
-      if (fs.existsSync(p)) fs.unlinkSync(p);
+  if (toDelete.length > 0) {
+    console.log(`[gallery] Purging ${toDelete.length} unstarred media items >7d from /gallery/media`);
+    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
+
+    for (const item of toDelete) {
+      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
       if (item.mime_type?.startsWith('image/')) {
-        const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
-        if (fs.existsSync(t)) fs.unlinkSync(t);
+        const base = item.filename.replace(path.extname(item.filename), '');
+        supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+      }
+      if (item.storage_provider === 'local') {
+        const p = path.join(MEDIA_DIR, item.filename);
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+        if (item.mime_type?.startsWith('image/')) {
+          const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
+          if (fs.existsSync(t)) fs.unlinkSync(t);
+        }
       }
     }
   }
-
-  db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-    AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
   const limit = Math.min(parseInt(req.query.limit) || 15, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);
@@ -265,24 +270,27 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
     FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
     AND id NOT IN (SELECT media_id FROM media_stars)`).all();
 
-  for (const item of toDelete) {
-    supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
-    if (item.mime_type?.startsWith('image/')) {
-      const base = item.filename.replace(path.extname(item.filename), '');
-      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
-    }
-    if (item.storage_provider === 'local') {
-      const p = path.join(MEDIA_DIR, item.filename);
-      if (fs.existsSync(p)) fs.unlinkSync(p);
+  if (toDelete.length > 0) {
+    console.log(`[gallery] Purging ${toDelete.length} unstarred media items >7d from /gallery/files`);
+    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
+
+    for (const item of toDelete) {
+      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
       if (item.mime_type?.startsWith('image/')) {
-        const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
-        if (fs.existsSync(t)) fs.unlinkSync(t);
+        const base = item.filename.replace(path.extname(item.filename), '');
+        supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+      }
+      if (item.storage_provider === 'local') {
+        const p = path.join(MEDIA_DIR, item.filename);
+        if (fs.existsSync(p)) fs.unlinkSync(p);
+        if (item.mime_type?.startsWith('image/')) {
+          const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
+          if (fs.existsSync(t)) fs.unlinkSync(t);
+        }
       }
     }
   }
-
-  db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-    AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);
