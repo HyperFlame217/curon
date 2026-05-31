@@ -364,7 +364,11 @@ function renderMediaTab(body, reset = true) {
             method: wasStarred ? 'DELETE' : 'POST',
             headers: { Authorization: `Bearer ${STATE.token}` }
           });
-          if (!res.ok) throw new Error('Failed');
+          const data = await res.json();
+          if (!data.ok) throw new Error('Failed');
+          msg.is_starred = data.starred;
+          starBtn.innerHTML = data.starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+          starBtn.setAttribute('aria-label', data.starred ? 'Unstar' : 'Star');
         } catch {
           msg.is_starred = wasStarred;
           starBtn.innerHTML = wasStarred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
@@ -498,7 +502,11 @@ function renderFilesTab(body, reset = true) {
           method: wasStarred ? 'DELETE' : 'POST',
           headers: { Authorization: `Bearer ${STATE.token}` }
         });
-        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        if (!data.ok) throw new Error('Failed');
+        msg.is_starred = data.starred;
+        starBtn.innerHTML = data.starred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';
+        starBtn.setAttribute('aria-label', data.starred ? 'Unstar' : 'Star');
       } catch {
         msg.is_starred = wasStarred;
         starBtn.innerHTML = wasStarred ? '<i class="icon-star"></i>' : '<i class="icon-star-off"></i>';

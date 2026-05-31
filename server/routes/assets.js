@@ -52,7 +52,8 @@ router.post('/media/:id/star', requireAuth, async (req, res) => {
   if (!media) return res.status(404).json({ error: 'Not found' });
   try {
     db.prepare('INSERT OR IGNORE INTO media_stars (media_id, user_id) VALUES (?, ?)').run(req.params.id, req.user.id);
-    res.json({ ok: true });
+    const starred = !!db.prepare('SELECT 1 FROM media_stars WHERE media_id = ? LIMIT 1').get(req.params.id);
+    res.json({ ok: true, starred });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -61,7 +62,8 @@ router.post('/media/:id/star', requireAuth, async (req, res) => {
 router.delete('/media/:id/star', requireAuth, async (req, res) => {
   const db = await dbPromise;
   db.prepare('DELETE FROM media_stars WHERE media_id = ? AND user_id = ?').run(req.params.id, req.user.id);
-  res.json({ ok: true });
+  const starred = !!db.prepare('SELECT 1 FROM media_stars WHERE media_id = ? LIMIT 1').get(req.params.id);
+  res.json({ ok: true, starred });
 });
 
 // ── MEDIA BACKUP CHECK ──────────────────────────────────────────
@@ -222,8 +224,6 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
 
   if (toDelete.length > 0) {
     console.log(`[gallery] Purging ${toDelete.length} unstarred media items >7d from /gallery/media`);
-    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
     for (const item of toDelete) {
       supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
@@ -240,6 +240,9 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
         }
       }
     }
+
+    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
   }
 
   const limit = Math.min(parseInt(req.query.limit) || 15, 50);
@@ -252,12 +255,12 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
   const items = db.prepare(`
     SELECT m.id, m.uploader_id, m.filename, m.mime_type, m.size_bytes, m.created_at,
            (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username,
-           (SELECT 1 FROM media_stars WHERE media_id = m.id AND user_id = ?) as is_starred
+           (SELECT 1 FROM media_stars WHERE media_id = m.id LIMIT 1) as is_starred
     FROM media m
     WHERE m.mime_type LIKE 'image/%' OR m.mime_type LIKE 'video/%'
     ORDER BY is_starred DESC, m.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(req.user.id, limit, offset);
+  `).all(limit, offset);
 
   res.json({ items, total, limit, offset });
 });
@@ -272,8 +275,6 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
 
   if (toDelete.length > 0) {
     console.log(`[gallery] Purging ${toDelete.length} unstarred media items >7d from /gallery/files`);
-    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
     for (const item of toDelete) {
       supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
@@ -290,6 +291,9 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
         }
       }
     }
+
+    db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+      AND id NOT IN (SELECT media_id FROM media_stars)`).run();
   }
 
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
@@ -305,12 +309,12 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
   const items = db.prepare(`
     SELECT m.id, m.uploader_id, m.filename, m.mime_type, m.size_bytes, m.created_at,
            (SELECT username FROM users WHERE id = m.uploader_id) as uploader_username,
-           (SELECT 1 FROM media_stars WHERE media_id = m.id AND user_id = ?) as is_starred
+           (SELECT 1 FROM media_stars WHERE media_id = m.id LIMIT 1) as is_starred
     FROM media m
     WHERE m.mime_type NOT LIKE 'image/%' AND m.mime_type NOT LIKE 'video/%'
     ORDER BY is_starred DESC, m.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(req.user.id, limit, offset);
+  `).all(limit, offset);
 
   res.json({ items, total, limit, offset });
 });
