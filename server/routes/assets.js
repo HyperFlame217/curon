@@ -67,6 +67,9 @@ router.delete('/media/:id/star', requireAuth, async (req, res) => {
 // ── MEDIA BACKUP CHECK ──────────────────────────────────────────
 router.get('/media/backup/check', requireAuth, async (req, res) => {
   const db = await dbPromise;
+  db.prepare(`DELETE FROM media WHERE storage_provider = 'local'
+    AND created_at < (strftime('%s','now') - 7*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)`).run();
   const count = db.prepare('SELECT COUNT(*) as c FROM media WHERE storage_provider = ?').get('local')?.c || 0;
   res.json({ count });
 });
@@ -211,11 +214,28 @@ router.get('/gallery/media', requireAuth, async (req, res) => {
   const db = await dbPromise;
 
   // Purge stale unstarred media before returning gallery data
-  db.prepare(`
-    DELETE FROM media
-    WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-    AND id NOT IN (SELECT media_id FROM media_stars)
-  `).run();
+  const toDelete = db.prepare(`SELECT id, filename, mime_type, storage_provider
+    FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)`).all();
+
+  for (const item of toDelete) {
+    supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
+    if (item.mime_type?.startsWith('image/')) {
+      const base = item.filename.replace(path.extname(item.filename), '');
+      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+    }
+    if (item.storage_provider === 'local') {
+      const p = path.join(MEDIA_DIR, item.filename);
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+      if (item.mime_type?.startsWith('image/')) {
+        const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
+        if (fs.existsSync(t)) fs.unlinkSync(t);
+      }
+    }
+  }
+
+  db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
   const limit = Math.min(parseInt(req.query.limit) || 15, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);
@@ -241,11 +261,28 @@ router.get('/gallery/files', requireAuth, async (req, res) => {
   const db = await dbPromise;
 
   // Purge stale unstarred media before returning gallery data
-  db.prepare(`
-    DELETE FROM media
-    WHERE created_at < (strftime('%s','now') - 7*24*60*60)
-    AND id NOT IN (SELECT media_id FROM media_stars)
-  `).run();
+  const toDelete = db.prepare(`SELECT id, filename, mime_type, storage_provider
+    FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)`).all();
+
+  for (const item of toDelete) {
+    supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`).catch(()=>{});
+    if (item.mime_type?.startsWith('image/')) {
+      const base = item.filename.replace(path.extname(item.filename), '');
+      supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+    }
+    if (item.storage_provider === 'local') {
+      const p = path.join(MEDIA_DIR, item.filename);
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+      if (item.mime_type?.startsWith('image/')) {
+        const t = path.join(THUMB_DIR, `${item.filename.replace(path.extname(item.filename), '')}.jpg`);
+        if (fs.existsSync(t)) fs.unlinkSync(t);
+      }
+    }
+  }
+
+  db.prepare(`DELETE FROM media WHERE created_at < (strftime('%s','now') - 7*24*60*60)
+    AND id NOT IN (SELECT media_id FROM media_stars)`).run();
 
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
   const offset = Math.max(parseInt(req.query.offset) || 0, 0);

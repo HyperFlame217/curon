@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const supabaseStorage = require('./supabase-storage');
@@ -111,50 +112,66 @@ async function main() {
   // ── WebSocket ─────────────────────────────────────────────
   require('./ws/handler')(server);
 
-  // ── Media Cleanup (auto-delete unstarred media >14 days) ──
+  // ── Media Cleanup (auto-delete unstarred media >7 days) ──
+  let _orphanSwept = false;
+
   async function cleanupOldMedia() {
-    try {
-      const database = await db;
-      const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
-      const oldItems = database.prepare(`
-        SELECT id, filename, mime_type, storage_provider FROM media
-        WHERE created_at < ? AND id NOT IN (SELECT media_id FROM media_stars)
-      `).all(cutoff);
+    const database = await db;
+    const cutoff = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
 
-      for (const item of oldItems) {
-        // Always try Supabase deletion (backward compat with existing records)
-        try {
-          await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`);
-          if (item.mime_type && item.mime_type.startsWith('image/')) {
-            const ext = path.extname(item.filename);
-            const base = item.filename.replace(ext, '');
-            await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`);
-          }
-        } catch (_) { /* file may already be gone */ }
+    const oldItems = database.prepare(`SELECT id, filename, mime_type, storage_provider FROM media
+      WHERE created_at < ? AND id NOT IN (SELECT media_id FROM media_stars)`).all(cutoff);
 
-        // Also delete local files if applicable
-        if (item.storage_provider === 'local') {
-          try {
-            const MEDIA_DIR = path.join(__dirname, 'storage', 'media');
-            const THUMB_DIR = path.join(__dirname, 'storage', 'thumbnails');
-            const localPath = path.join(MEDIA_DIR, item.filename);
-            if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
-            if (item.mime_type && item.mime_type.startsWith('image/')) {
-              const ext = path.extname(item.filename);
-              const thumbPath = path.join(THUMB_DIR, `${item.filename.replace(ext, '')}.jpg`);
-              if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
-            }
-          } catch (_) { /* local file may already be gone */ }
+    for (const item of oldItems) {
+      try {
+        await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${item.filename}`);
+        if (item.mime_type?.startsWith('image/')) {
+          const base = item.filename.replace(path.extname(item.filename), '');
+          await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`);
         }
-
-        database.prepare('DELETE FROM media WHERE id = ?').run(item.id);
+      } catch (e) {
+        console.warn('[cleanup] Supabase remove failed:', e.message);
       }
 
-      if (oldItems.length > 0) {
-        console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >7 days old`);
+      if (item.storage_provider === 'local') {
+        try {
+          const MEDIA_DIR = path.join(__dirname, 'storage', 'media');
+          const THUMB_DIR = path.join(__dirname, 'storage', 'thumbnails');
+          const localPath = path.join(MEDIA_DIR, item.filename);
+          if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+          if (item.mime_type?.startsWith('image/')) {
+            const ext = path.extname(item.filename);
+            const thumbPath = path.join(THUMB_DIR, `${item.filename.replace(ext, '')}.jpg`);
+            if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+          }
+        } catch (e) {
+          console.warn('[cleanup] Local remove failed:', e.message);
+        }
       }
-    } catch (err) {
-      console.error('[cleanup] Error:', err.message);
+
+      database.prepare('DELETE FROM media WHERE id = ?').run(item.id);
+    }
+
+    // One-time orphan sweep: Supabase files with no DB row
+    if (!_orphanSwept && oldItems.length === 0) {
+      _orphanSwept = true;
+      try {
+        const files = await supabaseStorage.list(supabaseStorage.MEDIA_BUCKET, 'media/');
+        for (const f of files) {
+          const row = database.prepare('SELECT id FROM media WHERE filename = ?').get(f.name);
+          if (!row) {
+            await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${f.name}`);
+            const base = f.name.replace(path.extname(f.name), '');
+            await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+          }
+        }
+      } catch (e) {
+        console.warn('[cleanup] Orphan sweep failed:', e.message);
+      }
+    }
+
+    if (oldItems.length > 0) {
+      console.log(`[cleanup] Deleted ${oldItems.length} unstarred media items >7 days old`);
     }
   }
 
@@ -169,6 +186,58 @@ async function main() {
     }, 60_000);
     console.log(`[cleanup] Scheduled every ${Math.round(CLEANUP_INTERVAL / 60000)}min (first run in 1min)`);
   }
+
+  // ── Startup Orphan Sweep (one-time) ───────────────────────
+  async function runStartupOrphanSweep() {
+    const database = await db;
+    let removed = 0;
+    const MEDIA_DIR = path.join(__dirname, 'storage', 'media');
+    const THUMB_DIR = path.join(__dirname, 'storage', 'thumbnails');
+
+    for (const dir of [MEDIA_DIR, THUMB_DIR]) {
+      let files;
+      try { files = fs.readdirSync(dir); } catch { continue; }
+      for (const f of files) {
+        const isThumb = dir === THUMB_DIR;
+        const mediaName = isThumb ? f.replace(/\.jpg$/i, '') : f;
+        const row = isThumb
+          ? database.prepare("SELECT id FROM media WHERE filename LIKE ? || '.%'").get(mediaName)
+          : database.prepare('SELECT id FROM media WHERE filename = ?').get(f);
+        if (!row) {
+          try { fs.unlinkSync(path.join(dir, f)); removed++; } catch {}
+        }
+      }
+    }
+
+    try {
+      const mediaFiles = await supabaseStorage.list(supabaseStorage.MEDIA_BUCKET, 'media/');
+      for (const f of mediaFiles) {
+        const row = database.prepare('SELECT id FROM media WHERE filename = ?').get(f.name);
+        if (!row) {
+          await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `media/${f.name}`).catch(()=>{});
+          const base = f.name.replace(path.extname(f.name), '');
+          await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${base}.jpg`).catch(()=>{});
+          removed++;
+        }
+      }
+
+      const thumbFiles = await supabaseStorage.list(supabaseStorage.MEDIA_BUCKET, 'thumbnails/');
+      for (const f of thumbFiles) {
+        const mediaName = f.name.replace(/\.jpg$/i, '');
+        const row = database.prepare("SELECT id FROM media WHERE filename LIKE ?").get(mediaName + '.%');
+        if (!row) {
+          await supabaseStorage.remove(supabaseStorage.MEDIA_BUCKET, `thumbnails/${f.name}`).catch(()=>{});
+          removed++;
+        }
+      }
+    } catch (e) {
+      console.warn('[startup] Supabase orphan sweep failed:', e.message);
+    }
+
+    if (removed > 0) console.log(`[startup] Orphan sweep: removed ${removed} orphaned files`);
+  }
+
+  runStartupOrphanSweep();
 
   // ── Start ─────────────────────────────────────────────────
   const PORT = process.env.PORT || 3000;

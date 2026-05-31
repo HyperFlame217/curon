@@ -46,12 +46,15 @@ async function downloadMedia(id) {
 
 async function openGallery() {
   _closeAllViews();
+  _galleryLoaded = false;
+  _isLoadingMore = false;
   document.getElementById('gallery-view').classList.add('show');
 
   if (!_galleryLoaded) await loadGallery();
 }
 
 function closeGallery() {
+  _isLoadingMore = false;
   document.getElementById('gallery-view').classList.remove('show');
 }
 
@@ -170,14 +173,15 @@ async function loadNextBatch(tab) {
 
   _isLoadingMore = true;
   const loading = document.getElementById('gallery-loading');
-  const originalText = loading.querySelector('.loading-text')?.textContent || 'LOADING...';
-  loading.querySelector('.loading-text').textContent = 'LOADING MORE...';
+  if (!loading) { _isLoadingMore = false; return; }
+  const loadingText = loading.querySelector('.loading-text');
+  const originalText = loadingText?.textContent || 'LOADING...';
+  if (loadingText) loadingText.textContent = 'LOADING MORE...';
 
   try {
     if (USE_OLD_GALLERY) {
-      // Legacy: no more batches available
       _isLoadingMore = false;
-      loading.querySelector('.loading-text').textContent = originalText;
+      if (loadingText) loadingText.textContent = originalText;
       return;
     }
 
@@ -214,7 +218,7 @@ async function loadNextBatch(tab) {
     console.error('Load more error:', err);
   } finally {
     _isLoadingMore = false;
-    loading.querySelector('.loading-text').textContent = originalText;
+    if (loadingText) loadingText.textContent = originalText;
   }
 }
 
